@@ -1,35 +1,35 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import MapView, { Circle, Region } from "react-native-maps";
+import { AppleMaps, CameraPosition, GoogleMaps } from "expo-maps";
 import * as Location from "expo-location";
 
 import { Colors, Fonts } from "../../constants/theme";
 
-const DEFAULT_REGION: Region = {
-  latitude: 40.7128,
-  longitude: -74.006,
-  latitudeDelta: 0.1,
-  longitudeDelta: 0.1,
+const DEFAULT_CAMERA: CameraPosition = {
+  coordinates: {
+    latitude: 40.7128,
+    longitude: -74.006,
+  },
+  zoom: 11,
 };
 
-function createRegionFromCoords(
+function createCameraFromCoords(
   coords: Location.LocationObjectCoords
-): Region {
-  const latitudeDelta = 0.02;
-  const longitudeDelta = 0.02;
-
+): CameraPosition {
   return {
-    latitude: coords.latitude,
-    longitude: coords.longitude,
-    latitudeDelta,
-    longitudeDelta,
+    coordinates: {
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+    },
+    zoom: 15,
   };
 }
 
@@ -40,8 +40,26 @@ export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [canAskLocationAgain, setCanAskLocationAgain] = useState(true);
-  const mapRef = useRef<MapView | null>(null);
+  const mapRef = useRef<AppleMaps.MapView | GoogleMaps.MapView | null>(null);
   const isMountedRef = useRef(true);
+
+  const MapComponent = useMemo(() => {
+    if (Platform.OS === "ios") {
+      return AppleMaps.View;
+    }
+
+    if (Platform.OS === "android") {
+      return GoogleMaps.View;
+    }
+
+    return null;
+  }, []);
+
+  useEffect(() => {
+    if (!MapComponent) {
+      setIsMapReady(true);
+    }
+  }, [MapComponent]);
 
   useEffect(() => {
     return () => {
@@ -105,9 +123,19 @@ export default function MapScreen() {
   }, [requestLocation]);
 
   useEffect(() => {
-    if (location?.coords && mapRef.current) {
-      const region = createRegionFromCoords(location.coords);
-      mapRef.current.animateToRegion(region, 700);
+    if (!location?.coords || !mapRef.current) {
+      return;
+    }
+
+    const camera = createCameraFromCoords(location.coords);
+
+    if (Platform.OS === "android") {
+      (mapRef.current as GoogleMaps.MapView | null)?.setCameraPosition({
+        ...camera,
+        duration: 700,
+      });
+    } else if (Platform.OS === "ios") {
+      (mapRef.current as AppleMaps.MapView | null)?.setCameraPosition(camera);
     }
   }, [location]);
 
@@ -157,27 +185,62 @@ export default function MapScreen() {
     ? `Latitude ${coords.latitude.toFixed(4)}, Longitude ${coords.longitude.toFixed(4)}`
     : "Grant location access so we can highlight where you are right now.";
 
+  const circleOverlay = useMemo(() => {
+    if (!coords?.accuracy || Platform.OS === "web") {
+      return undefined;
+    }
+
+    return [
+      {
+        center: {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        },
+        radius: Math.min(Math.max(coords.accuracy, 25), 500),
+        color: "rgba(56, 132, 255, 0.2)",
+        lineColor: "rgba(56, 132, 255, 0.5)",
+      },
+    ];
+  }, [coords]);
+
+  const mapCamera = coords ? createCameraFromCoords(coords) : DEFAULT_CAMERA;
+
+  const mapProperties = useMemo(
+    () => ({
+      isMyLocationEnabled: true,
+    }),
+    []
+  );
+
+  const mapUiSettings = useMemo(
+    () => ({
+      myLocationButtonEnabled: true,
+    }),
+    []
+  );
+
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={DEFAULT_REGION}
-        showsUserLocation
-        showsMyLocationButton
-        onMapReady={handleMapReady}
-        accessibilityLabel="Map showing your current location"
-        accessibilityRole="image"
-      >
-        {coords?.accuracy != null && (
-          <Circle
-            center={{ latitude: coords.latitude, longitude: coords.longitude }}
-            radius={Math.min(Math.max(coords.accuracy, 25), 500)}
-            strokeColor="rgba(56, 132, 255, 0.5)"
-            fillColor="rgba(56, 132, 255, 0.2)"
-          />
-        )}
-      </MapView>
+      {MapComponent ? (
+        <MapComponent
+          ref={mapRef as never}
+          style={styles.map}
+          cameraPosition={mapCamera}
+          properties={mapProperties as never}
+          uiSettings={mapUiSettings as never}
+          circles={circleOverlay as never}
+          onMapLoaded={Platform.OS === "android" ? handleMapReady : undefined}
+          onLayout={Platform.OS === "ios" ? handleMapReady : undefined}
+          accessibilityLabel="Map showing your current location"
+          accessibilityRole="image"
+        />
+      ) : (
+        <View style={styles.mapUnavailable}>
+          <Text style={styles.mapUnavailableText}>
+            Maps are only available on iOS and Android devices.
+          </Text>
+        </View>
+      )}
 
       {isLoading && (
         <View style={styles.loadingOverlay} pointerEvents="none">
@@ -276,6 +339,19 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  mapUnavailable: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  mapUnavailableText: {
+    textAlign: "center",
+    color: Colors.light.text,
+    fontFamily: Fonts.sans,
+    fontSize: 16,
+    lineHeight: 22,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
