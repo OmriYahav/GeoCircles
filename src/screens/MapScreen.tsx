@@ -9,12 +9,31 @@ import {
   Text,
   View,
 } from "react-native";
-import MapboxGL from "@rnmapbox/maps";
 import * as Location from "expo-location";
 import { MAPBOX_ACCESS_TOKEN, MAPBOX_STYLE_URL } from "../../constants/mapbox";
 import { Colors, Fonts } from "../../constants/theme";
 
-type MapboxCameraRef = React.ComponentRef<typeof MapboxGL.Camera> | null;
+type MapboxGLModule = typeof import("@rnmapbox/maps");
+type MapboxCameraRef = React.ComponentRef<MapboxGLModule["Camera"]> | null;
+
+const isMobilePlatform = Platform.OS === "ios" || Platform.OS === "android";
+
+let MapboxGL: MapboxGLModule | null = null;
+
+if (isMobilePlatform) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    MapboxGL = require("@rnmapbox/maps") as MapboxGLModule;
+  } catch (error) {
+    if (__DEV__) {
+      console.warn(
+        "@rnmapbox/maps native module is unavailable. Falling back to static map rendering.",
+        error
+      );
+    }
+    MapboxGL = null;
+  }
+}
 
 type MapCameraPosition = {
   centerCoordinate: [number, number];
@@ -44,28 +63,22 @@ export default function MapScreen() {
   const [canAskLocationAgain, setCanAskLocationAgain] = useState(true);
   const cameraRef = useRef<MapboxCameraRef>(null);
   const isMountedRef = useRef(true);
-
-  const isMobilePlatform = Platform.OS === "ios" || Platform.OS === "android";
+  const hasMapboxToken = Boolean(MAPBOX_ACCESS_TOKEN);
 
   useEffect(() => {
-    if (!isMobilePlatform) {
-      setIsMapReady(true);
-      return;
-    }
-
-    if (!MAPBOX_ACCESS_TOKEN) {
+    if (!isMobilePlatform || !MapboxGL || !hasMapboxToken) {
       setIsMapReady(true);
       return;
     }
 
     MapboxGL.setAccessToken(MAPBOX_ACCESS_TOKEN);
     MapboxGL.setTelemetryEnabled(false);
-    MapboxGL.locationManager.start();
+    MapboxGL.locationManager?.start?.();
 
     return () => {
-      MapboxGL.locationManager.stop();
+      MapboxGL?.locationManager?.stop?.();
     };
-  }, [isMobilePlatform]);
+  }, [hasMapboxToken]);
 
   useEffect(() => {
     return () => {
@@ -129,7 +142,7 @@ export default function MapScreen() {
   }, [requestLocation]);
 
   useEffect(() => {
-    if (!location?.coords || !cameraRef.current || !isMobilePlatform) {
+    if (!location?.coords || !cameraRef.current || !isMobilePlatform || !MapboxGL) {
       return;
     }
 
@@ -141,7 +154,7 @@ export default function MapScreen() {
       animationDuration: Platform.OS === "android" ? 700 : 0,
       animationMode: Platform.OS === "android" ? "easeTo" : "none",
     });
-  }, [isMobilePlatform, location]);
+  }, [location]);
 
   const handleDismissOverlay = useCallback(() => {
     setOverlayDismissed(true);
@@ -181,8 +194,10 @@ export default function MapScreen() {
     setIsMapReady(true);
   }, []);
 
+  const isMapboxSupported = Boolean(isMobilePlatform && hasMapboxToken && MapboxGL);
+
   const shouldShowLoadingOverlay =
-    isRequestingLocation || (isMobilePlatform && hasMapboxToken && !isMapReady);
+    isRequestingLocation || (isMapboxSupported && !isMapReady);
 
   const coords = location?.coords;
   const overlayTitle = coords ? "You’re here" : "Waiting for your location";
@@ -192,9 +207,7 @@ export default function MapScreen() {
 
   const mapCamera = coords ? createCameraFromCoords(coords) : DEFAULT_CAMERA;
 
-  const hasMapboxToken = Boolean(MAPBOX_ACCESS_TOKEN);
-
-  const mapUnavailableMessage = useMemo(() => {
+  const mapUnavailableMessage = (() => {
     if (!hasMapboxToken) {
       return "Add your Mapbox public access token (EXPO_PUBLIC_MAPBOX_TOKEN) to enable maps.";
     }
@@ -203,8 +216,12 @@ export default function MapScreen() {
       return "Interactive Mapbox maps are only available on iOS and Android devices.";
     }
 
-    return "Mapbox maps require running the app in a custom development or production build.";
-  }, [hasMapboxToken, isMobilePlatform]);
+    if (!MapboxGL) {
+      return "Mapbox maps require running the app in a custom development or production build.";
+    }
+
+    return "Map preview is currently unavailable.";
+  })();
 
   const fallbackMapUrl = useMemo(() => {
     if (!hasMapboxToken) {
@@ -220,7 +237,7 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      {isMobilePlatform && hasMapboxToken ? (
+      {isMapboxSupported && MapboxGL ? (
         <MapboxGL.MapView
           style={styles.map}
           styleURL={MAPBOX_STYLE_URL}
