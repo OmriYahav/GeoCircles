@@ -9,48 +9,38 @@ import {
   Text,
   View,
 } from "react-native";
+import MapView, { Marker, UrlTile } from "react-native-maps";
 import * as Location from "expo-location";
-import { MAPBOX_ACCESS_TOKEN, MAPBOX_STYLE_URL } from "../../constants/mapbox";
+import {
+  DEFAULT_COORDINATES,
+  OSM_MAX_ZOOM_LEVEL,
+  OSM_TILE_URL,
+  STATIC_MAP_BASE_URL,
+} from "../../constants/map";
 import { Colors, Fonts } from "../../constants/theme";
-
-type MapboxGLModule = typeof import("@rnmapbox/maps");
-type MapboxCameraRef = React.ComponentRef<MapboxGLModule["Camera"]> | null;
 
 const isMobilePlatform = Platform.OS === "ios" || Platform.OS === "android";
 
-let MapboxGL: MapboxGLModule | null = null;
-
-if (isMobilePlatform) {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    MapboxGL = require("@rnmapbox/maps") as MapboxGLModule;
-  } catch (error) {
-    if (__DEV__) {
-      console.warn(
-        "@rnmapbox/maps native module is unavailable. Falling back to static map rendering.",
-        error
-      );
-    }
-    MapboxGL = null;
-  }
-}
-
-type MapCameraPosition = {
-  centerCoordinate: [number, number];
-  zoomLevel: number;
+type MapRegion = {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
 };
 
-const DEFAULT_CAMERA: MapCameraPosition = {
-  centerCoordinate: [-74.006, 40.7128],
-  zoomLevel: 11,
+const DEFAULT_REGION: MapRegion = {
+  latitude: DEFAULT_COORDINATES.latitude,
+  longitude: DEFAULT_COORDINATES.longitude,
+  latitudeDelta: 0.12,
+  longitudeDelta: 0.12,
 };
 
-function createCameraFromCoords(
-  coords: Location.LocationObjectCoords
-): MapCameraPosition {
+function createRegionFromCoords(coords: Location.LocationObjectCoords): MapRegion {
   return {
-    centerCoordinate: [coords.longitude, coords.latitude],
-    zoomLevel: 15,
+    latitude: coords.latitude,
+    longitude: coords.longitude,
+    latitudeDelta: 0.02,
+    longitudeDelta: 0.02,
   };
 }
 
@@ -61,24 +51,9 @@ export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [canAskLocationAgain, setCanAskLocationAgain] = useState(true);
-  const cameraRef = useRef<MapboxCameraRef>(null);
+  const mapRef = useRef<React.ComponentRef<typeof MapView> | null>(null);
   const isMountedRef = useRef(true);
-  const hasMapboxToken = Boolean(MAPBOX_ACCESS_TOKEN);
-
-  useEffect(() => {
-    if (!isMobilePlatform || !MapboxGL || !hasMapboxToken) {
-      setIsMapReady(true);
-      return;
-    }
-
-    MapboxGL.setAccessToken(MAPBOX_ACCESS_TOKEN);
-    MapboxGL.setTelemetryEnabled(false);
-    MapboxGL.locationManager?.start?.();
-
-    return () => {
-      MapboxGL?.locationManager?.stop?.();
-    };
-  }, [hasMapboxToken]);
+  const isInteractiveMapSupported = isMobilePlatform;
 
   useEffect(() => {
     return () => {
@@ -142,19 +117,27 @@ export default function MapScreen() {
   }, [requestLocation]);
 
   useEffect(() => {
-    if (!location?.coords || !cameraRef.current || !isMobilePlatform || !MapboxGL) {
+    if (!location?.coords || !mapRef.current || !isInteractiveMapSupported) {
       return;
     }
 
-    const camera = createCameraFromCoords(location.coords);
+    const region = createRegionFromCoords(location.coords);
 
-    cameraRef.current.setCamera({
-      centerCoordinate: camera.centerCoordinate,
-      zoomLevel: camera.zoomLevel,
-      animationDuration: Platform.OS === "android" ? 700 : 0,
-      animationMode: Platform.OS === "android" ? "easeTo" : "none",
-    });
-  }, [location]);
+    if (Platform.OS === "android") {
+      mapRef.current.animateCamera?.(
+        {
+          center: {
+            latitude: region.latitude,
+            longitude: region.longitude,
+          },
+          zoom: 15,
+        },
+        { duration: 700 }
+      );
+    } else {
+      mapRef.current.animateToRegion(region, 700);
+    }
+  }, [isInteractiveMapSupported, location]);
 
   const handleDismissOverlay = useCallback(() => {
     setOverlayDismissed(true);
@@ -177,8 +160,8 @@ export default function MapScreen() {
   const handleOpenInMaps = useCallback(async () => {
     const coords = location?.coords;
     const url = coords
-      ? `https://www.mapbox.com/directions/?coordinates=${coords.longitude},${coords.latitude}`
-      : "https://www.mapbox.com/maps/";
+      ? `https://www.openstreetmap.org/?mlat=${coords.latitude}&mlon=${coords.longitude}#map=16/${coords.latitude}/${coords.longitude}`
+      : "https://www.openstreetmap.org/";
 
     try {
       const canOpen = await Linking.canOpenURL(url);
@@ -194,10 +177,8 @@ export default function MapScreen() {
     setIsMapReady(true);
   }, []);
 
-  const isMapboxSupported = Boolean(isMobilePlatform && hasMapboxToken && MapboxGL);
-
   const shouldShowLoadingOverlay =
-    isRequestingLocation || (isMapboxSupported && !isMapReady);
+    isRequestingLocation || (isInteractiveMapSupported && !isMapReady);
 
   const coords = location?.coords;
   const overlayTitle = coords ? "You’re here" : "Waiting for your location";
@@ -205,73 +186,66 @@ export default function MapScreen() {
     ? `Latitude ${coords.latitude.toFixed(4)}, Longitude ${coords.longitude.toFixed(4)}`
     : "Grant location access so we can highlight where you are right now.";
 
-  const mapCamera = coords ? createCameraFromCoords(coords) : DEFAULT_CAMERA;
+  const mapRegion = coords ? createRegionFromCoords(coords) : DEFAULT_REGION;
 
   const mapUnavailableMessage = (() => {
-    if (!hasMapboxToken) {
-      return "Add your Mapbox public access token (EXPO_PUBLIC_MAPBOX_TOKEN) to enable maps.";
-    }
-
     if (!isMobilePlatform) {
-      return "Interactive Mapbox maps are only available on iOS and Android devices.";
-    }
-
-    if (!MapboxGL) {
-      return "Mapbox maps require running the app in a custom development or production build.";
+      return "Interactive OpenStreetMap tiles are only available on iOS and Android devices.";
     }
 
     return "Map preview is currently unavailable.";
   })();
 
   const fallbackMapUrl = useMemo(() => {
-    if (!hasMapboxToken) {
-      return null;
-    }
-
-    const latitude = coords?.latitude ?? mapCamera.centerCoordinate[1];
-    const longitude = coords?.longitude ?? mapCamera.centerCoordinate[0];
-    const marker = coords ? `pin-s+3875F6(${longitude},${latitude})/` : "";
-    const camera = `${longitude},${latitude},${coords ? 15 : mapCamera.zoomLevel},0`;
-    return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${marker}${camera}/600x600@2x?access_token=${MAPBOX_ACCESS_TOKEN}`;
-  }, [coords, hasMapboxToken, mapCamera.centerCoordinate, mapCamera.zoomLevel]);
+    const latitude = coords?.latitude ?? mapRegion.latitude;
+    const longitude = coords?.longitude ?? mapRegion.longitude;
+    const zoom = coords ? 15 : DEFAULT_COORDINATES.zoomLevel;
+    const marker = coords ? `&markers=${latitude},${longitude},lightblue1` : "";
+    return `${STATIC_MAP_BASE_URL}?center=${latitude},${longitude}&zoom=${zoom}&size=600x600${marker}`;
+  }, [coords, mapRegion.latitude, mapRegion.longitude]);
 
   return (
     <View style={styles.container}>
-      {isMapboxSupported && MapboxGL ? (
-        <MapboxGL.MapView
+      {isInteractiveMapSupported ? (
+        <MapView
+          ref={mapRef}
           style={styles.map}
-          styleURL={MAPBOX_STYLE_URL}
-          logoEnabled={false}
-          compassEnabled
-          onDidFinishLoadingMap={handleMapReady}
-          onDidFinishRenderingMapFully={handleMapReady}
+          initialRegion={mapRegion}
+          onMapReady={handleMapReady}
+          onMapLoaded={handleMapReady}
+          showsUserLocation={Boolean(coords)}
+          showsMyLocationButton={false}
+          toolbarEnabled={false}
           accessibilityLabel="Map showing your current location"
           accessibilityRole="image"
         >
-          <MapboxGL.Camera
-            ref={cameraRef}
-            centerCoordinate={mapCamera.centerCoordinate}
-            zoomLevel={mapCamera.zoomLevel}
-          />
-          <MapboxGL.UserLocation
-            visible
-            showsUserHeadingIndicator
+          <UrlTile
+            urlTemplate={OSM_TILE_URL}
+            maximumZ={OSM_MAX_ZOOM_LEVEL}
+            tileSize={256}
+            zIndex={-1}
+            shouldReplaceMapContent
+            tileCacheMaxAge={60 * 60 * 24}
+            tileCachePath="osm-tile-cache"
           />
           {coords && (
-            <MapboxGL.PointAnnotation
-              id="current-location"
-              coordinate={mapCamera.centerCoordinate}
+            <Marker
+              coordinate={{
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+              }}
               title="Your location"
+              description={`Latitude ${coords.latitude.toFixed(4)}, Longitude ${coords.longitude.toFixed(4)}`}
             />
           )}
-        </MapboxGL.MapView>
+        </MapView>
       ) : fallbackMapUrl ? (
         <View style={styles.map}>
           <Image
             source={{ uri: fallbackMapUrl }}
             style={styles.staticMap}
             resizeMode="cover"
-            accessibilityLabel="Mapbox map showing your current location"
+            accessibilityLabel="OpenStreetMap view showing your current location"
             accessibilityRole="image"
           />
         </View>
@@ -280,6 +254,10 @@ export default function MapScreen() {
           <Text style={styles.mapUnavailableText}>{mapUnavailableMessage}</Text>
         </View>
       )}
+
+      <View pointerEvents="none" style={styles.attributionContainer}>
+        <Text style={styles.attributionText}>© OpenStreetMap contributors</Text>
+      </View>
 
       {shouldShowLoadingOverlay && (
         <View style={styles.loadingOverlay} pointerEvents="none">
@@ -337,7 +315,7 @@ export default function MapScreen() {
           <Text style={styles.locationTitle}>{overlayTitle}</Text>
           <Text style={styles.locationDescription}>{overlayDescription}</Text>
           <Pressable
-            accessibilityHint="Opens Mapbox directions centered on your coordinates"
+            accessibilityHint="Opens OpenStreetMap centered on your coordinates"
             accessibilityRole="button"
             disabled={!coords}
             onPress={handleOpenInMaps}
@@ -347,7 +325,7 @@ export default function MapScreen() {
             ]}
           >
             <Text style={styles.ctaLabel}>
-              {coords ? "Open in Mapbox" : "Waiting for permission…"}
+              {coords ? "Open in OpenStreetMap" : "Waiting for permission…"}
             </Text>
           </Pressable>
         </View>
@@ -395,6 +373,20 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 16,
     lineHeight: 22,
+  },
+  attributionContainer: {
+    position: "absolute",
+    left: 16,
+    bottom: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+  },
+  attributionText: {
+    color: Colors.light.background,
+    fontSize: 12,
+    fontFamily: Fonts.sans,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
