@@ -26,8 +26,8 @@ type NativeMapRef = {
 };
 
 type ExpoMapsModule = {
-  AppleMaps: { View: React.ComponentType<unknown> };
-  GoogleMaps: { View: React.ComponentType<unknown> };
+  AppleMaps?: { View?: React.ComponentType<unknown> };
+  GoogleMaps?: { View?: React.ComponentType<unknown> };
 };
 
 const DEFAULT_CAMERA: MapCameraPosition = {
@@ -95,18 +95,18 @@ export default function MapScreen() {
     }
 
     if (Platform.OS === "ios") {
-      return expoMapsModule.AppleMaps.View;
+      return expoMapsModule.AppleMaps?.View ?? null;
     }
 
     if (Platform.OS === "android") {
-      return expoMapsModule.GoogleMaps.View;
+      return expoMapsModule.GoogleMaps?.View ?? null;
     }
 
     return null;
   }, [expoMapsModule]);
 
   useEffect(() => {
-    if (!MapComponent && Platform.OS === "web") {
+    if (!MapComponent) {
       setIsMapReady(true);
     }
   }, [MapComponent]);
