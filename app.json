@@ -26,7 +26,7 @@
       "favicon": "./assets/images/favicon.png"
     },
 
-    "plugins": ["@rnmapbox/maps"],
+    "plugins": [["@rnmapbox/maps", {}]],
 
     "experiments": {
       "typedRoutes": true,
