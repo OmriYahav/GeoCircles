@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
+  AppStateStatus,
   Image,
   Linking,
   Platform,
@@ -55,6 +57,8 @@ export default function MapScreen() {
   const [canAskLocationAgain, setCanAskLocationAgain] = useState(true);
   const mapRef = useRef<InteractiveMapHandle | null>(null);
   const isMountedRef = useRef(true);
+  const isFetchingLocationRef = useRef(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const isInteractiveMapSupported = isMobilePlatform;
 
   useEffect(() => {
@@ -63,15 +67,84 @@ export default function MapScreen() {
     };
   }, []);
 
+  const startRequestingLocation = useCallback(() => {
+    isFetchingLocationRef.current = true;
+    setIsRequestingLocation(true);
+  }, []);
+
+  const stopRequestingLocation = useCallback(() => {
+    isFetchingLocationRef.current = false;
+    setIsRequestingLocation(false);
+  }, []);
+
+  const fetchCurrentLocation = useCallback(async () => {
+    try {
+      const current = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        maximumAge: 10_000,
+        timeout: 15_000,
+      });
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setLocationError(null);
+      setLocation(current);
+    } catch (error) {
+      console.error("Failed to determine current location", error);
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      const errorCode = (error as { code?: string })?.code;
+      setLocation(null);
+
+      if (errorCode === "E_LOCATION_TIMEOUT") {
+        setLocationError(
+          "It’s taking a while to determine your position. Try again in a moment."
+        );
+        return;
+      }
+
+      if (errorCode === "E_LOCATION_SERVICES_DISABLED") {
+        setLocationError(
+          "Location services are turned off. Enable them in your system settings to show your position."
+        );
+        return;
+      }
+
+      setLocationError(
+        "We couldn't determine your current location. Please try again."
+      );
+    }
+  }, []);
+
   const requestLocation = useCallback(async () => {
-    if (!isMountedRef.current) {
+    if (!isMountedRef.current || isFetchingLocationRef.current) {
       return;
     }
 
-    setIsRequestingLocation(true);
+    startRequestingLocation();
 
     try {
-      const permission = await Location.requestForegroundPermissionsAsync();
+      let permission = await Location.getForegroundPermissionsAsync();
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (
+        permission.status !== Location.PermissionStatus.GRANTED &&
+        permission.canAskAgain
+      ) {
+        permission = await Location.requestForegroundPermissionsAsync();
+
+        if (!isMountedRef.current) {
+          return;
+        }
+      }
 
       if (!isMountedRef.current) {
         return;
@@ -89,18 +162,23 @@ export default function MapScreen() {
         return;
       }
 
-      const current = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
 
       if (!isMountedRef.current) {
         return;
       }
 
-      setLocationError(null);
-      setLocation(current);
+      if (!servicesEnabled) {
+        setLocation(null);
+        setLocationError(
+          "Location services are turned off. Enable them in your system settings to show your position."
+        );
+        return;
+      }
+
+      await fetchCurrentLocation();
     } catch (error) {
-      console.error("Failed to determine current location", error);
+      console.error("Failed to request current location", error);
       if (isMountedRef.current) {
         setLocation(null);
         setLocationError(
@@ -109,14 +187,90 @@ export default function MapScreen() {
       }
     } finally {
       if (isMountedRef.current) {
-        setIsRequestingLocation(false);
+        stopRequestingLocation();
       }
     }
-  }, []);
+  }, [fetchCurrentLocation, startRequestingLocation, stopRequestingLocation]);
 
   useEffect(() => {
     requestLocation();
   }, [requestLocation]);
+
+  const refreshLocationIfPossible = useCallback(async () => {
+    if (!isMountedRef.current || isFetchingLocationRef.current) {
+      return;
+    }
+
+    startRequestingLocation();
+
+    try {
+      const permission = await Location.getForegroundPermissionsAsync();
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setCanAskLocationAgain(permission.canAskAgain);
+
+      if (permission.status !== Location.PermissionStatus.GRANTED) {
+        setLocation(null);
+        setLocationError(
+          permission.canAskAgain
+            ? "We need permission to show your current location."
+            : "Location access is disabled. Enable it in your system settings to see your position."
+        );
+        return;
+      }
+
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (!servicesEnabled) {
+        setLocation(null);
+        setLocationError(
+          "Location services are turned off. Enable them in your system settings to show your position."
+        );
+        return;
+      }
+
+      await fetchCurrentLocation();
+    } catch (error) {
+      console.error("Failed to refresh current location", error);
+
+      if (isMountedRef.current) {
+        setLocation(null);
+        setLocationError(
+          "We couldn't determine your current location. Please try again."
+        );
+      }
+    } finally {
+      if (isMountedRef.current) {
+        stopRequestingLocation();
+      }
+    }
+  }, [fetchCurrentLocation, startRequestingLocation, stopRequestingLocation]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      const previousState = appStateRef.current;
+      appStateRef.current = nextState;
+
+      if (
+        previousState &&
+        (previousState === "inactive" || previousState === "background") &&
+        nextState === "active"
+      ) {
+        refreshLocationIfPossible();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [refreshLocationIfPossible]);
 
   useEffect(() => {
     if (!location?.coords || !mapRef.current || !isInteractiveMapSupported) {
