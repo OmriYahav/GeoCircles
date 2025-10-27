@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import * as Location from "expo-location";
 import { NativeModulesProxy } from "expo-modules-core";
+import { WebView } from "react-native-webview";
 
 import { Colors, Fonts } from "../../constants/theme";
 
@@ -299,6 +300,15 @@ export default function MapScreen() {
     ? "Maps require running the app in a custom development or production build."
     : "Maps are only available on iOS and Android devices.";
 
+  const fallbackMapUrl = useMemo(() => {
+    if (!coords) {
+      return null;
+    }
+
+    const { latitude, longitude } = coords;
+    return `https://maps.google.com/maps?q=${latitude},${longitude}&z=15&output=embed`;
+  }, [coords]);
+
   return (
     <View style={styles.container}>
       {MapComponent ? (
@@ -314,6 +324,21 @@ export default function MapScreen() {
           accessibilityLabel="Map showing your current location"
           accessibilityRole="image"
         />
+      ) : fallbackMapUrl && isMobilePlatform ? (
+        <View style={styles.map}>
+          <WebView
+            source={{ uri: fallbackMapUrl }}
+            style={styles.webMap}
+            startInLoadingState
+            renderLoading={() => (
+              <View style={styles.mapUnavailable}>
+                <ActivityIndicator color={Colors.light.tint} size="large" />
+              </View>
+            )}
+            accessibilityLabel="Embedded Google Map showing your current location"
+            accessibilityRole="image"
+          />
+        </View>
       ) : (
         <View style={styles.mapUnavailable}>
           <Text style={styles.mapUnavailableText}>{mapUnavailableMessage}</Text>
@@ -417,6 +442,10 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  webMap: {
+    flex: 1,
+    backgroundColor: "transparent",
   },
   mapUnavailable: {
     flex: 1,
