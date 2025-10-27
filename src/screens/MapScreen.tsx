@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Linking,
   Platform,
   Pressable,
@@ -8,46 +9,29 @@ import {
   Text,
   View,
 } from "react-native";
+import MapboxGL from "@rnmapbox/maps";
 import * as Location from "expo-location";
-import { NativeModulesProxy } from "expo-modules-core";
-import { WebView } from "react-native-webview";
-
+import { MAPBOX_ACCESS_TOKEN, MAPBOX_STYLE_URL } from "../../constants/mapbox";
 import { Colors, Fonts } from "../../constants/theme";
 
+type MapboxCameraRef = React.ComponentRef<typeof MapboxGL.Camera> | null;
+
 type MapCameraPosition = {
-  coordinates: {
-    latitude: number;
-    longitude: number;
-  };
-  zoom: number;
-  duration?: number;
-};
-
-type NativeMapRef = {
-  setCameraPosition?: (position: MapCameraPosition) => void;
-};
-
-type ExpoMapsModule = {
-  MapView?: React.ComponentType<Record<string, unknown>>;
+  centerCoordinate: [number, number];
+  zoomLevel: number;
 };
 
 const DEFAULT_CAMERA: MapCameraPosition = {
-  coordinates: {
-    latitude: 40.7128,
-    longitude: -74.006,
-  },
-  zoom: 11,
+  centerCoordinate: [-74.006, 40.7128],
+  zoomLevel: 11,
 };
 
 function createCameraFromCoords(
   coords: Location.LocationObjectCoords
 ): MapCameraPosition {
   return {
-    coordinates: {
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-    },
-    zoom: 15,
+    centerCoordinate: [coords.longitude, coords.latitude],
+    zoomLevel: 15,
   };
 }
 
@@ -58,80 +42,30 @@ export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [canAskLocationAgain, setCanAskLocationAgain] = useState(true);
-  const [expoMapsModule, setExpoMapsModule] = useState<ExpoMapsModule | null>(null);
-  const mapRef = useRef<NativeMapRef | null>(null);
+  const cameraRef = useRef<MapboxCameraRef>(null);
   const isMountedRef = useRef(true);
 
-  const hasNativeMapsModule = useMemo(() => {
-    if (Platform.OS === "web") {
-      return false;
-    }
-
-    const availableModules = NativeModulesProxy ?? {};
-
-    return ["ExpoMaps", "ExpoGoogleMaps", "ExpoAppleMaps"].some(
-      (moduleName) => moduleName in availableModules
-    );
-  }, []);
+  const isMobilePlatform = Platform.OS === "ios" || Platform.OS === "android";
 
   useEffect(() => {
-    let isActive = true;
-
-    if (Platform.OS !== "ios" && Platform.OS !== "android") {
-      setExpoMapsModule(null);
+    if (!isMobilePlatform) {
       setIsMapReady(true);
-      return () => {
-        isActive = false;
-      };
+      return;
     }
 
-    if (!hasNativeMapsModule) {
-      setExpoMapsModule(null);
+    if (!MAPBOX_ACCESS_TOKEN) {
       setIsMapReady(true);
-
-      return () => {
-        isActive = false;
-      };
+      return;
     }
 
-    // eslint-disable-next-line import/no-unresolved
-    import("expo-maps")
-      .then((module) => {
-        if (!isActive) {
-          return;
-        }
-
-        if (module && "MapView" in module) {
-          setExpoMapsModule(module as ExpoMapsModule);
-          return;
-        }
-
-        setExpoMapsModule(null);
-        setIsMapReady(true);
-      })
-      .catch((error) => {
-        console.error("Failed to load maps module", error);
-        if (isActive) {
-          setExpoMapsModule(null);
-          setIsMapReady(true);
-        }
-      });
+    MapboxGL.setAccessToken(MAPBOX_ACCESS_TOKEN);
+    MapboxGL.setTelemetryEnabled(false);
+    MapboxGL.locationManager.start();
 
     return () => {
-      isActive = false;
+      MapboxGL.locationManager.stop();
     };
-  }, [hasNativeMapsModule]);
-
-  const MapComponent = useMemo(
-    () => expoMapsModule?.MapView ?? null,
-    [expoMapsModule]
-  );
-
-  useEffect(() => {
-    if (!MapComponent) {
-      setIsMapReady(true);
-    }
-  }, [MapComponent]);
+  }, [isMobilePlatform]);
 
   useEffect(() => {
     return () => {
@@ -195,21 +129,19 @@ export default function MapScreen() {
   }, [requestLocation]);
 
   useEffect(() => {
-    if (!location?.coords || !mapRef.current) {
+    if (!location?.coords || !cameraRef.current || !isMobilePlatform) {
       return;
     }
 
     const camera = createCameraFromCoords(location.coords);
 
-    if (Platform.OS === "android") {
-      mapRef.current?.setCameraPosition({
-        ...camera,
-        duration: 700,
-      });
-    } else if (Platform.OS === "ios") {
-      mapRef.current?.setCameraPosition(camera);
-    }
-  }, [location]);
+    cameraRef.current.setCamera({
+      centerCoordinate: camera.centerCoordinate,
+      zoomLevel: camera.zoomLevel,
+      animationDuration: Platform.OS === "android" ? 700 : 0,
+      animationMode: Platform.OS === "android" ? "easeTo" : "none",
+    });
+  }, [isMobilePlatform, location]);
 
   const handleDismissOverlay = useCallback(() => {
     setOverlayDismissed(true);
@@ -232,8 +164,8 @@ export default function MapScreen() {
   const handleOpenInMaps = useCallback(async () => {
     const coords = location?.coords;
     const url = coords
-      ? `https://maps.google.com/?q=${coords.latitude},${coords.longitude}`
-      : "https://maps.google.com";
+      ? `https://www.mapbox.com/directions/?coordinates=${coords.longitude},${coords.latitude}`
+      : "https://www.mapbox.com/maps/";
 
     try {
       const canOpen = await Linking.canOpenURL(url);
@@ -249,11 +181,8 @@ export default function MapScreen() {
     setIsMapReady(true);
   }, []);
 
-  const handleMapRef = useCallback((ref: NativeMapRef | null) => {
-    mapRef.current = ref;
-  }, []);
-
-  const isLoading = isRequestingLocation || !isMapReady;
+  const shouldShowLoadingOverlay =
+    isRequestingLocation || (isMobilePlatform && hasMapboxToken && !isMapReady);
 
   const coords = location?.coords;
   const overlayTitle = coords ? "You’re here" : "Waiting for your location";
@@ -261,81 +190,71 @@ export default function MapScreen() {
     ? `Latitude ${coords.latitude.toFixed(4)}, Longitude ${coords.longitude.toFixed(4)}`
     : "Grant location access so we can highlight where you are right now.";
 
-  const circleOverlay = useMemo(() => {
-    if (!coords?.accuracy || Platform.OS === "web") {
-      return undefined;
-    }
-
-    return [
-      {
-        center: {
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-        },
-        radius: Math.min(Math.max(coords.accuracy, 25), 500),
-        color: "rgba(56, 132, 255, 0.2)",
-        lineColor: "rgba(56, 132, 255, 0.5)",
-      },
-    ];
-  }, [coords]);
-
   const mapCamera = coords ? createCameraFromCoords(coords) : DEFAULT_CAMERA;
 
-  const mapProperties = useMemo(
-    () => ({
-      isMyLocationEnabled: true,
-    }),
-    []
-  );
+  const hasMapboxToken = Boolean(MAPBOX_ACCESS_TOKEN);
 
-  const mapUiSettings = useMemo(
-    () => ({
-      myLocationButtonEnabled: true,
-    }),
-    []
-  );
+  const mapUnavailableMessage = useMemo(() => {
+    if (!hasMapboxToken) {
+      return "Add your Mapbox public access token (EXPO_PUBLIC_MAPBOX_TOKEN) to enable maps.";
+    }
 
-  const isMobilePlatform = Platform.OS === "ios" || Platform.OS === "android";
-  const mapUnavailableMessage = isMobilePlatform
-    ? "Maps require running the app in a custom development or production build."
-    : "Maps are only available on iOS and Android devices.";
+    if (!isMobilePlatform) {
+      return "Interactive Mapbox maps are only available on iOS and Android devices.";
+    }
+
+    return "Mapbox maps require running the app in a custom development or production build.";
+  }, [hasMapboxToken, isMobilePlatform]);
 
   const fallbackMapUrl = useMemo(() => {
-    if (!coords) {
+    if (!hasMapboxToken) {
       return null;
     }
 
-    const { latitude, longitude } = coords;
-    return `https://maps.google.com/maps?q=${latitude},${longitude}&z=15&output=embed`;
-  }, [coords]);
+    const latitude = coords?.latitude ?? mapCamera.centerCoordinate[1];
+    const longitude = coords?.longitude ?? mapCamera.centerCoordinate[0];
+    const marker = coords ? `pin-s+3875F6(${longitude},${latitude})/` : "";
+    const camera = `${longitude},${latitude},${coords ? 15 : mapCamera.zoomLevel},0`;
+    return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${marker}${camera}/600x600@2x?access_token=${MAPBOX_ACCESS_TOKEN}`;
+  }, [coords, hasMapboxToken, mapCamera.centerCoordinate, mapCamera.zoomLevel]);
 
   return (
     <View style={styles.container}>
-      {MapComponent ? (
-        <MapComponent
-          ref={handleMapRef as never}
+      {isMobilePlatform && hasMapboxToken ? (
+        <MapboxGL.MapView
           style={styles.map}
-          cameraPosition={mapCamera}
-          properties={mapProperties as never}
-          uiSettings={mapUiSettings as never}
-          circles={circleOverlay as never}
-          onMapLoaded={Platform.OS === "android" ? handleMapReady : undefined}
-          onLayout={Platform.OS === "ios" ? handleMapReady : undefined}
+          styleURL={MAPBOX_STYLE_URL}
+          logoEnabled={false}
+          compassEnabled
+          onDidFinishLoadingMap={handleMapReady}
+          onDidFinishRenderingMapFully={handleMapReady}
           accessibilityLabel="Map showing your current location"
           accessibilityRole="image"
-        />
-      ) : fallbackMapUrl && isMobilePlatform ? (
+        >
+          <MapboxGL.Camera
+            ref={cameraRef}
+            centerCoordinate={mapCamera.centerCoordinate}
+            zoomLevel={mapCamera.zoomLevel}
+          />
+          <MapboxGL.UserLocation
+            visible
+            showsUserHeadingIndicator
+          />
+          {coords && (
+            <MapboxGL.PointAnnotation
+              id="current-location"
+              coordinate={mapCamera.centerCoordinate}
+              title="Your location"
+            />
+          )}
+        </MapboxGL.MapView>
+      ) : fallbackMapUrl ? (
         <View style={styles.map}>
-          <WebView
+          <Image
             source={{ uri: fallbackMapUrl }}
-            style={styles.webMap}
-            startInLoadingState
-            renderLoading={() => (
-              <View style={styles.mapUnavailable}>
-                <ActivityIndicator color={Colors.light.tint} size="large" />
-              </View>
-            )}
-            accessibilityLabel="Embedded Google Map showing your current location"
+            style={styles.staticMap}
+            resizeMode="cover"
+            accessibilityLabel="Mapbox map showing your current location"
             accessibilityRole="image"
           />
         </View>
@@ -345,7 +264,7 @@ export default function MapScreen() {
         </View>
       )}
 
-      {isLoading && (
+      {shouldShowLoadingOverlay && (
         <View style={styles.loadingOverlay} pointerEvents="none">
           <ActivityIndicator color={Colors.light.tint} size="large" />
           <Text style={styles.loadingText}>Centering on your location…</Text>
@@ -401,7 +320,7 @@ export default function MapScreen() {
           <Text style={styles.locationTitle}>{overlayTitle}</Text>
           <Text style={styles.locationDescription}>{overlayDescription}</Text>
           <Pressable
-            accessibilityHint="Opens Google Maps centered on your coordinates"
+            accessibilityHint="Opens Mapbox directions centered on your coordinates"
             accessibilityRole="button"
             disabled={!coords}
             onPress={handleOpenInMaps}
@@ -411,7 +330,7 @@ export default function MapScreen() {
             ]}
           >
             <Text style={styles.ctaLabel}>
-              {coords ? "Open in Google Maps" : "Waiting for permission…"}
+              {coords ? "Open in Mapbox" : "Waiting for permission…"}
             </Text>
           </Pressable>
         </View>
@@ -443,7 +362,7 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  webMap: {
+  staticMap: {
     flex: 1,
     backgroundColor: "transparent",
   },
