@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import * as Location from "expo-location";
+import { NativeModulesProxy } from "expo-modules-core";
 
 import { Colors, Fonts } from "../../constants/theme";
 
@@ -60,6 +61,18 @@ export default function MapScreen() {
   const mapRef = useRef<NativeMapRef | null>(null);
   const isMountedRef = useRef(true);
 
+  const hasNativeMapsModule = useMemo(() => {
+    if (Platform.OS === "web") {
+      return false;
+    }
+
+    const availableModules = NativeModulesProxy ?? {};
+
+    return ["ExpoMaps", "ExpoGoogleMaps", "ExpoAppleMaps"].some(
+      (moduleName) => moduleName in availableModules
+    );
+  }, []);
+
   useEffect(() => {
     let isActive = true;
 
@@ -97,7 +110,7 @@ export default function MapScreen() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [hasNativeMapsModule]);
 
   const MapComponent = useMemo(
     () => expoMapsModule?.MapView ?? null,
