@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -7,78 +7,109 @@ import {
   Text,
   View,
 } from "react-native";
-import { WebView } from "react-native-webview";
-import type { WebView as WebViewType } from "react-native-webview";
+import MapView, { Circle, Region } from "react-native-maps";
+import * as Location from "expo-location";
 
 import { Colors, Fonts } from "../../constants/theme";
 
-const FEATURED_LOCATION = {
-  name: "New York City",
-  description:
-    "Explore the heart of NYC — zoom, pan, and uncover vibrant neighborhoods and iconic landmarks.",
-  embedUrl:
-    "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d193571.43830260472!2d-74.11808643851677!3d40.70582543401667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDDCsDQyJzIxLjAiTiA3NMKwMDcnMzAuMCJX!5e0!3m2!1sen!2sus!4v1699999999999",
-  externalUrl:
-    "https://maps.google.com/?q=New+York+City%2C+NY%2C+USA&z=12",
+const DEFAULT_REGION: Region = {
+  latitude: 40.7128,
+  longitude: -74.006,
+  latitudeDelta: 0.1,
+  longitudeDelta: 0.1,
 };
 
+function createRegionFromCoords(
+  coords: Location.LocationObjectCoords
+): Region {
+  const latitudeDelta = 0.02;
+  const longitudeDelta = 0.02;
+
+  return {
+    latitude: coords.latitude,
+    longitude: coords.longitude,
+    latitudeDelta,
+    longitudeDelta,
+  };
+}
+
 export default function MapScreen() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [isOverlayDismissed, setOverlayDismissed] = useState(false);
-  const webViewRef = useRef<WebViewType>(null);
+  const [isRequestingLocation, setIsRequestingLocation] = useState(true);
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [canAskLocationAgain, setCanAskLocationAgain] = useState(true);
+  const mapRef = useRef<MapView | null>(null);
+  const isMountedRef = useRef(true);
 
-  const html = useMemo(
-    () => `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          * { box-sizing: border-box; }
-          body, html { margin: 0; padding: 0; height: 100%; background: #000; }
-          iframe { border: 0; width: 100%; height: 100%; }
-        </style>
-      </head>
-      <body>
-        <iframe
-          src="${FEATURED_LOCATION.embedUrl}"
-          allowfullscreen=""
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade">
-        </iframe>
-      </body>
-    </html>
-  `,
-    []
-  );
-
-  const handleMapReady = useCallback(() => {
-    setLoadError(null);
-    setIsLoading(false);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
-  const handleMapError = useCallback(() => {
-    setLoadError("We couldn't load the interactive map. Please try again.");
-    setIsLoading(false);
-  }, []);
+  const requestLocation = useCallback(async () => {
+    if (!isMountedRef.current) {
+      return;
+    }
 
-  const handleRetry = useCallback(() => {
-    setLoadError(null);
-    setIsLoading(true);
-    webViewRef.current?.reload();
-  }, []);
+    setIsRequestingLocation(true);
 
-  const handleOpenInMaps = useCallback(async () => {
     try {
-      const canOpen = await Linking.canOpenURL(FEATURED_LOCATION.externalUrl);
-      if (canOpen) {
-        Linking.openURL(FEATURED_LOCATION.externalUrl);
+      const permission = await Location.requestForegroundPermissionsAsync();
+
+      if (!isMountedRef.current) {
+        return;
       }
+
+      setCanAskLocationAgain(permission.canAskAgain);
+
+      if (permission.status !== Location.PermissionStatus.GRANTED) {
+        setLocation(null);
+        setLocationError(
+          permission.canAskAgain
+            ? "We need permission to show your current location."
+            : "Location access is disabled. Enable it in your system settings to see your position."
+        );
+        return;
+      }
+
+      const current = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setLocationError(null);
+      setLocation(current);
     } catch (error) {
-      console.error("Failed to open maps", error);
+      console.error("Failed to determine current location", error);
+      if (isMountedRef.current) {
+        setLocation(null);
+        setLocationError(
+          "We couldn't determine your current location. Please try again."
+        );
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsRequestingLocation(false);
+      }
     }
   }, []);
+
+  useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
+
+  useEffect(() => {
+    if (location?.coords && mapRef.current) {
+      const region = createRegionFromCoords(location.coords);
+      mapRef.current.animateToRegion(region, 700);
+    }
+  }, [location]);
 
   const handleDismissOverlay = useCallback(() => {
     setOverlayDismissed(true);
@@ -88,57 +119,108 @@ export default function MapScreen() {
     setOverlayDismissed(false);
   }, []);
 
+  const handleRetry = useCallback(() => {
+    requestLocation();
+  }, [requestLocation]);
+
+  const handleOpenSettings = useCallback(() => {
+    Linking.openSettings().catch((error) => {
+      console.error("Failed to open settings", error);
+    });
+  }, []);
+
+  const handleOpenInMaps = useCallback(async () => {
+    const coords = location?.coords;
+    const url = coords
+      ? `https://maps.google.com/?q=${coords.latitude},${coords.longitude}`
+      : "https://maps.google.com";
+
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        Linking.openURL(url);
+      }
+    } catch (error) {
+      console.error("Failed to open maps", error);
+    }
+  }, [location]);
+
+  const handleMapReady = useCallback(() => {
+    setIsMapReady(true);
+  }, []);
+
+  const isLoading = isRequestingLocation || !isMapReady;
+
+  const coords = location?.coords;
+  const overlayTitle = coords ? "You’re here" : "Waiting for your location";
+  const overlayDescription = coords
+    ? `Latitude ${coords.latitude.toFixed(4)}, Longitude ${coords.longitude.toFixed(4)}`
+    : "Grant location access so we can highlight where you are right now.";
+
   return (
     <View style={styles.container}>
-      <WebView
-        ref={webViewRef}
-        originWhitelist={["*"]}
-        source={{ html }}
+      <MapView
+        ref={mapRef}
         style={styles.map}
-        onLoadEnd={handleMapReady}
-        onError={handleMapError}
-      />
+        initialRegion={DEFAULT_REGION}
+        showsUserLocation
+        showsMyLocationButton
+        onMapReady={handleMapReady}
+        accessibilityLabel="Map showing your current location"
+        accessibilityRole="image"
+      >
+        {coords?.accuracy != null && (
+          <Circle
+            center={{ latitude: coords.latitude, longitude: coords.longitude }}
+            radius={Math.min(Math.max(coords.accuracy, 25), 500)}
+            strokeColor="rgba(56, 132, 255, 0.5)"
+            fillColor="rgba(56, 132, 255, 0.2)"
+          />
+        )}
+      </MapView>
 
-      {isLoading && !loadError && (
+      {isLoading && (
         <View style={styles.loadingOverlay} pointerEvents="none">
           <ActivityIndicator color={Colors.light.tint} size="large" />
-          <Text style={styles.loadingText}>Loading map experience…</Text>
+          <Text style={styles.loadingText}>Centering on your location…</Text>
         </View>
       )}
 
-      {loadError && (
+      {locationError && (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Map unavailable</Text>
-          <Text style={styles.errorDescription}>{loadError}</Text>
+          <Text style={styles.errorTitle}>Can’t show your position</Text>
+          <Text style={styles.errorDescription}>{locationError}</Text>
           <View style={styles.errorActions}>
+            {canAskLocationAgain && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleRetry}
+                style={({ pressed }) => [
+                  styles.secondaryAction,
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.secondaryActionText}>Try again</Text>
+              </Pressable>
+            )}
             <Pressable
               accessibilityRole="button"
-              onPress={handleRetry}
-              style={({ pressed }) => [
-                styles.secondaryAction,
-                pressed && { opacity: 0.7 },
-              ]}
-            >
-              <Text style={styles.secondaryActionText}>Try again</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={handleOpenInMaps}
+              onPress={handleOpenSettings}
               style={({ pressed }) => [
                 styles.errorAction,
                 pressed && { opacity: 0.85 },
               ]}
             >
-              <Text style={styles.errorActionText}>Open in Google Maps</Text>
+              <Text style={styles.errorActionText}>Open settings</Text>
             </Pressable>
           </View>
         </View>
       )}
 
-      {!loadError && !isOverlayDismissed && (
+      {!locationError && !isOverlayDismissed && (
         <View style={styles.overlay}>
           <Pressable
-            accessibilityLabel="Hide featured area information"
+            accessibilityLabel="Hide your location details"
             accessibilityRole="button"
             hitSlop={12}
             onPress={handleDismissOverlay}
@@ -149,29 +231,30 @@ export default function MapScreen() {
           >
             <Text style={styles.overlayDismissLabel}>Dismiss</Text>
           </Pressable>
-          <Text style={styles.locationEyebrow}>Featured Area</Text>
-          <Text style={styles.locationTitle}>{FEATURED_LOCATION.name}</Text>
-          <Text style={styles.locationDescription}>
-            {FEATURED_LOCATION.description}
-          </Text>
+          <Text style={styles.locationEyebrow}>Your location</Text>
+          <Text style={styles.locationTitle}>{overlayTitle}</Text>
+          <Text style={styles.locationDescription}>{overlayDescription}</Text>
           <Pressable
-            accessibilityHint="Opens Google Maps with this location"
+            accessibilityHint="Opens Google Maps centered on your coordinates"
             accessibilityRole="button"
+            disabled={!coords}
             onPress={handleOpenInMaps}
             style={({ pressed }) => [
               styles.ctaButton,
-              pressed && { opacity: 0.85 },
+              (!coords || pressed) && { opacity: coords ? 0.85 : 0.5 },
             ]}
           >
-            <Text style={styles.ctaLabel}>Continue in Google Maps</Text>
+            <Text style={styles.ctaLabel}>
+              {coords ? "Open in Google Maps" : "Waiting for permission…"}
+            </Text>
           </Pressable>
         </View>
       )}
 
-      {!loadError && isOverlayDismissed && (
+      {!locationError && isOverlayDismissed && (
         <Pressable
-          accessibilityHint="Shows information about the featured area again"
-          accessibilityLabel="Show featured area information"
+          accessibilityHint="Shows your location details again"
+          accessibilityLabel="Show your location information"
           accessibilityRole="button"
           onPress={handleRestoreOverlay}
           style={({ pressed }) => [
@@ -308,6 +391,7 @@ const styles = StyleSheet.create({
   },
   errorActions: {
     flexDirection: "row",
+    marginTop: 16,
   },
   errorTitle: {
     fontSize: 18,
@@ -319,16 +403,15 @@ const styles = StyleSheet.create({
   errorDescription: {
     fontSize: 15,
     lineHeight: 22,
-    color: Colors.dark.icon,
-    marginBottom: 16,
-    fontFamily: Fonts.sans,
+    color: Colors.dark.text,
+    fontFamily: Fonts.serif,
   },
   errorAction: {
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 12,
-    alignItems: "center",
-    borderRadius: 12,
     flex: 1,
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 14,
+    alignItems: "center",
+    borderRadius: 999,
   },
   errorActionText: {
     color: Colors.dark.text,
@@ -338,17 +421,16 @@ const styles = StyleSheet.create({
   },
   secondaryAction: {
     flex: 1,
-    paddingVertical: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    paddingVertical: 14,
     alignItems: "center",
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.35)",
-    backgroundColor: "transparent",
-    marginEnd: 12,
+    marginRight: 12,
   },
   secondaryActionText: {
     color: Colors.dark.text,
-    fontWeight: "500",
+    fontWeight: "600",
     fontSize: 16,
     fontFamily: Fonts.sans,
   },
