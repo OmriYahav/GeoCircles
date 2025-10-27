@@ -87,6 +87,24 @@ function createHtmlTemplate({
       crossorigin=""
     ></script>
     <script>
+      function postReadyMessage(attempt = 0) {
+        const MAX_ATTEMPTS = 20;
+
+        if (
+          window.ReactNativeWebView &&
+          typeof window.ReactNativeWebView.postMessage === 'function'
+        ) {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({ type: 'ready' })
+          );
+          return;
+        }
+
+        if (attempt < MAX_ATTEMPTS) {
+          setTimeout(() => postReadyMessage(attempt + 1), 50);
+        }
+      }
+
       const initialCenter = [${initialCoordinates.latitude}, ${initialCoordinates.longitude}];
       const initialZoom = ${initialZoom};
       const maxZoom = ${maxZoom};
@@ -165,15 +183,17 @@ function createHtmlTemplate({
       document.addEventListener('message', parseEvent);
       window.addEventListener('message', parseEvent);
 
-      setTimeout(() => {
-        window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'ready' }));
-      }, 0);
+      if (document.readyState === 'complete') {
+        postReadyMessage();
+      } else {
+        window.addEventListener('load', () => postReadyMessage());
+      }
     </script>
   </body>
 </html>`;
 }
 
-export default forwardRef<InteractiveMapHandle, InteractiveMapProps>(
+const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
   (
     {
       initialCoordinates,
@@ -246,7 +266,7 @@ export default forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       }
 
       focusOn(marker, false);
-    }, [focusOn, marker?.latitude, marker?.longitude, postMessage]);
+    }, [focusOn, marker, postMessage]);
 
     const handleMessage = useCallback(
       (event: WebViewMessageEvent) => {
@@ -286,3 +306,7 @@ export default forwardRef<InteractiveMapHandle, InteractiveMapProps>(
     );
   }
 );
+
+InteractiveMap.displayName = "InteractiveMap";
+
+export default InteractiveMap;
