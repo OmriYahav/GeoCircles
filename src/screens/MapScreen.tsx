@@ -23,12 +23,11 @@ type MapCameraPosition = {
 };
 
 type NativeMapRef = {
-  setCameraPosition: (position: MapCameraPosition) => void;
+  setCameraPosition?: (position: MapCameraPosition) => void;
 };
 
 type ExpoMapsModule = {
-  AppleMaps?: { View?: React.ComponentType<unknown> };
-  GoogleMaps?: { View?: React.ComponentType<unknown> };
+  MapView?: React.ComponentType<Record<string, unknown>>;
 };
 
 const DEFAULT_CAMERA: MapCameraPosition = {
@@ -85,20 +84,20 @@ export default function MapScreen() {
       };
     }
 
-    if (!hasNativeMapsModule) {
-      setExpoMapsModule(null);
-      setIsMapReady(true);
-      return () => {
-        isActive = false;
-      };
-    }
-
     // eslint-disable-next-line import/no-unresolved
     import("expo-maps")
       .then((module) => {
-        if (isActive) {
-          setExpoMapsModule(module as ExpoMapsModule);
+        if (!isActive) {
+          return;
         }
+
+        if (module && "MapView" in module) {
+          setExpoMapsModule(module as ExpoMapsModule);
+          return;
+        }
+
+        setExpoMapsModule(null);
+        setIsMapReady(true);
       })
       .catch((error) => {
         console.error("Failed to load maps module", error);
@@ -113,21 +112,10 @@ export default function MapScreen() {
     };
   }, [hasNativeMapsModule]);
 
-  const MapComponent = useMemo(() => {
-    if (!expoMapsModule) {
-      return null;
-    }
-
-    if (Platform.OS === "ios") {
-      return expoMapsModule.AppleMaps?.View ?? null;
-    }
-
-    if (Platform.OS === "android") {
-      return expoMapsModule.GoogleMaps?.View ?? null;
-    }
-
-    return null;
-  }, [expoMapsModule]);
+  const MapComponent = useMemo(
+    () => expoMapsModule?.MapView ?? null,
+    [expoMapsModule]
+  );
 
   useEffect(() => {
     if (!MapComponent) {
