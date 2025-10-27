@@ -9,7 +9,6 @@ import {
   Text,
   View,
 } from "react-native";
-import MapView, { Marker, UrlTile } from "react-native-maps";
 import * as Location from "expo-location";
 import {
   DEFAULT_COORDINATES,
@@ -18,6 +17,9 @@ import {
   STATIC_MAP_BASE_URL,
 } from "../../constants/map";
 import { Colors, Fonts } from "../../constants/theme";
+import InteractiveMap, {
+  InteractiveMapHandle,
+} from "../../components/InteractiveMap";
 
 const isMobilePlatform = Platform.OS === "ios" || Platform.OS === "android";
 
@@ -51,7 +53,7 @@ export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [canAskLocationAgain, setCanAskLocationAgain] = useState(true);
-  const mapRef = useRef<React.ComponentRef<typeof MapView> | null>(null);
+  const mapRef = useRef<InteractiveMapHandle | null>(null);
   const isMountedRef = useRef(true);
   const isInteractiveMapSupported = isMobilePlatform;
 
@@ -121,22 +123,7 @@ export default function MapScreen() {
       return;
     }
 
-    const region = createRegionFromCoords(location.coords);
-
-    if (Platform.OS === "android") {
-      mapRef.current.animateCamera?.(
-        {
-          center: {
-            latitude: region.latitude,
-            longitude: region.longitude,
-          },
-          zoom: 15,
-        },
-        { duration: 700 }
-      );
-    } else {
-      mapRef.current.animateToRegion(region, 700);
-    }
+    mapRef.current.focusOn(location.coords);
   }, [isInteractiveMapSupported, location]);
 
   const handleDismissOverlay = useCallback(() => {
@@ -187,6 +174,7 @@ export default function MapScreen() {
     : "Grant location access so we can highlight where you are right now.";
 
   const mapRegion = coords ? createRegionFromCoords(coords) : DEFAULT_REGION;
+  const mapZoomLevel = coords ? 15 : DEFAULT_COORDINATES.zoomLevel;
 
   const mapUnavailableMessage = (() => {
     if (!isMobilePlatform) {
@@ -199,46 +187,31 @@ export default function MapScreen() {
   const fallbackMapUrl = useMemo(() => {
     const latitude = coords?.latitude ?? mapRegion.latitude;
     const longitude = coords?.longitude ?? mapRegion.longitude;
-    const zoom = coords ? 15 : DEFAULT_COORDINATES.zoomLevel;
+    const zoom = mapZoomLevel;
     const marker = coords ? `&markers=${latitude},${longitude},lightblue1` : "";
     return `${STATIC_MAP_BASE_URL}?center=${latitude},${longitude}&zoom=${zoom}&size=600x600${marker}`;
-  }, [coords, mapRegion.latitude, mapRegion.longitude]);
+  }, [coords, mapRegion.latitude, mapRegion.longitude, mapZoomLevel]);
 
   return (
     <View style={styles.container}>
       {isInteractiveMapSupported ? (
-        <MapView
+        <InteractiveMap
           ref={mapRef}
+          initialCoordinates={{
+            latitude: mapRegion.latitude,
+            longitude: mapRegion.longitude,
+          }}
+          initialZoom={mapZoomLevel}
+          marker={
+            coords
+              ? { latitude: coords.latitude, longitude: coords.longitude }
+              : null
+          }
+          maxZoom={OSM_MAX_ZOOM_LEVEL}
+          onReady={handleMapReady}
           style={styles.map}
-          initialRegion={mapRegion}
-          onMapReady={handleMapReady}
-          onMapLoaded={handleMapReady}
-          showsUserLocation={Boolean(coords)}
-          showsMyLocationButton={false}
-          toolbarEnabled={false}
-          accessibilityLabel="Map showing your current location"
-          accessibilityRole="image"
-        >
-          <UrlTile
-            urlTemplate={OSM_TILE_URL}
-            maximumZ={OSM_MAX_ZOOM_LEVEL}
-            tileSize={256}
-            zIndex={-1}
-            shouldReplaceMapContent
-            tileCacheMaxAge={60 * 60 * 24}
-            tileCachePath="osm-tile-cache"
-          />
-          {coords && (
-            <Marker
-              coordinate={{
-                latitude: coords.latitude,
-                longitude: coords.longitude,
-              }}
-              title="Your location"
-              description={`Latitude ${coords.latitude.toFixed(4)}, Longitude ${coords.longitude.toFixed(4)}`}
-            />
-          )}
-        </MapView>
+          tileUrlTemplate={OSM_TILE_URL}
+        />
       ) : fallbackMapUrl ? (
         <View style={styles.map}>
           <Image

@@ -1,0 +1,288 @@
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from "react";
+import { StyleProp, ViewStyle } from "react-native";
+import WebView, { WebViewMessageEvent } from "react-native-webview";
+
+type Coordinates = {
+  latitude: number;
+  longitude: number;
+};
+
+type InteractiveMapMessage =
+  | { type: "ready" }
+  | {
+      type: "updateLocation";
+      coords: Coordinates;
+      animate?: boolean;
+    }
+  | { type: "clearMarker" };
+
+type InteractiveMapProps = {
+  initialCoordinates: Coordinates;
+  initialZoom: number;
+  marker?: Coordinates | null;
+  maxZoom: number;
+  tileUrlTemplate: string;
+  style?: StyleProp<ViewStyle>;
+  onReady?: () => void;
+};
+
+export type InteractiveMapHandle = {
+  focusOn: (coords: Coordinates) => void;
+};
+
+function createHtmlTemplate({
+  initialCoordinates,
+  initialZoom,
+  tileUrlTemplate,
+  maxZoom,
+}: Pick<
+  InteractiveMapProps,
+  "initialCoordinates" | "initialZoom" | "tileUrlTemplate" | "maxZoom"
+>) {
+  const tileUrl = tileUrlTemplate.replace(/\\/g, "\\");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-o9N1j7sG0G7hFfAdZjXu1Jx0C6ZcPZrjG3n3ItvrQbM="
+      crossorigin=""
+    />
+    <style>
+      html,
+      body,
+      #map {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+      }
+      .leaflet-pane,
+      .leaflet-top,
+      .leaflet-bottom {
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map" role="img" aria-label="Interactive map"></div>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-QV8t6kBxGwZTiHHLR8dAYzk2dM7pPphb+J1uQDxPdHU="
+      crossorigin=""
+    ></script>
+    <script>
+      const initialCenter = [${initialCoordinates.latitude}, ${initialCoordinates.longitude}];
+      const initialZoom = ${initialZoom};
+      const maxZoom = ${maxZoom};
+      const tileUrlTemplate = ${JSON.stringify(tileUrl)};
+
+      const map = L.map('map', {
+        zoomControl: false,
+        attributionControl: false,
+        closePopupOnClick: false,
+      }).setView(initialCenter, initialZoom);
+
+      L.tileLayer(tileUrlTemplate, {
+        maxZoom,
+        tileSize: 256,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+      }).addTo(map);
+
+      let marker = null;
+
+      function focusOn(coords, animate) {
+        if (!coords) {
+          return;
+        }
+
+        const { latitude, longitude } = coords;
+        const latLng = [latitude, longitude];
+
+        if (!marker) {
+          marker = L.marker(latLng, {
+            keyboard: true,
+            title: 'Your location',
+          }).addTo(map);
+        } else {
+          marker.setLatLng(latLng);
+        }
+
+        if (animate) {
+          map.flyTo(latLng, Math.max(map.getZoom(), 15), {
+            animate: true,
+            duration: 0.7,
+          });
+        } else {
+          map.setView(latLng, Math.max(map.getZoom(), 15), { animate: false });
+        }
+      }
+
+      function handleMessage(data) {
+        if (!data || typeof data.type !== 'string') {
+          return;
+        }
+
+        if (data.type === 'updateLocation' && data.coords) {
+          focusOn(data.coords, data.animate !== false);
+          return;
+        }
+
+        if (data.type === 'clearMarker') {
+          if (marker) {
+            map.removeLayer(marker);
+            marker = null;
+          }
+          map.setView(initialCenter, initialZoom, { animate: false });
+        }
+      }
+
+      function parseEvent(event) {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          handleMessage(data);
+        } catch (error) {
+          console.warn('Failed to parse message from React Native', error);
+        }
+      }
+
+      document.addEventListener('message', parseEvent);
+      window.addEventListener('message', parseEvent);
+
+      setTimeout(() => {
+        window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'ready' }));
+      }, 0);
+    </script>
+  </body>
+</html>`;
+}
+
+export default forwardRef<InteractiveMapHandle, InteractiveMapProps>(
+  (
+    {
+      initialCoordinates,
+      initialZoom,
+      marker,
+      maxZoom,
+      tileUrlTemplate,
+      style,
+      onReady,
+    },
+    ref
+  ) => {
+    const webViewRef = useRef<WebView>(null);
+    const isReadyRef = useRef(false);
+    const pendingMarkerRef = useRef<Coordinates | null>(marker ?? null);
+
+    const defaultCoordinatesRef = useRef(initialCoordinates);
+    const defaultZoomRef = useRef(initialZoom);
+
+    const html = useMemo(
+      () =>
+        createHtmlTemplate({
+          initialCoordinates: defaultCoordinatesRef.current,
+          initialZoom: defaultZoomRef.current,
+          maxZoom,
+          tileUrlTemplate,
+        }),
+      [maxZoom, tileUrlTemplate]
+    );
+
+    const postMessage = useCallback(
+      (message: InteractiveMapMessage) => {
+        const payload = JSON.stringify(message);
+        // WebView on Android expects postMessage on the ref; on iOS, evaluateJavaScript is used internally.
+        webViewRef.current?.postMessage(payload);
+      },
+      []
+    );
+
+    const focusOn = useCallback(
+      (coords: Coordinates, animate = true) => {
+        pendingMarkerRef.current = coords;
+
+        if (!isReadyRef.current) {
+          return;
+        }
+
+        postMessage({ type: "updateLocation", coords, animate });
+      },
+      [postMessage]
+    );
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        focusOn(coords: Coordinates) {
+          focusOn(coords);
+        },
+      }),
+      [focusOn]
+    );
+
+    useEffect(() => {
+      if (!marker) {
+        pendingMarkerRef.current = null;
+        if (isReadyRef.current) {
+          postMessage({ type: "clearMarker" });
+        }
+        return;
+      }
+
+      focusOn(marker, false);
+    }, [focusOn, marker?.latitude, marker?.longitude, postMessage]);
+
+    const handleMessage = useCallback(
+      (event: WebViewMessageEvent) => {
+        try {
+          const data = JSON.parse(event.nativeEvent.data) as InteractiveMapMessage;
+          if (data.type === "ready") {
+            isReadyRef.current = true;
+
+            if (pendingMarkerRef.current) {
+              postMessage({
+                type: "updateLocation",
+                coords: pendingMarkerRef.current,
+                animate: false,
+              });
+            }
+
+            onReady?.();
+          }
+        } catch (error) {
+          console.warn("Failed to handle message from map", error);
+        }
+      },
+      [onReady, postMessage]
+    );
+
+    return (
+      <WebView
+        ref={webViewRef}
+        injectedJavaScriptBeforeContentLoaded={"true;"}
+        onMessage={handleMessage}
+        originWhitelist={["*"]}
+        scrollEnabled={false}
+        source={{ html }}
+        style={style}
+        testID="interactive-map"
+      />
+    );
+  }
+);
