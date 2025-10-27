@@ -8,12 +8,29 @@ import {
   Text,
   View,
 } from "react-native";
-import { AppleMaps, CameraPosition, GoogleMaps } from "expo-maps";
 import * as Location from "expo-location";
 
 import { Colors, Fonts } from "../../constants/theme";
 
-const DEFAULT_CAMERA: CameraPosition = {
+type MapCameraPosition = {
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  zoom: number;
+  duration?: number;
+};
+
+type NativeMapRef = {
+  setCameraPosition: (position: MapCameraPosition) => void;
+};
+
+type ExpoMapsModule = {
+  AppleMaps: { View: React.ComponentType<unknown> };
+  GoogleMaps: { View: React.ComponentType<unknown> };
+};
+
+const DEFAULT_CAMERA: MapCameraPosition = {
   coordinates: {
     latitude: 40.7128,
     longitude: -74.006,
@@ -23,7 +40,7 @@ const DEFAULT_CAMERA: CameraPosition = {
 
 function createCameraFromCoords(
   coords: Location.LocationObjectCoords
-): CameraPosition {
+): MapCameraPosition {
   return {
     coordinates: {
       latitude: coords.latitude,
@@ -40,23 +57,56 @@ export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [canAskLocationAgain, setCanAskLocationAgain] = useState(true);
-  const mapRef = useRef<AppleMaps.MapView | GoogleMaps.MapView | null>(null);
+  const [expoMapsModule, setExpoMapsModule] = useState<ExpoMapsModule | null>(null);
+  const mapRef = useRef<NativeMapRef | null>(null);
   const isMountedRef = useRef(true);
 
+  useEffect(() => {
+    let isActive = true;
+
+    if (Platform.OS === "ios" || Platform.OS === "android") {
+      // eslint-disable-next-line import/no-unresolved
+      import("expo-maps")
+        .then((module) => {
+          if (isActive) {
+            setExpoMapsModule(module as ExpoMapsModule);
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to load maps module", error);
+          if (isActive) {
+            setExpoMapsModule(null);
+            setIsMapReady(true);
+          }
+        });
+    } else {
+      setExpoMapsModule(null);
+      setIsMapReady(true);
+    }
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   const MapComponent = useMemo(() => {
+    if (!expoMapsModule) {
+      return null;
+    }
+
     if (Platform.OS === "ios") {
-      return AppleMaps.View;
+      return expoMapsModule.AppleMaps.View;
     }
 
     if (Platform.OS === "android") {
-      return GoogleMaps.View;
+      return expoMapsModule.GoogleMaps.View;
     }
 
     return null;
-  }, []);
+  }, [expoMapsModule]);
 
   useEffect(() => {
-    if (!MapComponent) {
+    if (!MapComponent && Platform.OS === "web") {
       setIsMapReady(true);
     }
   }, [MapComponent]);
@@ -130,12 +180,12 @@ export default function MapScreen() {
     const camera = createCameraFromCoords(location.coords);
 
     if (Platform.OS === "android") {
-      (mapRef.current as GoogleMaps.MapView | null)?.setCameraPosition({
+      mapRef.current?.setCameraPosition({
         ...camera,
         duration: 700,
       });
     } else if (Platform.OS === "ios") {
-      (mapRef.current as AppleMaps.MapView | null)?.setCameraPosition(camera);
+      mapRef.current?.setCameraPosition(camera);
     }
   }, [location]);
 
@@ -175,6 +225,10 @@ export default function MapScreen() {
 
   const handleMapReady = useCallback(() => {
     setIsMapReady(true);
+  }, []);
+
+  const handleMapRef = useCallback((ref: NativeMapRef | null) => {
+    mapRef.current = ref;
   }, []);
 
   const isLoading = isRequestingLocation || !isMapReady;
@@ -223,7 +277,7 @@ export default function MapScreen() {
     <View style={styles.container}>
       {MapComponent ? (
         <MapComponent
-          ref={mapRef as never}
+          ref={handleMapRef as never}
           style={styles.map}
           cameraPosition={mapCamera}
           properties={mapProperties as never}
