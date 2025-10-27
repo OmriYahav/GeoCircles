@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import * as Location from "expo-location";
+import { NativeModulesProxy } from "expo-modules-core";
 
 import { Colors, Fonts } from "../../constants/theme";
 
@@ -61,33 +62,56 @@ export default function MapScreen() {
   const mapRef = useRef<NativeMapRef | null>(null);
   const isMountedRef = useRef(true);
 
+  const hasNativeMapsModule = useMemo(() => {
+    if (Platform.OS === "web") {
+      return false;
+    }
+
+    const availableModules = NativeModulesProxy ?? {};
+
+    return ["ExpoMaps", "ExpoGoogleMaps", "ExpoAppleMaps"].some(
+      (moduleName) => moduleName in availableModules
+    );
+  }, []);
+
   useEffect(() => {
     let isActive = true;
 
-    if (Platform.OS === "ios" || Platform.OS === "android") {
-      // eslint-disable-next-line import/no-unresolved
-      import("expo-maps")
-        .then((module) => {
-          if (isActive) {
-            setExpoMapsModule(module as ExpoMapsModule);
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to load maps module", error);
-          if (isActive) {
-            setExpoMapsModule(null);
-            setIsMapReady(true);
-          }
-        });
-    } else {
+    if (Platform.OS !== "ios" && Platform.OS !== "android") {
       setExpoMapsModule(null);
       setIsMapReady(true);
+      return () => {
+        isActive = false;
+      };
     }
+
+    if (!hasNativeMapsModule) {
+      setExpoMapsModule(null);
+      setIsMapReady(true);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    // eslint-disable-next-line import/no-unresolved
+    import("expo-maps")
+      .then((module) => {
+        if (isActive) {
+          setExpoMapsModule(module as ExpoMapsModule);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load maps module", error);
+        if (isActive) {
+          setExpoMapsModule(null);
+          setIsMapReady(true);
+        }
+      });
 
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [hasNativeMapsModule]);
 
   const MapComponent = useMemo(() => {
     if (!expoMapsModule) {
@@ -273,6 +297,11 @@ export default function MapScreen() {
     []
   );
 
+  const isMobilePlatform = Platform.OS === "ios" || Platform.OS === "android";
+  const mapUnavailableMessage = isMobilePlatform
+    ? "Maps require running the app in a custom development or production build."
+    : "Maps are only available on iOS and Android devices.";
+
   return (
     <View style={styles.container}>
       {MapComponent ? (
@@ -290,9 +319,7 @@ export default function MapScreen() {
         />
       ) : (
         <View style={styles.mapUnavailable}>
-          <Text style={styles.mapUnavailableText}>
-            Maps are only available on iOS and Android devices.
-          </Text>
+          <Text style={styles.mapUnavailableText}>{mapUnavailableMessage}</Text>
         </View>
       )}
 
