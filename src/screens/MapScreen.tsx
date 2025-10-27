@@ -22,12 +22,11 @@ type MapCameraPosition = {
 };
 
 type NativeMapRef = {
-  setCameraPosition: (position: MapCameraPosition) => void;
+  setCameraPosition?: (position: MapCameraPosition) => void;
 };
 
 type ExpoMapsModule = {
-  AppleMaps?: { View?: React.ComponentType<unknown> };
-  GoogleMaps?: { View?: React.ComponentType<unknown> };
+  MapView?: React.ComponentType<Record<string, unknown>>;
 };
 
 const DEFAULT_CAMERA: MapCameraPosition = {
@@ -64,46 +63,46 @@ export default function MapScreen() {
   useEffect(() => {
     let isActive = true;
 
-    if (Platform.OS === "ios" || Platform.OS === "android") {
-      // eslint-disable-next-line import/no-unresolved
-      import("expo-maps")
-        .then((module) => {
-          if (isActive) {
-            setExpoMapsModule(module as ExpoMapsModule);
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to load maps module", error);
-          if (isActive) {
-            setExpoMapsModule(null);
-            setIsMapReady(true);
-          }
-        });
-    } else {
+    if (Platform.OS !== "ios" && Platform.OS !== "android") {
       setExpoMapsModule(null);
       setIsMapReady(true);
+      return () => {
+        isActive = false;
+      };
     }
+
+    // eslint-disable-next-line import/no-unresolved
+    import("expo-maps")
+      .then((module) => {
+        if (!isActive) {
+          return;
+        }
+
+        if (module && "MapView" in module) {
+          setExpoMapsModule(module as ExpoMapsModule);
+          return;
+        }
+
+        setExpoMapsModule(null);
+        setIsMapReady(true);
+      })
+      .catch((error) => {
+        console.error("Failed to load maps module", error);
+        if (isActive) {
+          setExpoMapsModule(null);
+          setIsMapReady(true);
+        }
+      });
 
     return () => {
       isActive = false;
     };
   }, []);
 
-  const MapComponent = useMemo(() => {
-    if (!expoMapsModule) {
-      return null;
-    }
-
-    if (Platform.OS === "ios") {
-      return expoMapsModule.AppleMaps?.View ?? null;
-    }
-
-    if (Platform.OS === "android") {
-      return expoMapsModule.GoogleMaps?.View ?? null;
-    }
-
-    return null;
-  }, [expoMapsModule]);
+  const MapComponent = useMemo(
+    () => expoMapsModule?.MapView ?? null,
+    [expoMapsModule]
+  );
 
   useEffect(() => {
     if (!MapComponent) {
@@ -273,6 +272,11 @@ export default function MapScreen() {
     []
   );
 
+  const isMobilePlatform = Platform.OS === "ios" || Platform.OS === "android";
+  const mapUnavailableMessage = isMobilePlatform
+    ? "Maps require running the app in a custom development or production build."
+    : "Maps are only available on iOS and Android devices.";
+
   return (
     <View style={styles.container}>
       {MapComponent ? (
@@ -290,9 +294,7 @@ export default function MapScreen() {
         />
       ) : (
         <View style={styles.mapUnavailable}>
-          <Text style={styles.mapUnavailableText}>
-            Maps are only available on iOS and Android devices.
-          </Text>
+          <Text style={styles.mapUnavailableText}>{mapUnavailableMessage}</Text>
         </View>
       )}
 
