@@ -88,7 +88,7 @@ function createHtmlTemplate({
     ></script>
     <script>
       function postReadyMessage(attempt = 0) {
-        const MAX_ATTEMPTS = 20;
+        const MAX_ATTEMPTS = 60;
 
         if (
           window.ReactNativeWebView &&
@@ -101,7 +101,7 @@ function createHtmlTemplate({
         }
 
         if (attempt < MAX_ATTEMPTS) {
-          setTimeout(() => postReadyMessage(attempt + 1), 50);
+          setTimeout(() => postReadyMessage(attempt + 1), 100);
         }
       }
 
@@ -122,6 +122,8 @@ function createHtmlTemplate({
         updateWhenIdle: true,
         updateWhenZooming: false,
       }).addTo(map);
+
+      map.whenReady(() => postReadyMessage());
 
       let marker = null;
 
