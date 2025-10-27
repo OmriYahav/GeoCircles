@@ -84,6 +84,15 @@ export default function MapScreen() {
       };
     }
 
+    if (!hasNativeMapsModule) {
+      setExpoMapsModule(null);
+      setIsMapReady(true);
+
+      return () => {
+        isActive = false;
+      };
+    }
+
     // eslint-disable-next-line import/no-unresolved
     import("expo-maps")
       .then((module) => {
