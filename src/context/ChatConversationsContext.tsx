@@ -6,7 +6,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { LatLng } from "react-native-maps";
+import { LatLng } from "../types/coordinates";
 import dayjs from "dayjs";
 
 import { UserProfile } from "./UserProfileContext";
