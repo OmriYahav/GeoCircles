@@ -26,10 +26,8 @@ import MapView, {
 } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "react-native-paper";
-import Voice, {
-  SpeechErrorEvent,
-  SpeechResultsEvent,
-} from "@react-native-voice/voice";
+import type VoiceModuleType from "@react-native-voice/voice";
+import type { SpeechErrorEvent, SpeechResultsEvent } from "@react-native-voice/voice";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -169,6 +167,33 @@ export default function MapScreen() {
     destination: SearchResult;
   } | null>(null);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
+  const [voiceModule, setVoiceModule] = useState<VoiceModuleType | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      return;
+    }
+
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const module = (await import("@react-native-voice/voice")).default as VoiceModuleType;
+        if (isMounted) {
+          setVoiceModule(module);
+        }
+      } catch (error) {
+        console.warn(
+          "Voice search is unavailable because the native voice module could not be loaded.",
+          error
+        );
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const { addFavorite } = useFavorites();
   const {
@@ -236,6 +261,10 @@ export default function MapScreen() {
   }, [searchQuery]);
 
   useEffect(() => {
+    if (!voiceModule) {
+      return;
+    }
+
     const handleSpeechResults = (event: SpeechResultsEvent) => {
       const [transcript] = event.value ?? [];
       if (transcript) {
@@ -251,14 +280,14 @@ export default function MapScreen() {
       }
     };
 
-    Voice.onSpeechResults = handleSpeechResults;
-    Voice.onSpeechError = handleSpeechError;
-    Voice.onSpeechEnd = () => setIsVoiceListening(false);
+    voiceModule.onSpeechResults = handleSpeechResults;
+    voiceModule.onSpeechError = handleSpeechError;
+    voiceModule.onSpeechEnd = () => setIsVoiceListening(false);
 
     return () => {
-      Voice.destroy().finally(() => Voice.removeAllListeners());
+      voiceModule.destroy().finally(() => voiceModule.removeAllListeners());
     };
-  }, []);
+  }, [voiceModule]);
 
   const focusCamera = useCallback(
     (coords: LatLng, zoom = 14) => {
@@ -324,24 +353,34 @@ export default function MapScreen() {
   }, []);
 
   const stopVoiceSearch = useCallback(async () => {
+    if (!voiceModule) {
+      setIsVoiceListening(false);
+      return;
+    }
+
     try {
-      await Voice.stop();
+      await voiceModule.stop();
     } catch (error) {
       console.warn("Failed to stop voice search", error);
     } finally {
       setIsVoiceListening(false);
     }
-  }, []);
+  }, [voiceModule]);
 
   const handleVoiceSearch = useCallback(async () => {
-    if (Platform.OS === "web") {
-      Alert.alert("Voice search", "Voice input is not supported on the web yet.");
+    if (!voiceModule) {
+      const message =
+        Platform.OS === "web"
+          ? "Voice input is not supported on the web yet."
+          : "Voice input requires a development build of the app.";
+
+      Alert.alert("Voice search", message);
       return;
     }
 
     try {
       setIsVoiceListening(true);
-      await Voice.start("en-US");
+      await voiceModule.start("en-US");
     } catch (error) {
       console.warn("Failed to start voice search", error);
       setIsVoiceListening(false);
@@ -350,7 +389,7 @@ export default function MapScreen() {
         "We couldn't access the microphone. Check your permissions and try again."
       );
     }
-  }, []);
+  }, [voiceModule]);
 
   const handleQrScanned = useCallback(
     (data: string) => {
