@@ -1,1047 +1,646 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
-  ActivityIndicator,
-  AppState,
-  AppStateStatus,
+  Alert,
+  Dimensions,
   FlatList,
-  Image,
-  KeyboardAvoidingView,
-  Linking,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import * as Location from "expo-location";
+import MapView, {
+  Circle,
+  LatLng,
+  Marker,
+  Polyline,
+  UrlTile,
+  PROVIDER_DEFAULT,
+  MapPressEvent,
+} from "react-native-maps";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button } from "react-native-paper";
+import Voice, {
+  SpeechErrorEvent,
+  SpeechResultsEvent,
+} from "@react-native-voice/voice";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
+import MapSearchBar, { MapSearchBarHandle } from "../components/MapSearchBar";
+import FloatingActionButton from "../components/FloatingActionButton";
+import FilterBottomSheet, {
+  FilterState,
+} from "../components/FilterBottomSheet";
+import RoutePlannerModal from "../components/RoutePlannerModal";
+import QRScannerModal from "../components/QRScannerModal";
+import useUserLocation from "../hooks/useUserLocation";
 import {
-  DEFAULT_COORDINATES,
-  OSM_MAX_ZOOM_LEVEL,
-  OSM_TILE_URL,
-  STATIC_MAP_BASE_URL,
-} from "../../constants/map";
-import { Colors, Fonts } from "../../constants/theme";
-import InteractiveMap, {
-  InteractiveMapHandle,
-} from "../../components/InteractiveMap";
+  fetchRoute,
+  parseGeoUri,
+  searchPlaces,
+  RouteResult,
+  SearchResult,
+} from "../services/MapService";
+import { useFavorites } from "../context/FavoritesContext";
+import { Colors } from "../../constants/theme";
+import { DEFAULT_COORDINATES } from "../../constants/map";
 
-const isMobilePlatform = Platform.OS === "ios" || Platform.OS === "android";
-
-type MapRegion = {
-  latitude: number;
-  longitude: number;
-  latitudeDelta: number;
-  longitudeDelta: number;
+export type MapScreenParams = {
+  trigger?: {
+    type: "focusSearch" | "openRoute";
+    timestamp: number;
+  };
 };
 
-type NearbyUser = {
-  id: string;
-  name: string;
-  distanceInMeters: number;
-  sharedInterest: string;
-  lastActiveMinutes: number;
-};
+type MapScreenRoute = RouteProp<{ Map: MapScreenParams }, "Map">;
+type MapScreenNavigation = NativeStackNavigationProp<
+  { Map: MapScreenParams },
+  "Map"
+>;
 
-type ChatMessage = {
-  id: string;
-  sender: "me" | "them";
-  text: string;
-  timestamp: string;
-};
-
-type BottomTabId =
-  | "search"
-  | "route"
-  | "hub"
-  | "favorites"
-  | "messages";
-
-type BottomTabItem = {
-  id: BottomTabId;
+type MapLayer = {
+  id: "standard" | "satellite" | "terrain" | "dark";
   label: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  urlTemplate: string;
+  maximumZ?: number;
 };
 
-type TopToolbarActionId = "filters" | "layers" | "locate";
-
-type TopToolbarAction = {
-  id: TopToolbarActionId;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-};
-
-const BOTTOM_TABS: BottomTabItem[] = [
-  { id: "search", label: "Search", icon: "search-outline" },
-  { id: "route", label: "Route", icon: "navigate-outline" },
-  { id: "hub", label: "Hub", icon: "people-outline" },
-  { id: "favorites", label: "Favorites", icon: "heart-outline" },
-  { id: "messages", label: "Messages", icon: "chatbubbles-outline" },
+const MAP_LAYERS: MapLayer[] = [
+  {
+    id: "standard",
+    label: "Standard",
+    urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    maximumZ: 19,
+  },
+  {
+    id: "satellite",
+    label: "Satellite",
+    urlTemplate:
+      "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    maximumZ: 18,
+  },
+  {
+    id: "terrain",
+    label: "Terrain",
+    urlTemplate: "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+    maximumZ: 17,
+  },
+  {
+    id: "dark",
+    label: "Dark",
+    urlTemplate:
+      "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png",
+    maximumZ: 19,
+  },
 ];
 
-const TOP_TOOLBAR_ACTIONS: TopToolbarAction[] = [
-  { id: "filters", label: "Filters", icon: "options-outline" },
-  { id: "layers", label: "Layers", icon: "layers-outline" },
-  { id: "locate", label: "My location", icon: "locate-outline" },
-];
-
-const DEFAULT_REGION: MapRegion = {
+const INITIAL_REGION = {
   latitude: DEFAULT_COORDINATES.latitude,
   longitude: DEFAULT_COORDINATES.longitude,
-  latitudeDelta: 0.12,
-  longitudeDelta: 0.12,
+  latitudeDelta: 0.1,
+  longitudeDelta: 0.1,
 };
 
-const MIN_STATIC_MAP_ZOOM_LEVEL = 3;
+const TRAFFIC_SEGMENTS: LatLng[][] = [
+  [
+    { latitude: 40.7158, longitude: -74.0111 },
+    { latitude: 40.7222, longitude: -74.0023 },
+  ],
+  [
+    { latitude: 40.7056, longitude: -74.0092 },
+    { latitude: 40.7122, longitude: -73.995 },
+  ],
+];
 
-function createRegionFromCoords(coords: Location.LocationObjectCoords): MapRegion {
-  return {
-    latitude: coords.latitude,
-    longitude: coords.longitude,
-    latitudeDelta: 0.02,
-    longitudeDelta: 0.02,
-  };
-}
+const HIKING_TRAILS: LatLng[][] = [
+  [
+    { latitude: 40.6994, longitude: -74.017 },
+    { latitude: 40.7036, longitude: -74.013 },
+    { latitude: 40.7068, longitude: -74.01 },
+  ],
+];
+
+const TRANSPORT_POINTS = [
+  {
+    id: "transport-1",
+    coordinate: { latitude: 40.7114, longitude: -74.0091 },
+    label: "Fulton St Station",
+  },
+  {
+    id: "transport-2",
+    coordinate: { latitude: 40.7301, longitude: -73.9918 },
+    label: "Astor Place",
+  },
+];
+
+const DEBOUNCE_DELAY = 380;
 
 export default function MapScreen() {
-  const [isOverlayDismissed, setOverlayDismissed] = useState(false);
-  const [isRequestingLocation, setIsRequestingLocation] = useState(true);
-  const [isMapReady, setIsMapReady] = useState(false);
-  const [hasMapError, setHasMapError] = useState(false);
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [canAskLocationAgain, setCanAskLocationAgain] = useState(true);
-  const [isChatVisible, setChatVisible] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [draftMessage, setDraftMessage] = useState("");
-  const [activeBottomTab, setActiveBottomTab] = useState<BottomTabId>("search");
-  const mapRef = useRef<InteractiveMapHandle | null>(null);
-  const isMountedRef = useRef(true);
-  const isFetchingLocationRef = useRef(false);
-  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
-  const isInteractiveMapSupported = isMobilePlatform;
-  const shouldUseInteractiveMap = isInteractiveMapSupported && !hasMapError;
+  const navigation = useNavigation<MapScreenNavigation>();
+  const route = useRoute<MapScreenRoute>();
+  const insets = useSafeAreaInsets();
+  const mapRef = useRef<MapView>(null);
+  const searchBarRef = useRef<MapSearchBarHandle>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [selectedPlace, setSelectedPlace] = useState<SearchResult | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    traffic: true,
+    hiking: false,
+    transport: false,
+    night: false,
+  });
+  const [isFilterSheetVisible, setFilterSheetVisible] = useState(false);
+  const [mapLayerIndex, setMapLayerIndex] = useState(0);
+  const [isRouteModalVisible, setRouteModalVisible] = useState(false);
+  const [isQrScannerVisible, setQrScannerVisible] = useState(false);
+  const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
+  const [routeEndpoints, setRouteEndpoints] = useState<{
+    start: SearchResult;
+    destination: SearchResult;
+  } | null>(null);
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
 
-  const nearbyUsers = useMemo<NearbyUser[]>(
-    () => [
-      {
-        id: "lena",
-        name: "Lena",
-        distanceInMeters: 85,
-        sharedInterest: "Local art pop-up",
-        lastActiveMinutes: 3,
-      },
-      {
-        id: "amir",
-        name: "Amir",
-        distanceInMeters: 140,
-        sharedInterest: "Community gardening",
-        lastActiveMinutes: 7,
-      },
-      {
-        id: "noa",
-        name: "Noa",
-        distanceInMeters: 210,
-        sharedInterest: "Night market meetup",
-        lastActiveMinutes: 15,
-      },
-    ],
-    []
-  );
+  const { addFavorite } = useFavorites();
+  const {
+    location: userLocation,
+    refresh: refreshLocation,
+    error: locationError,
+  } = useUserLocation();
 
-  const initialMessages = useMemo<Record<string, ChatMessage[]>>(
-    () => ({
-      lena: [
-        {
-          id: "lena-1",
-          sender: "them",
-          text: "Hey! Are you at the art pop-up too?",
-          timestamp: new Date().toISOString(),
-        },
-      ],
-      amir: [
-        {
-          id: "amir-1",
-          sender: "them",
-          text: "We’re gathering by the herb beds at 6pm if you’d like to join!",
-          timestamp: new Date().toISOString(),
-        },
-      ],
-      noa: [
-        {
-          id: "noa-1",
-          sender: "them",
-          text: "Thinking about grabbing coffee near the market. Want to team up?",
-          timestamp: new Date().toISOString(),
-        },
-      ],
-    }),
-    []
-  );
+  const activeLayer = MAP_LAYERS[mapLayerIndex];
 
-  const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>(
-    initialMessages
-  );
-
-  const improvementSuggestions = useMemo(
-    () => [
-      {
-        id: "icebreaker",
-        title: "Share a quick icebreaker",
-        description:
-          "Mention a local event or highlight on the map to make the first message feel relevant.",
-      },
-      {
-        id: "meetup",
-        title: "Suggest a safe meetup point",
-        description:
-          "Pick a public spot from the map—like a café or community hub—when planning to meet.",
-      },
-      {
-        id: "status",
-        title: "Keep your status fresh",
-        description:
-          "Update your availability so nearby people know when you’re ready to chat or collaborate.",
-      },
-    ],
-    []
-  );
-
-  const selectedUser = useMemo(
-    () => nearbyUsers.find((user) => user.id === selectedUserId) ?? null,
-    [nearbyUsers, selectedUserId]
+  const mapPadding = useMemo(
+    () => ({ top: insets.top + 120, bottom: insets.bottom + 140, left: 60, right: 60 }),
+    [insets.bottom, insets.top]
   );
 
   useEffect(() => {
+    const trigger = route.params?.trigger;
+    if (!trigger) {
+      return;
+    }
+
+    if (trigger.type === "focusSearch") {
+      requestAnimationFrame(() => {
+        searchBarRef.current?.focus();
+      });
+    }
+
+    if (trigger.type === "openRoute") {
+      setRouteModalVisible(true);
+    }
+
+    navigation.setParams({ trigger: undefined });
+  }, [navigation, route.params?.trigger]);
+
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      setIsSearching(true);
+      searchPlaces(searchQuery)
+        .then((results) => {
+          setSearchResults(results);
+        })
+        .catch((error) => {
+          console.warn("Failed to search places", error);
+        })
+        .finally(() => {
+          setIsSearching(false);
+        });
+    }, DEBOUNCE_DELAY);
+
     return () => {
-      isMountedRef.current = false;
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleSpeechResults = (event: SpeechResultsEvent) => {
+      const [transcript] = event.value ?? [];
+      if (transcript) {
+        setSearchQuery(transcript);
+      }
+      setIsVoiceListening(false);
+    };
+
+    const handleSpeechError = (event: SpeechErrorEvent) => {
+      setIsVoiceListening(false);
+      if (event.error) {
+        Alert.alert("Voice search", event.error.message ?? "We couldn't understand that.");
+      }
+    };
+
+    Voice.onSpeechResults = handleSpeechResults;
+    Voice.onSpeechError = handleSpeechError;
+    Voice.onSpeechEnd = () => setIsVoiceListening(false);
+
+    return () => {
+      Voice.destroy().finally(() => Voice.removeAllListeners());
     };
   }, []);
 
-  const startRequestingLocation = useCallback(() => {
-    isFetchingLocationRef.current = true;
-    setIsRequestingLocation(true);
-  }, []);
+  const focusCamera = useCallback(
+    (coords: LatLng, zoom = 14) => {
+      mapRef.current?.animateCamera(
+        {
+          center: coords,
+          zoom,
+        },
+        { duration: 650 }
+      );
+    },
+    []
+  );
 
-  const stopRequestingLocation = useCallback(() => {
-    isFetchingLocationRef.current = false;
-    setIsRequestingLocation(false);
-  }, []);
+  const handleSelectSearchResult = useCallback(
+    (result: SearchResult) => {
+      setSelectedPlace(result);
+      setSearchQuery(result.displayName);
+      setSearchResults([]);
+      focusCamera({ latitude: result.latitude, longitude: result.longitude }, 15);
+    },
+    [focusCamera]
+  );
 
-  const fetchCurrentLocation = useCallback(async () => {
-    try {
-      const current = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-        maximumAge: 10_000,
-        timeout: 15_000,
+  const handleSubmitSearch = useCallback(() => {
+    if (searchResults.length > 0) {
+      handleSelectSearchResult(searchResults[0]);
+    }
+  }, [handleSelectSearchResult, searchResults]);
+
+  useEffect(() => {
+    if (routeResult?.coordinates?.length) {
+      mapRef.current?.fitToCoordinates(routeResult.coordinates, {
+        edgePadding: mapPadding,
+        animated: true,
       });
+    }
+  }, [mapPadding, routeResult]);
 
-      if (!isMountedRef.current) {
-        return;
-      }
+  useEffect(() => {
+    const coords = userLocation.coords;
+    if (!coords) {
+      return;
+    }
+    focusCamera({ latitude: coords.latitude, longitude: coords.longitude }, 14);
+  }, [focusCamera, userLocation.coords]);
 
-      setLocationError(null);
-      setLocation(current);
+  const handleCycleLayer = useCallback(() => {
+    setMapLayerIndex((current) => (current + 1) % MAP_LAYERS.length);
+  }, []);
+
+  const handleLocateMe = useCallback(() => {
+    const coords = userLocation.coords;
+    if (coords) {
+      focusCamera({ latitude: coords.latitude, longitude: coords.longitude }, 15);
+      return;
+    }
+    refreshLocation();
+  }, [focusCamera, refreshLocation, userLocation.coords]);
+
+  const handleToggleFilters = useCallback(() => {
+    setFilterSheetVisible(true);
+  }, []);
+
+  const stopVoiceSearch = useCallback(async () => {
+    try {
+      await Voice.stop();
     } catch (error) {
-      console.error("Failed to determine current location", error);
+      console.warn("Failed to stop voice search", error);
+    } finally {
+      setIsVoiceListening(false);
+    }
+  }, []);
 
-      if (!isMountedRef.current) {
-        return;
-      }
+  const handleVoiceSearch = useCallback(async () => {
+    if (Platform.OS === "web") {
+      Alert.alert("Voice search", "Voice input is not supported on the web yet.");
+      return;
+    }
 
-      const errorCode = (error as { code?: string })?.code;
-      setLocation(null);
-
-      if (errorCode === "E_LOCATION_TIMEOUT") {
-        setLocationError(
-          "It’s taking a while to determine your position. Try again in a moment."
-        );
-        return;
-      }
-
-      if (errorCode === "E_LOCATION_SERVICES_DISABLED") {
-        setLocationError(
-          "Location services are turned off. Enable them in your system settings to show your position."
-        );
-        return;
-      }
-
-      setLocationError(
-        "We couldn't determine your current location. Please try again."
+    try {
+      setIsVoiceListening(true);
+      await Voice.start("en-US");
+    } catch (error) {
+      console.warn("Failed to start voice search", error);
+      setIsVoiceListening(false);
+      Alert.alert(
+        "Voice search",
+        "We couldn't access the microphone. Check your permissions and try again."
       );
     }
   }, []);
 
-  const requestLocation = useCallback(async () => {
-    if (!isMountedRef.current || isFetchingLocationRef.current) {
-      return;
-    }
-
-    startRequestingLocation();
-
-    try {
-      let permission = await Location.getForegroundPermissionsAsync();
-
-      if (!isMountedRef.current) {
+  const handleQrScanned = useCallback(
+    (data: string) => {
+      setQrScannerVisible(false);
+      const coords = parseGeoUri(data);
+      if (coords) {
+        focusCamera(coords, 15);
+        setSelectedPlace({
+          id: data,
+          displayName: `Pinned location (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
         return;
       }
+      setSearchQuery(data);
+      Alert.alert("QR content", data);
+    },
+    [focusCamera]
+  );
 
-      if (
-        permission.status !== Location.PermissionStatus.GRANTED &&
-        permission.canAskAgain
-      ) {
-        permission = await Location.requestForegroundPermissionsAsync();
-
-        if (!isMountedRef.current) {
+  const handlePlanRoute = useCallback(
+    async ({ start, destination }: { start: SearchResult; destination: SearchResult }) => {
+      setRouteModalVisible(false);
+      try {
+        const routeResponse = await fetchRoute(
+          { latitude: start.latitude, longitude: start.longitude },
+          { latitude: destination.latitude, longitude: destination.longitude }
+        );
+        if (!routeResponse) {
+          Alert.alert("Route planner", "No route was returned for those points.");
           return;
         }
-      }
-
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      setCanAskLocationAgain(permission.canAskAgain);
-
-      if (permission.status !== Location.PermissionStatus.GRANTED) {
-        setLocation(null);
-        setLocationError(
-          permission.canAskAgain
-            ? "We need permission to show your current location."
-            : "Location access is disabled. Enable it in your system settings to see your position."
+        setRouteEndpoints({ start, destination });
+        setRouteResult(routeResponse);
+      } catch (error) {
+        console.error("Failed to fetch route", error);
+        Alert.alert(
+          "Route planner",
+          "We couldn't calculate a route right now. Please try again shortly."
         );
-        return;
-      }
-
-      const servicesEnabled = await Location.hasServicesEnabledAsync();
-
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      if (!servicesEnabled) {
-        setLocation(null);
-        setLocationError(
-          "Location services are turned off. Enable them in your system settings to show your position."
-        );
-        return;
-      }
-
-      await fetchCurrentLocation();
-    } catch (error) {
-      console.error("Failed to request current location", error);
-      if (isMountedRef.current) {
-        setLocation(null);
-        setLocationError(
-          "We couldn't determine your current location. Please try again."
-        );
-      }
-    } finally {
-      if (isMountedRef.current) {
-        stopRequestingLocation();
-      }
-    }
-  }, [fetchCurrentLocation, startRequestingLocation, stopRequestingLocation]);
-
-  useEffect(() => {
-    requestLocation();
-  }, [requestLocation]);
-
-  const refreshLocationIfPossible = useCallback(async () => {
-    if (!isMountedRef.current || isFetchingLocationRef.current) {
-      return;
-    }
-
-    startRequestingLocation();
-
-    try {
-      const permission = await Location.getForegroundPermissionsAsync();
-
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      setCanAskLocationAgain(permission.canAskAgain);
-
-      if (permission.status !== Location.PermissionStatus.GRANTED) {
-        setLocation(null);
-        setLocationError(
-          permission.canAskAgain
-            ? "We need permission to show your current location."
-            : "Location access is disabled. Enable it in your system settings to see your position."
-        );
-        return;
-      }
-
-      const servicesEnabled = await Location.hasServicesEnabledAsync();
-
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      if (!servicesEnabled) {
-        setLocation(null);
-        setLocationError(
-          "Location services are turned off. Enable them in your system settings to show your position."
-        );
-        return;
-      }
-
-      await fetchCurrentLocation();
-    } catch (error) {
-      console.error("Failed to refresh current location", error);
-
-      if (isMountedRef.current) {
-        setLocation(null);
-        setLocationError(
-          "We couldn't determine your current location. Please try again."
-        );
-      }
-    } finally {
-      if (isMountedRef.current) {
-        stopRequestingLocation();
-      }
-    }
-  }, [fetchCurrentLocation, startRequestingLocation, stopRequestingLocation]);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      const previousState = appStateRef.current;
-      appStateRef.current = nextState;
-
-      if (
-        previousState &&
-        (previousState === "inactive" || previousState === "background") &&
-        nextState === "active"
-      ) {
-        refreshLocationIfPossible();
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, [refreshLocationIfPossible]);
-
-  useEffect(() => {
-    if (!location?.coords || !mapRef.current || !shouldUseInteractiveMap) {
-      return;
-    }
-
-    mapRef.current.focusOn(location.coords);
-  }, [location, shouldUseInteractiveMap]);
-
-  const handleDismissOverlay = useCallback(() => {
-    setOverlayDismissed(true);
-  }, []);
-
-  const handleRestoreOverlay = useCallback(() => {
-    setOverlayDismissed(false);
-  }, []);
-
-  const handleRetry = useCallback(() => {
-    requestLocation();
-  }, [requestLocation]);
-
-  const handleOpenSettings = useCallback(() => {
-    Linking.openSettings().catch((error) => {
-      console.error("Failed to open settings", error);
-    });
-  }, []);
-
-  const closeChat = useCallback(() => {
-    setChatVisible(false);
-    setSelectedUserId(null);
-    setDraftMessage("");
-  }, []);
-
-  const handleOpenChat = useCallback(() => {
-    setActiveBottomTab("messages");
-    setChatVisible(true);
-  }, []);
-
-  const handleCloseChat = useCallback(() => {
-    closeChat();
-    setActiveBottomTab("search");
-  }, [closeChat]);
-
-  const handleSelectUser = useCallback((userId: string) => {
-    setSelectedUserId(userId);
-    setDraftMessage("");
-  }, []);
-
-  const handleBackToUserList = useCallback(() => {
-    setSelectedUserId(null);
-    setDraftMessage("");
-  }, []);
-
-  const handleSendMessage = useCallback(() => {
-    if (!selectedUserId) {
-      return;
-    }
-
-    const trimmed = draftMessage.trim();
-    if (!trimmed) {
-      return;
-    }
-
-    setMessagesByUser((current) => {
-      const existing = current[selectedUserId] ?? [];
-      const timestamp = new Date().toISOString();
-      const updated = [
-        ...existing,
-        {
-          id: `${selectedUserId}-${timestamp}`,
-          sender: "me",
-          text: trimmed,
-          timestamp,
-        },
-      ];
-
-      return {
-        ...current,
-        [selectedUserId]: updated,
-      };
-    });
-
-    setDraftMessage("");
-  }, [draftMessage, selectedUserId]);
-
-  const handleSelectBottomTab = useCallback(
-    (tabId: BottomTabId) => {
-      if (tabId === "messages") {
-        handleOpenChat();
-        return;
-      }
-
-      setActiveBottomTab(tabId);
-
-      if (isChatVisible) {
-        closeChat();
       }
     },
-    [closeChat, handleOpenChat, isChatVisible]
+    []
   );
 
-  const handleToolbarAction = useCallback(
-    (actionId: TopToolbarActionId) => {
-      if (actionId === "locate") {
-        if (coords) {
-          mapRef.current?.focusOn(coords);
-        } else {
-          requestLocation();
-        }
-        return;
-      }
+  const handleSaveFavorite = useCallback(() => {
+    if (!selectedPlace) {
+      return;
+    }
+    addFavorite({
+      id: selectedPlace.id,
+      title: selectedPlace.displayName,
+      latitude: selectedPlace.latitude,
+      longitude: selectedPlace.longitude,
+      addedAt: Date.now(),
+    });
+    Alert.alert("Saved", "Added to your favorites.");
+  }, [addFavorite, selectedPlace]);
 
-      if (actionId === "layers") {
-        refreshLocationIfPossible();
-        return;
-      }
+  const handleMapPress = useCallback((event: MapPressEvent) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    console.log(`Tapped coordinates: ${latitude}, ${longitude}`);
+  }, []);
 
-      if (actionId === "filters") {
-        setOverlayDismissed(false);
-      }
-    },
-    [coords, refreshLocationIfPossible, requestLocation]
+  const nightOverlayStyle = useMemo(
+    () => [
+      styles.nightOverlay,
+      { opacity: filters.night ? 0.35 : 0 },
+    ],
+    [filters.night]
   );
 
-  const handleZoomIn = useCallback(() => {
-    if (shouldUseInteractiveMap) {
-      mapRef.current?.zoomIn();
-      return;
-    }
+  const renderSearchResult = useCallback(
+    ({ item }: { item: SearchResult }) => (
+      <Pressable
+        onPress={() => handleSelectSearchResult(item)}
+        style={({ pressed }) => [styles.resultItem, pressed && styles.resultItemPressed]}
+      >
+        <Text style={styles.resultTitle}>{item.displayName}</Text>
+        <Text style={styles.resultSubtitle}>
+          {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
+        </Text>
+      </Pressable>
+    ),
+    [handleSelectSearchResult]
+  );
 
-    setFallbackZoomLevel((current) =>
-      Math.min(current + 1, OSM_MAX_ZOOM_LEVEL)
-    );
-  }, [shouldUseInteractiveMap]);
-
-  const handleZoomOut = useCallback(() => {
-    if (shouldUseInteractiveMap) {
-      mapRef.current?.zoomOut();
-      return;
-    }
-
-    setFallbackZoomLevel((current) =>
-      Math.max(current - 1, MIN_STATIC_MAP_ZOOM_LEVEL)
-    );
-  }, [shouldUseInteractiveMap]);
-
-  const handleOpenInMaps = useCallback(async () => {
-    const coords = location?.coords;
-    const url = coords
-      ? `https://www.openstreetmap.org/?mlat=${coords.latitude}&mlon=${coords.longitude}#map=16/${coords.latitude}/${coords.longitude}`
-      : "https://www.openstreetmap.org/";
-
-    try {
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        Linking.openURL(url);
-      }
-    } catch (error) {
-      console.error("Failed to open maps", error);
-    }
-  }, [location]);
-
-  const handleMapReady = useCallback(() => {
-    setHasMapError(false);
-    setIsMapReady(true);
-  }, []);
-
-  const handleMapError = useCallback(() => {
-    setHasMapError(true);
-    setIsMapReady(false);
-  }, []);
-
-  const shouldShowLoadingOverlay =
-    isRequestingLocation || (shouldUseInteractiveMap && !isMapReady);
-
-  const coords = location?.coords;
-  const overlayTitle = coords ? "You’re here" : "Waiting for your location";
-  const overlayDescription = coords
-    ? `Latitude ${coords.latitude.toFixed(4)}, Longitude ${coords.longitude.toFixed(4)}`
-    : "Grant location access so we can highlight where you are right now.";
-
-  const mapRegion = coords ? createRegionFromCoords(coords) : DEFAULT_REGION;
-  const mapZoomLevel = coords ? 15 : DEFAULT_COORDINATES.zoomLevel;
-  const [fallbackZoomLevel, setFallbackZoomLevel] = useState(mapZoomLevel);
-
-  useEffect(() => {
-    setFallbackZoomLevel(mapZoomLevel);
-  }, [mapZoomLevel]);
-
-  const mapUnavailableMessage = (() => {
-    if (hasMapError) {
-      return "Interactive map tiles couldn’t be loaded right now. Showing a static preview instead.";
-    }
-
-    if (!isMobilePlatform) {
-      return "Interactive OpenStreetMap tiles are only available on iOS and Android devices.";
-    }
-
-    return "Map preview is currently unavailable.";
-  })();
-
-  const fallbackMapUrl = useMemo(() => {
-    const latitude = coords?.latitude ?? mapRegion.latitude;
-    const longitude = coords?.longitude ?? mapRegion.longitude;
-    const zoom = shouldUseInteractiveMap ? mapZoomLevel : fallbackZoomLevel;
-    const marker = coords ? `&markers=${latitude},${longitude},lightblue1` : "";
-    return `${STATIC_MAP_BASE_URL}?center=${latitude},${longitude}&zoom=${zoom}&size=600x600${marker}`;
-  }, [
-    coords,
-    fallbackZoomLevel,
-    mapRegion.latitude,
-    mapRegion.longitude,
-    mapZoomLevel,
-    shouldUseInteractiveMap,
-  ]);
+  const mapHeight = Dimensions.get("window").height;
 
   return (
     <View style={styles.container}>
-      {shouldUseInteractiveMap ? (
-        <InteractiveMap
-          ref={mapRef}
-          initialCoordinates={{
-            latitude: mapRegion.latitude,
-            longitude: mapRegion.longitude,
-          }}
-          initialZoom={mapZoomLevel}
-          marker={
-            coords
-              ? { latitude: coords.latitude, longitude: coords.longitude }
-              : null
-          }
-          maxZoom={OSM_MAX_ZOOM_LEVEL}
-          onReady={handleMapReady}
-          onError={handleMapError}
-          style={styles.map}
-          tileUrlTemplate={OSM_TILE_URL}
+      <MapView
+        ref={mapRef}
+        style={[styles.map, { height: mapHeight }]}
+        provider={PROVIDER_DEFAULT}
+        initialRegion={INITIAL_REGION}
+        onPress={handleMapPress}
+        showsCompass
+        showsPointsOfInterest={false}
+      >
+        <UrlTile
+          key={activeLayer.id}
+          urlTemplate={activeLayer.urlTemplate}
+          zIndex={0}
+          maximumZ={activeLayer.maximumZ}
         />
-      ) : fallbackMapUrl ? (
-        <View style={styles.map}>
-          <Image
-            source={{ uri: fallbackMapUrl }}
-            style={styles.staticMap}
-            resizeMode="cover"
-            accessibilityLabel="OpenStreetMap view showing your current location"
-            accessibilityRole="image"
+        {selectedPlace && (
+          <Marker
+            coordinate={{
+              latitude: selectedPlace.latitude,
+              longitude: selectedPlace.longitude,
+            }}
+            title={selectedPlace.displayName}
           />
-        </View>
-      ) : (
-        <View style={styles.mapUnavailable}>
-          <Text style={styles.mapUnavailableText}>{mapUnavailableMessage}</Text>
+        )}
+        {filters.traffic &&
+          TRAFFIC_SEGMENTS.map((segment, index) => (
+            <Polyline
+              key={`traffic-${index}`}
+              coordinates={segment}
+              strokeColor="rgba(239, 68, 68, 0.85)"
+              strokeWidth={4}
+              zIndex={2}
+            />
+          ))}
+        {filters.hiking &&
+          HIKING_TRAILS.map((segment, index) => (
+            <Polyline
+              key={`trail-${index}`}
+              coordinates={segment}
+              strokeColor="rgba(34,197,94,0.85)"
+              strokeWidth={4}
+              lineDashPattern={[6, 6]}
+              zIndex={2}
+            />
+          ))}
+        {filters.transport &&
+          TRANSPORT_POINTS.map((point) => (
+            <Marker
+              key={point.id}
+              coordinate={point.coordinate}
+              title={point.label}
+              pinColor="#6366f1"
+            />
+          ))}
+        {userLocation.coords && (
+          <>
+            <Marker
+              coordinate={{
+                latitude: userLocation.coords.latitude,
+                longitude: userLocation.coords.longitude,
+              }}
+              title="Your location"
+              pinColor="#1d4ed8"
+            />
+            <Circle
+              center={{
+                latitude: userLocation.coords.latitude,
+                longitude: userLocation.coords.longitude,
+              }}
+              radius={120}
+              strokeColor="rgba(37,99,235,0.35)"
+              fillColor="rgba(59,130,246,0.15)"
+              zIndex={1}
+            />
+          </>
+        )}
+        {routeResult?.coordinates && (
+          <Polyline
+            coordinates={routeResult.coordinates}
+            strokeColor="#2563eb"
+            strokeWidth={5}
+            zIndex={3}
+          />
+        )}
+      </MapView>
+
+      <View style={[styles.searchContainer, { paddingTop: insets.top + 12 }]}>
+        <MapSearchBar
+          ref={searchBarRef}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onSubmitEditing={handleSubmitSearch}
+          onMicPress={isVoiceListening ? stopVoiceSearch : handleVoiceSearch}
+          onQrPress={() => setQrScannerVisible(true)}
+          isLoading={isSearching || isVoiceListening}
+        />
+        {searchResults.length > 0 && (
+          <View style={styles.resultsList}>
+            <FlatList
+              data={searchResults}
+              keyExtractor={(item) => item.id}
+              renderItem={renderSearchResult}
+              keyboardShouldPersistTaps="handled"
+            />
+          </View>
+        )}
+      </View>
+
+      <View style={[styles.fabColumn, { top: insets.top + 100 }]}>
+        <FloatingActionButton
+          icon="options-outline"
+          accessibilityLabel="Open filters"
+          onPress={handleToggleFilters}
+        />
+        <FloatingActionButton
+          icon="layers-outline"
+          accessibilityLabel="Change map layer"
+          onPress={handleCycleLayer}
+          style={styles.fabSpacing}
+        />
+        <FloatingActionButton
+          icon="locate-outline"
+          accessibilityLabel="Center on my location"
+          onPress={handleLocateMe}
+        />
+      </View>
+
+      <View style={[styles.layerBadge, { top: insets.top + 16 }]}>
+        <Text style={styles.layerBadgeText}>{activeLayer.label}</Text>
+      </View>
+
+      {selectedPlace && (
+        <View style={[styles.selectedPlaceCard, { bottom: insets.bottom + 140 }]}>
+          <Text numberOfLines={2} style={styles.selectedPlaceTitle}>
+            {selectedPlace.displayName}
+          </Text>
+          <Text style={styles.selectedPlaceCoords}>
+            {selectedPlace.latitude.toFixed(4)}, {selectedPlace.longitude.toFixed(4)}
+          </Text>
+          <Button
+            mode="contained"
+            onPress={handleSaveFavorite}
+            style={styles.favoriteButton}
+          >
+            Save to favorites
+          </Button>
         </View>
       )}
 
-      <View style={styles.topToolbarContainer}>
-        <Pressable
-          accessibilityHint="Search for places and meetups"
-          accessibilityRole="button"
-          onPress={() => handleSelectBottomTab("search")}
-          style={({ pressed }) => [
-            styles.searchBar,
-            pressed && { opacity: 0.9 },
-          ]}
-        >
-          <Ionicons
-            name="search-outline"
-            size={20}
-            color={Colors.light.icon}
-            style={styles.searchIcon}
-          />
-          <Text style={styles.searchPlaceholder}>Search the map</Text>
-          <View style={styles.searchTrailingIcons}>
-            <Ionicons
-              name="mic-outline"
-              size={18}
-              color={Colors.light.icon}
-            />
-            <Ionicons
-              name="qr-code-outline"
-              size={18}
-              color={Colors.light.icon}
-              style={styles.scanIcon}
-            />
+      {routeResult && routeEndpoints && (
+        <View style={[styles.routeSummary, { bottom: insets.bottom + 100 }]}>
+          <Text style={styles.routeSummaryTitle}>Route overview</Text>
+          <Text style={styles.routeSummarySubtitle}>
+            {routeEndpoints.start.displayName.split(",")[0]} →
+            {" "}
+            {routeEndpoints.destination.displayName.split(",")[0]}
+          </Text>
+          <View style={styles.routeSummaryRow}>
+            <Text style={styles.routeStatLabel}>
+              {(routeResult.distanceInMeters / 1000).toFixed(1)} km
+            </Text>
+            <Text style={styles.routeStatLabel}>
+              {Math.round(routeResult.durationInSeconds / 60)} min
+            </Text>
           </View>
-        </Pressable>
-
-        <View style={styles.topToolbarActions}>
-          {TOP_TOOLBAR_ACTIONS.map((action, index) => (
-            <Pressable
-              key={action.id}
-              accessibilityLabel={action.label}
-              accessibilityRole="button"
-              onPress={() => handleToolbarAction(action.id)}
-              style={({ pressed }) => [
-                styles.topToolbarAction,
-                index === 0 && styles.topToolbarActionFirst,
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <Ionicons
-                name={action.icon}
-                size={20}
-                color={Colors.light.text}
-              />
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.mapControls}>
-        <Pressable
-          accessibilityLabel="Zoom in"
-          accessibilityRole="button"
-          onPress={handleZoomIn}
-          style={({ pressed }) => [
-            styles.mapControlButton,
-            pressed && { opacity: 0.85 },
-          ]}
-        >
-          <Ionicons name="add" size={22} color={Colors.light.text} />
-        </Pressable>
-        <Pressable
-          accessibilityLabel="Zoom out"
-          accessibilityRole="button"
-          onPress={handleZoomOut}
-          style={({ pressed }) => [
-            styles.mapControlButton,
-            pressed && { opacity: 0.85 },
-          ]}
-        >
-          <Ionicons name="remove" size={22} color={Colors.light.text} />
-        </Pressable>
-      </View>
-
-      <View pointerEvents="none" style={styles.attributionContainer}>
-        <Text style={styles.attributionText}>© OpenStreetMap contributors</Text>
-      </View>
-
-      {shouldShowLoadingOverlay && (
-        <View style={styles.loadingOverlay} pointerEvents="none">
-          <ActivityIndicator color={Colors.light.tint} size="large" />
-          <Text style={styles.loadingText}>Centering on your location…</Text>
         </View>
       )}
 
       {locationError && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Can’t show your position</Text>
-          <Text style={styles.errorDescription}>{locationError}</Text>
-          <View style={styles.errorActions}>
-            {canAskLocationAgain && (
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleRetry}
-                style={({ pressed }) => [
-                  styles.secondaryAction,
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={styles.secondaryActionText}>Try again</Text>
-              </Pressable>
-            )}
-            <Pressable
-              accessibilityRole="button"
-              onPress={handleOpenSettings}
-              style={({ pressed }) => [
-                styles.errorAction,
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <Text style={styles.errorActionText}>Open settings</Text>
-            </Pressable>
-          </View>
+        <View style={[styles.locationError, { bottom: insets.bottom + 140 }]}>
+          <Text style={styles.locationErrorTitle}>Location unavailable</Text>
+          <Text style={styles.locationErrorMessage}>{locationError}</Text>
+          <Button mode="contained-tonal" onPress={refreshLocation}>
+            Try again
+          </Button>
         </View>
       )}
 
-      {!locationError && !isOverlayDismissed && (
-        <View style={styles.overlay}>
-          <Pressable
-            accessibilityLabel="Hide your location details"
-            accessibilityRole="button"
-            hitSlop={12}
-            onPress={handleDismissOverlay}
-            style={({ pressed }) => [
-              styles.overlayDismiss,
-              pressed && { opacity: 0.6 },
-            ]}
-          >
-            <Text style={styles.overlayDismissLabel}>Dismiss</Text>
-          </Pressable>
-          <Text style={styles.locationEyebrow}>Your location</Text>
-          <Text style={styles.locationTitle}>{overlayTitle}</Text>
-          <Text style={styles.locationDescription}>{overlayDescription}</Text>
-          <Pressable
-            accessibilityHint="Opens OpenStreetMap centered on your coordinates"
-            accessibilityRole="button"
-            disabled={!coords}
-            onPress={handleOpenInMaps}
-            style={({ pressed }) => [
-              styles.ctaButton,
-              (!coords || pressed) && { opacity: coords ? 0.85 : 0.5 },
-            ]}
-          >
-            <Text style={styles.ctaLabel}>
-              {coords ? "Open in OpenStreetMap" : "Waiting for permission…"}
-            </Text>
-          </Pressable>
-        </View>
-      )}
+      <View pointerEvents="none" style={nightOverlayStyle} />
 
-      {!locationError && isOverlayDismissed && (
-        <Pressable
-          accessibilityHint="Shows your location details again"
-          accessibilityLabel="Show your location information"
-          accessibilityRole="button"
-          onPress={handleRestoreOverlay}
-          style={({ pressed }) => [
-            styles.overlayRestore,
-            pressed && { opacity: 0.8 },
-          ]}
-        >
-          <Text style={styles.overlayRestoreLabel}>Show details</Text>
-        </Pressable>
-      )}
+      <FilterBottomSheet
+        visible={isFilterSheetVisible}
+        onDismiss={() => setFilterSheetVisible(false)}
+        filters={filters}
+        onChange={setFilters}
+      />
 
-      <View style={styles.bottomToolbar}>
-        {BOTTOM_TABS.map((tab) => {
-          const isActive = activeBottomTab === tab.id;
-          return (
-            <Pressable
-              key={tab.id}
-              accessibilityLabel={tab.label}
-              accessibilityRole="button"
-              onPress={() => handleSelectBottomTab(tab.id)}
-              style={({ pressed }) => [
-                styles.bottomToolbarItem,
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <View
-                style={[
-                  styles.bottomToolbarIcon,
-                  isActive && styles.bottomToolbarIconActive,
-                ]}
-              >
-                <Ionicons
-                  name={tab.icon}
-                  size={22}
-                  color={isActive ? Colors.light.tint : Colors.light.icon}
-                />
-              </View>
-              <Text
-                style={[
-                  styles.bottomToolbarLabel,
-                  isActive && styles.bottomToolbarLabelActive,
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <RoutePlannerModal
+        visible={isRouteModalVisible}
+        onDismiss={() => setRouteModalVisible(false)}
+        onPlan={handlePlanRoute}
+      />
 
-      <Modal
-        animationType="slide"
-        transparent
-        visible={isChatVisible}
-        onRequestClose={handleCloseChat}
-      >
-        <View style={styles.chatBackdrop}>
-          <Pressable
-            accessibilityLabel="Close nearby chat"
-            onPress={handleCloseChat}
-            style={StyleSheet.absoluteFill}
-          />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            style={styles.chatSheetContainer}
-          >
-            <View style={styles.chatSheet}>
-              {selectedUser ? (
-                <View style={styles.chatContent}>
-                  <View style={styles.chatHeader}>
-                    <Pressable
-                      accessibilityLabel="Back to nearby people"
-                      onPress={handleBackToUserList}
-                      style={({ pressed }) => [
-                        styles.chatHeaderButton,
-                        pressed && { opacity: 0.7 },
-                      ]}
-                    >
-                      <Text style={styles.chatHeaderButtonLabel}>Back</Text>
-                    </Pressable>
-                    <View style={styles.chatHeaderTitleGroup}>
-                      <Text style={styles.chatHeaderTitle}>{selectedUser.name}</Text>
-                      <Text style={styles.chatHeaderSubtitle}>
-                        {`${selectedUser.sharedInterest} • ${selectedUser.distanceInMeters}m away`}
-                      </Text>
-                    </View>
-                    <Pressable
-                      accessibilityLabel="Close chat"
-                      onPress={handleCloseChat}
-                      style={({ pressed }) => [
-                        styles.chatHeaderButton,
-                        pressed && { opacity: 0.7 },
-                      ]}
-                    >
-                      <Text style={styles.chatHeaderButtonLabel}>Close</Text>
-                    </Pressable>
-                  </View>
-                  <FlatList
-                    accessibilityRole="text"
-                    contentContainerStyle={styles.chatMessages}
-                    data={messagesByUser[selectedUser.id] ?? []}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                      <View
-                        style={[
-                          styles.chatBubble,
-                          item.sender === "me"
-                            ? styles.chatBubbleMe
-                            : styles.chatBubbleThem,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.chatBubbleText,
-                            item.sender === "me"
-                              ? styles.chatBubbleTextMe
-                              : styles.chatBubbleTextThem,
-                          ]}
-                        >
-                          {item.text}
-                        </Text>
-                      </View>
-                    )}
-                  />
-                  <View style={styles.chatInputRow}>
-                    <TextInput
-                      accessibilityLabel={`Message ${selectedUser.name}`}
-                      onChangeText={setDraftMessage}
-                      placeholder="Type a message…"
-                      placeholderTextColor="rgba(255,255,255,0.5)"
-                      style={styles.chatInput}
-                      value={draftMessage}
-                      multiline
-                    />
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={handleSendMessage}
-                      style={({ pressed }) => [
-                        styles.chatSendButton,
-                        (pressed || !draftMessage.trim()) && { opacity: 0.8 },
-                      ]}
-                      disabled={!draftMessage.trim()}
-                    >
-                      <Text style={styles.chatSendButtonLabel}>Send</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.chatDirectory}>
-                  <View style={styles.chatHeader}>
-                    <Text style={styles.chatHeaderTitle}>Nearby chat</Text>
-                    <Pressable
-                      accessibilityLabel="Close nearby chat"
-                      onPress={handleCloseChat}
-                      style={({ pressed }) => [
-                        styles.chatHeaderButton,
-                        pressed && { opacity: 0.7 },
-                      ]}
-                    >
-                      <Text style={styles.chatHeaderButtonLabel}>Close</Text>
-                    </Pressable>
-                  </View>
-                  <Text style={styles.chatIntro}>
-                    {"Reach out to people exploring the same area. Tap a profile to start chatting."}
-                  </Text>
-                  <FlatList
-                    data={nearbyUsers}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.chatList}
-                    renderItem={({ item }) => (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => handleSelectUser(item.id)}
-                        style={({ pressed }) => [
-                          styles.chatUserCard,
-                          pressed && { opacity: 0.8 },
-                        ]}
-                      >
-                        <Text style={styles.chatUserName}>{item.name}</Text>
-                        <Text style={styles.chatUserMeta}>
-                          {`${Math.round(item.distanceInMeters)}m • Active ${item.lastActiveMinutes} min ago`}
-                        </Text>
-                        <Text style={styles.chatUserInterest}>
-                          {`Shared interest: ${item.sharedInterest}`}
-                        </Text>
-                      </Pressable>
-                    )}
-                  />
-                  <View style={styles.suggestionsContainer}>
-                    <Text style={styles.suggestionsTitle}>Tips to improve your chats</Text>
-                    {improvementSuggestions.map((suggestion) => (
-                      <View key={suggestion.id} style={styles.suggestionCard}>
-                        <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
-                        <Text style={styles.suggestionDescription}>
-                          {suggestion.description}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
+      <QRScannerModal
+        visible={isQrScannerVisible}
+        onDismiss={() => setQrScannerVisible(false)}
+        onScanned={handleQrScanned}
+      />
     </View>
   );
 }
@@ -1049,508 +648,146 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: Colors.light.background,
   },
   map: {
-    flex: 1,
-  },
-  staticMap: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
-  mapUnavailable: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  mapUnavailableText: {
-    textAlign: "center",
-    color: Colors.light.text,
-    fontFamily: Fonts.sans,
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  attributionContainer: {
-    position: "absolute",
-    left: 16,
-    bottom: 132,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
-  },
-  attributionText: {
-    color: Colors.light.background,
-    fontSize: 12,
-    fontFamily: Fonts.sans,
-  },
-  loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.35)",
   },
-  loadingText: {
-    marginTop: 12,
-    color: Colors.light.background,
-    fontFamily: Fonts.sans,
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  overlay: {
-    position: "absolute",
-    left: 24,
-    right: 24,
-    bottom: 140,
-    backgroundColor: "rgba(255, 255, 255, 0.92)",
-    padding: 20,
-    paddingTop: 32,
-    borderRadius: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
-  },
-  overlayDismiss: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.08)",
-  },
-  overlayDismissLabel: {
-    fontSize: 13,
-    lineHeight: 16,
-    letterSpacing: 0.3,
-    color: Colors.light.icon,
-    fontFamily: Fonts.sans,
-    fontWeight: "600",
-  },
-  overlayRestore: {
-    position: "absolute",
-    right: 24,
-    bottom: 140,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: "rgba(255, 255, 255, 0.92)",
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  overlayRestoreLabel: {
-    color: Colors.light.text,
-    fontSize: 14,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  locationEyebrow: {
-    textTransform: "uppercase",
-    letterSpacing: 1.6,
-    fontSize: 12,
-    color: Colors.light.icon,
-    marginBottom: 8,
-    fontFamily: Fonts.sans,
-  },
-  locationTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: Colors.light.text,
-    marginBottom: 8,
-    fontFamily: Fonts.rounded,
-  },
-  locationDescription: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: Colors.light.icon,
-    marginBottom: 16,
-    fontFamily: Fonts.serif,
-  },
-  ctaButton: {
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 14,
-    alignItems: "center",
-    borderRadius: 999,
-  },
-  ctaLabel: {
-    color: Colors.dark.text,
-    fontWeight: "600",
-    fontSize: 16,
-    fontFamily: Fonts.sans,
-  },
-  errorContainer: {
-    position: "absolute",
-    left: 24,
-    right: 24,
-    bottom: 140,
-    backgroundColor: "rgba(18, 18, 18, 0.94)",
-    padding: 20,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  errorActions: {
-    flexDirection: "row",
-    marginTop: 16,
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Colors.dark.text,
-    marginBottom: 6,
-    fontFamily: Fonts.rounded,
-  },
-  errorDescription: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: Colors.dark.text,
-    fontFamily: Fonts.serif,
-  },
-  errorAction: {
-    flex: 1,
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 14,
-    alignItems: "center",
-    borderRadius: 999,
-  },
-  errorActionText: {
-    color: Colors.dark.text,
-    fontWeight: "600",
-    fontSize: 16,
-    fontFamily: Fonts.sans,
-  },
-  secondaryAction: {
-    flex: 1,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.25)",
-    paddingVertical: 14,
-    alignItems: "center",
-    marginRight: 12,
-  },
-  secondaryActionText: {
-    color: Colors.dark.text,
-    fontWeight: "600",
-    fontSize: 16,
-    fontFamily: Fonts.sans,
-  },
-  topToolbarContainer: {
+  searchContainer: {
     position: "absolute",
     left: 16,
     right: 16,
-    top: 52,
-    flexDirection: "row",
-    alignItems: "center",
+    zIndex: 10,
   },
-  searchBar: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+  resultsList: {
+    marginTop: 12,
+    backgroundColor: "rgba(255,255,255,0.97)",
     borderRadius: 18,
     shadowColor: "#000",
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.1,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    elevation: 8,
+    maxHeight: 240,
   },
-  searchIcon: {
-    marginRight: 10,
+  resultItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(0,0,0,0.08)",
   },
-  searchPlaceholder: {
-    flex: 1,
-    color: Colors.light.icon,
+  resultItemPressed: {
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  resultTitle: {
     fontSize: 15,
-    fontFamily: Fonts.sans,
+    fontWeight: "600",
+    color: Colors.light.text,
   },
-  searchTrailingIcons: {
-    flexDirection: "row",
-    alignItems: "center",
+  resultSubtitle: {
+    marginTop: 4,
+    color: Colors.light.icon,
+    fontSize: 12,
   },
-  scanIcon: {
-    marginLeft: 10,
-  },
-  topToolbarActions: {
-    flexDirection: "row",
-    marginLeft: 12,
-  },
-  topToolbarAction: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
-    marginLeft: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-  },
-  topToolbarActionFirst: {
-    marginLeft: 0,
-  },
-  mapControls: {
+  fabColumn: {
     position: "absolute",
     right: 16,
-    top: 200,
-  },
-  mapControlButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
+    gap: 16,
   },
-  bottomToolbar: {
+  fabSpacing: {
+    marginVertical: 16,
+  },
+  layerBadge: {
     position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingTop: 12,
-    paddingBottom: 28,
-    paddingHorizontal: 24,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.96)",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 12,
-  },
-  bottomToolbarItem: {
-    flex: 1,
-    alignItems: "center",
-    marginHorizontal: 6,
-  },
-  bottomToolbarIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "transparent",
-  },
-  bottomToolbarIconActive: {
-    backgroundColor: "rgba(10, 126, 164, 0.12)",
-  },
-  bottomToolbarLabel: {
-    marginTop: 6,
-    fontSize: 12,
-    color: Colors.light.icon,
-    fontFamily: Fonts.sans,
-  },
-  bottomToolbarLabelActive: {
-    color: Colors.light.tint,
-    fontWeight: "600",
-  },
-  chatBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-  },
-  chatSheetContainer: {
-    width: "100%",
-  },
-  chatSheet: {
-    maxHeight: "80%",
-    backgroundColor: "#0F0F0F",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 24,
-  },
-  chatContent: {
-    flex: 1,
-  },
-  chatHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.1)",
-  },
-  chatHeaderTitleGroup: {
-    flex: 1,
-    marginHorizontal: 12,
-  },
-  chatHeaderTitle: {
-    color: Colors.dark.text,
-    fontSize: 20,
-    fontWeight: "700",
-    fontFamily: Fonts.rounded,
-  },
-  chatHeaderSubtitle: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 13,
-    fontFamily: Fonts.sans,
-    marginTop: 2,
-  },
-  chatHeaderButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  chatHeaderButtonLabel: {
-    color: Colors.light.tint,
-    fontSize: 15,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  chatMessages: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    paddingTop: 12,
-    gap: 10,
-    flexGrow: 1,
-    justifyContent: "flex-end",
-  },
-  chatBubble: {
-    maxWidth: "80%",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  chatBubbleMe: {
-    alignSelf: "flex-end",
-    backgroundColor: Colors.light.tint,
-  },
-  chatBubbleThem: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
-  chatBubbleText: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontFamily: Fonts.sans,
-  },
-  chatBubbleTextMe: {
-    color: Colors.dark.text,
-  },
-  chatBubbleTextThem: {
-    color: Colors.dark.text,
-  },
-  chatInputRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 12,
-    paddingHorizontal: 20,
-  },
-  chatInput: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    borderRadius: 14,
+    right: 16,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontFamily: Fonts.sans,
+    paddingVertical: 8,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 16,
   },
-  chatSendButton: {
-    backgroundColor: Colors.light.tint,
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  chatSendButtonLabel: {
-    color: Colors.dark.text,
+  layerBadgeText: {
+    color: "#fff",
     fontWeight: "600",
-    fontSize: 15,
-    fontFamily: Fonts.sans,
   },
-  chatDirectory: {
-    flex: 1,
+  selectedPlaceCard: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
   },
-  chatIntro: {
-    color: Colors.dark.text,
-    fontSize: 14,
-    lineHeight: 20,
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    fontFamily: Fonts.sans,
-  },
-  chatList: {
-    paddingHorizontal: 24,
-    gap: 12,
-  },
-  chatUserCard: {
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-  },
-  chatUserName: {
-    color: Colors.dark.text,
+  selectedPlaceTitle: {
     fontSize: 17,
     fontWeight: "700",
-    fontFamily: Fonts.rounded,
+    color: Colors.light.text,
   },
-  chatUserMeta: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 13,
-    marginTop: 4,
-    fontFamily: Fonts.sans,
-  },
-  chatUserInterest: {
-    color: Colors.dark.text,
-    fontSize: 13,
-    marginTop: 8,
-    fontFamily: Fonts.serif,
-  },
-  suggestionsContainer: {
-    marginTop: 24,
-    paddingHorizontal: 24,
-    gap: 12,
-  },
-  suggestionsTitle: {
-    color: Colors.dark.text,
-    fontSize: 16,
-    fontWeight: "700",
-    fontFamily: Fonts.rounded,
-  },
-  suggestionCard: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  suggestionTitle: {
-    color: Colors.dark.text,
-    fontSize: 15,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  suggestionDescription: {
-    color: "rgba(255,255,255,0.65)",
-    fontSize: 13,
+  selectedPlaceCoords: {
     marginTop: 6,
-    lineHeight: 18,
-    fontFamily: Fonts.serif,
+    color: Colors.light.icon,
+  },
+  favoriteButton: {
+    marginTop: 14,
+    borderRadius: 12,
+  },
+  routeSummary: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    backgroundColor: "rgba(24, 24, 27, 0.92)",
+    borderRadius: 18,
+    padding: 18,
+  },
+  routeSummaryTitle: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  routeSummarySubtitle: {
+    color: "rgba(255,255,255,0.7)",
+    marginTop: 6,
+  },
+  routeSummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 12,
+  },
+  routeStatLabel: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  locationError: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+  },
+  locationErrorTitle: {
+    fontWeight: "700",
+    fontSize: 16,
+    color: Colors.light.text,
+  },
+  locationErrorMessage: {
+    marginTop: 6,
+    color: Colors.light.icon,
+  },
+  nightOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#0b1120",
   },
 });
