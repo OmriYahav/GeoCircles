@@ -26,6 +26,7 @@ import MapView, {
 } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "react-native-paper";
+import Constants from "expo-constants";
 import type VoiceModuleType from "@react-native-voice/voice";
 import type { SpeechErrorEvent, SpeechResultsEvent } from "@react-native-voice/voice";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
@@ -171,6 +172,13 @@ export default function MapScreen() {
 
   useEffect(() => {
     if (Platform.OS === "web") {
+      return;
+    }
+
+    if (Constants.appOwnership === "expo") {
+      console.warn(
+        "Voice search is unavailable in Expo Go. Create a development build to enable this feature."
+      );
       return;
     }
 
