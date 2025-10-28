@@ -31,7 +31,7 @@
       "favicon": "./assets/images/favicon.png"
     },
 
-    "plugins": [["@rnmapbox/maps", {}]],
+    "plugins": [["@rnmapbox/maps", {}], "react-native-maps"],
 
     "experiments": {
       "typedRoutes": true,
