@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import {
   NavigationContainer,
   ParamListBase,
@@ -13,7 +13,6 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { TouchableOpacity } from "react-native-gesture-handler";
 
 import MapScreen, { MapScreenParams } from "../screens/MapScreen";
 import HubScreen from "../screens/HubScreen";
