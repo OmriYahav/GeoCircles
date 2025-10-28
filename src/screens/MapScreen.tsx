@@ -3,12 +3,16 @@ import {
   ActivityIndicator,
   AppState,
   AppStateStatus,
+  FlatList,
   Image,
+  KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import * as Location from "expo-location";
@@ -30,6 +34,21 @@ type MapRegion = {
   longitude: number;
   latitudeDelta: number;
   longitudeDelta: number;
+};
+
+type NearbyUser = {
+  id: string;
+  name: string;
+  distanceInMeters: number;
+  sharedInterest: string;
+  lastActiveMinutes: number;
+};
+
+type ChatMessage = {
+  id: string;
+  sender: "me" | "them";
+  text: string;
+  timestamp: string;
 };
 
 const DEFAULT_REGION: MapRegion = {
@@ -56,12 +75,105 @@ export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [canAskLocationAgain, setCanAskLocationAgain] = useState(true);
+  const [isChatVisible, setChatVisible] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [draftMessage, setDraftMessage] = useState("");
   const mapRef = useRef<InteractiveMapHandle | null>(null);
   const isMountedRef = useRef(true);
   const isFetchingLocationRef = useRef(false);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const isInteractiveMapSupported = isMobilePlatform;
   const shouldUseInteractiveMap = isInteractiveMapSupported && !hasMapError;
+
+  const nearbyUsers = useMemo<NearbyUser[]>(
+    () => [
+      {
+        id: "lena",
+        name: "Lena",
+        distanceInMeters: 85,
+        sharedInterest: "Local art pop-up",
+        lastActiveMinutes: 3,
+      },
+      {
+        id: "amir",
+        name: "Amir",
+        distanceInMeters: 140,
+        sharedInterest: "Community gardening",
+        lastActiveMinutes: 7,
+      },
+      {
+        id: "noa",
+        name: "Noa",
+        distanceInMeters: 210,
+        sharedInterest: "Night market meetup",
+        lastActiveMinutes: 15,
+      },
+    ],
+    []
+  );
+
+  const initialMessages = useMemo<Record<string, ChatMessage[]>>(
+    () => ({
+      lena: [
+        {
+          id: "lena-1",
+          sender: "them",
+          text: "Hey! Are you at the art pop-up too?",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+      amir: [
+        {
+          id: "amir-1",
+          sender: "them",
+          text: "We’re gathering by the herb beds at 6pm if you’d like to join!",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+      noa: [
+        {
+          id: "noa-1",
+          sender: "them",
+          text: "Thinking about grabbing coffee near the market. Want to team up?",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    }),
+    []
+  );
+
+  const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>(
+    initialMessages
+  );
+
+  const improvementSuggestions = useMemo(
+    () => [
+      {
+        id: "icebreaker",
+        title: "Share a quick icebreaker",
+        description:
+          "Mention a local event or highlight on the map to make the first message feel relevant.",
+      },
+      {
+        id: "meetup",
+        title: "Suggest a safe meetup point",
+        description:
+          "Pick a public spot from the map—like a café or community hub—when planning to meet.",
+      },
+      {
+        id: "status",
+        title: "Keep your status fresh",
+        description:
+          "Update your availability so nearby people know when you’re ready to chat or collaborate.",
+      },
+    ],
+    []
+  );
+
+  const selectedUser = useMemo(
+    () => nearbyUsers.find((user) => user.id === selectedUserId) ?? null,
+    [nearbyUsers, selectedUserId]
+  );
 
   useEffect(() => {
     return () => {
@@ -300,6 +412,58 @@ export default function MapScreen() {
     });
   }, []);
 
+  const handleOpenChat = useCallback(() => {
+    setChatVisible(true);
+  }, []);
+
+  const handleCloseChat = useCallback(() => {
+    setChatVisible(false);
+    setSelectedUserId(null);
+    setDraftMessage("");
+  }, []);
+
+  const handleSelectUser = useCallback((userId: string) => {
+    setSelectedUserId(userId);
+    setDraftMessage("");
+  }, []);
+
+  const handleBackToUserList = useCallback(() => {
+    setSelectedUserId(null);
+    setDraftMessage("");
+  }, []);
+
+  const handleSendMessage = useCallback(() => {
+    if (!selectedUserId) {
+      return;
+    }
+
+    const trimmed = draftMessage.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    setMessagesByUser((current) => {
+      const existing = current[selectedUserId] ?? [];
+      const timestamp = new Date().toISOString();
+      const updated = [
+        ...existing,
+        {
+          id: `${selectedUserId}-${timestamp}`,
+          sender: "me",
+          text: trimmed,
+          timestamp,
+        },
+      ];
+
+      return {
+        ...current,
+        [selectedUserId]: updated,
+      };
+    });
+
+    setDraftMessage("");
+  }, [draftMessage, selectedUserId]);
+
   const handleOpenInMaps = useCallback(async () => {
     const coords = location?.coords;
     const url = coords
@@ -485,6 +649,178 @@ export default function MapScreen() {
           <Text style={styles.overlayRestoreLabel}>Show details</Text>
         </Pressable>
       )}
+
+      <Pressable
+        accessibilityHint="Open a chat with people nearby"
+        accessibilityLabel="Open nearby chat"
+        accessibilityRole="button"
+        onPress={handleOpenChat}
+        style={({ pressed }) => [
+          styles.chatFab,
+          pressed && { opacity: 0.85 },
+        ]}
+      >
+        <Text style={styles.chatFabLabel}>Nearby chat</Text>
+        <Text style={styles.chatFabSubLabel}>
+          {`${nearbyUsers.length} people within 250m`}
+        </Text>
+      </Pressable>
+
+      <Modal
+        animationType="slide"
+        transparent
+        visible={isChatVisible}
+        onRequestClose={handleCloseChat}
+      >
+        <View style={styles.chatBackdrop}>
+          <Pressable
+            accessibilityLabel="Close nearby chat"
+            onPress={handleCloseChat}
+            style={StyleSheet.absoluteFill}
+          />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={styles.chatSheetContainer}
+          >
+            <View style={styles.chatSheet}>
+              {selectedUser ? (
+                <View style={styles.chatContent}>
+                  <View style={styles.chatHeader}>
+                    <Pressable
+                      accessibilityLabel="Back to nearby people"
+                      onPress={handleBackToUserList}
+                      style={({ pressed }) => [
+                        styles.chatHeaderButton,
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text style={styles.chatHeaderButtonLabel}>Back</Text>
+                    </Pressable>
+                    <View style={styles.chatHeaderTitleGroup}>
+                      <Text style={styles.chatHeaderTitle}>{selectedUser.name}</Text>
+                      <Text style={styles.chatHeaderSubtitle}>
+                        {`${selectedUser.sharedInterest} • ${selectedUser.distanceInMeters}m away`}
+                      </Text>
+                    </View>
+                    <Pressable
+                      accessibilityLabel="Close chat"
+                      onPress={handleCloseChat}
+                      style={({ pressed }) => [
+                        styles.chatHeaderButton,
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text style={styles.chatHeaderButtonLabel}>Close</Text>
+                    </Pressable>
+                  </View>
+                  <FlatList
+                    accessibilityRole="text"
+                    contentContainerStyle={styles.chatMessages}
+                    data={messagesByUser[selectedUser.id] ?? []}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <View
+                        style={[
+                          styles.chatBubble,
+                          item.sender === "me"
+                            ? styles.chatBubbleMe
+                            : styles.chatBubbleThem,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.chatBubbleText,
+                            item.sender === "me"
+                              ? styles.chatBubbleTextMe
+                              : styles.chatBubbleTextThem,
+                          ]}
+                        >
+                          {item.text}
+                        </Text>
+                      </View>
+                    )}
+                  />
+                  <View style={styles.chatInputRow}>
+                    <TextInput
+                      accessibilityLabel={`Message ${selectedUser.name}`}
+                      onChangeText={setDraftMessage}
+                      placeholder="Type a message…"
+                      placeholderTextColor="rgba(255,255,255,0.5)"
+                      style={styles.chatInput}
+                      value={draftMessage}
+                      multiline
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={handleSendMessage}
+                      style={({ pressed }) => [
+                        styles.chatSendButton,
+                        (pressed || !draftMessage.trim()) && { opacity: 0.8 },
+                      ]}
+                      disabled={!draftMessage.trim()}
+                    >
+                      <Text style={styles.chatSendButtonLabel}>Send</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.chatDirectory}>
+                  <View style={styles.chatHeader}>
+                    <Text style={styles.chatHeaderTitle}>Nearby chat</Text>
+                    <Pressable
+                      accessibilityLabel="Close nearby chat"
+                      onPress={handleCloseChat}
+                      style={({ pressed }) => [
+                        styles.chatHeaderButton,
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text style={styles.chatHeaderButtonLabel}>Close</Text>
+                    </Pressable>
+                  </View>
+                  <Text style={styles.chatIntro}>
+                    {"Reach out to people exploring the same area. Tap a profile to start chatting."}
+                  </Text>
+                  <FlatList
+                    data={nearbyUsers}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.chatList}
+                    renderItem={({ item }) => (
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => handleSelectUser(item.id)}
+                        style={({ pressed }) => [
+                          styles.chatUserCard,
+                          pressed && { opacity: 0.8 },
+                        ]}
+                      >
+                        <Text style={styles.chatUserName}>{item.name}</Text>
+                        <Text style={styles.chatUserMeta}>
+                          {`${Math.round(item.distanceInMeters)}m • Active ${item.lastActiveMinutes} min ago`}
+                        </Text>
+                        <Text style={styles.chatUserInterest}>
+                          {`Shared interest: ${item.sharedInterest}`}
+                        </Text>
+                      </Pressable>
+                    )}
+                  />
+                  <View style={styles.suggestionsContainer}>
+                    <Text style={styles.suggestionsTitle}>Tips to improve your chats</Text>
+                    {improvementSuggestions.map((suggestion) => (
+                      <View key={suggestion.id} style={styles.suggestionCard}>
+                        <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
+                        <Text style={styles.suggestionDescription}>
+                          {suggestion.description}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -684,5 +1020,218 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
     fontFamily: Fonts.sans,
+  },
+  chatFab: {
+    position: "absolute",
+    left: 24,
+    bottom: 32,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  chatFabLabel: {
+    color: Colors.light.text,
+    fontSize: 16,
+    fontWeight: "700",
+    fontFamily: Fonts.rounded,
+    marginBottom: 4,
+  },
+  chatFabSubLabel: {
+    color: Colors.light.icon,
+    fontSize: 12,
+    fontFamily: Fonts.sans,
+  },
+  chatBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "flex-end",
+  },
+  chatSheetContainer: {
+    width: "100%",
+  },
+  chatSheet: {
+    maxHeight: "80%",
+    backgroundColor: "#0F0F0F",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 24,
+  },
+  chatContent: {
+    flex: 1,
+  },
+  chatHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  chatHeaderTitleGroup: {
+    flex: 1,
+    marginHorizontal: 12,
+  },
+  chatHeaderTitle: {
+    color: Colors.dark.text,
+    fontSize: 20,
+    fontWeight: "700",
+    fontFamily: Fonts.rounded,
+  },
+  chatHeaderSubtitle: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 13,
+    fontFamily: Fonts.sans,
+    marginTop: 2,
+  },
+  chatHeaderButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  chatHeaderButtonLabel: {
+    color: Colors.light.tint,
+    fontSize: 15,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
+  },
+  chatMessages: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    paddingTop: 12,
+    gap: 10,
+    flexGrow: 1,
+    justifyContent: "flex-end",
+  },
+  chatBubble: {
+    maxWidth: "80%",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  chatBubbleMe: {
+    alignSelf: "flex-end",
+    backgroundColor: Colors.light.tint,
+  },
+  chatBubbleThem: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  chatBubbleText: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontFamily: Fonts.sans,
+  },
+  chatBubbleTextMe: {
+    color: Colors.dark.text,
+  },
+  chatBubbleTextThem: {
+    color: Colors.dark.text,
+  },
+  chatInputRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 12,
+    paddingHorizontal: 20,
+  },
+  chatInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontFamily: Fonts.sans,
+  },
+  chatSendButton: {
+    backgroundColor: Colors.light.tint,
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chatSendButtonLabel: {
+    color: Colors.dark.text,
+    fontWeight: "600",
+    fontSize: 15,
+    fontFamily: Fonts.sans,
+  },
+  chatDirectory: {
+    flex: 1,
+  },
+  chatIntro: {
+    color: Colors.dark.text,
+    fontSize: 14,
+    lineHeight: 20,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    fontFamily: Fonts.sans,
+  },
+  chatList: {
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  chatUserCard: {
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  chatUserName: {
+    color: Colors.dark.text,
+    fontSize: 17,
+    fontWeight: "700",
+    fontFamily: Fonts.rounded,
+  },
+  chatUserMeta: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 13,
+    marginTop: 4,
+    fontFamily: Fonts.sans,
+  },
+  chatUserInterest: {
+    color: Colors.dark.text,
+    fontSize: 13,
+    marginTop: 8,
+    fontFamily: Fonts.serif,
+  },
+  suggestionsContainer: {
+    marginTop: 24,
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  suggestionsTitle: {
+    color: Colors.dark.text,
+    fontSize: 16,
+    fontWeight: "700",
+    fontFamily: Fonts.rounded,
+  },
+  suggestionCard: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  suggestionTitle: {
+    color: Colors.dark.text,
+    fontSize: 15,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
+  },
+  suggestionDescription: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 13,
+    marginTop: 6,
+    lineHeight: 18,
+    fontFamily: Fonts.serif,
   },
 });
