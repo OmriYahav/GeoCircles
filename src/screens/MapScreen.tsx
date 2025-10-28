@@ -52,6 +52,7 @@ export default function MapScreen() {
   const [isOverlayDismissed, setOverlayDismissed] = useState(false);
   const [isRequestingLocation, setIsRequestingLocation] = useState(true);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [hasMapError, setHasMapError] = useState(false);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [canAskLocationAgain, setCanAskLocationAgain] = useState(true);
@@ -60,6 +61,7 @@ export default function MapScreen() {
   const isFetchingLocationRef = useRef(false);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const isInteractiveMapSupported = isMobilePlatform;
+  const shouldUseInteractiveMap = isInteractiveMapSupported && !hasMapError;
 
   useEffect(() => {
     return () => {
@@ -273,12 +275,12 @@ export default function MapScreen() {
   }, [refreshLocationIfPossible]);
 
   useEffect(() => {
-    if (!location?.coords || !mapRef.current || !isInteractiveMapSupported) {
+    if (!location?.coords || !mapRef.current || !shouldUseInteractiveMap) {
       return;
     }
 
     mapRef.current.focusOn(location.coords);
-  }, [isInteractiveMapSupported, location]);
+  }, [location, shouldUseInteractiveMap]);
 
   const handleDismissOverlay = useCallback(() => {
     setOverlayDismissed(true);
@@ -315,11 +317,17 @@ export default function MapScreen() {
   }, [location]);
 
   const handleMapReady = useCallback(() => {
+    setHasMapError(false);
     setIsMapReady(true);
   }, []);
 
+  const handleMapError = useCallback(() => {
+    setHasMapError(true);
+    setIsMapReady(false);
+  }, []);
+
   const shouldShowLoadingOverlay =
-    isRequestingLocation || (isInteractiveMapSupported && !isMapReady);
+    isRequestingLocation || (shouldUseInteractiveMap && !isMapReady);
 
   const coords = location?.coords;
   const overlayTitle = coords ? "You’re here" : "Waiting for your location";
@@ -331,6 +339,10 @@ export default function MapScreen() {
   const mapZoomLevel = coords ? 15 : DEFAULT_COORDINATES.zoomLevel;
 
   const mapUnavailableMessage = (() => {
+    if (hasMapError) {
+      return "Interactive map tiles couldn’t be loaded right now. Showing a static preview instead.";
+    }
+
     if (!isMobilePlatform) {
       return "Interactive OpenStreetMap tiles are only available on iOS and Android devices.";
     }
@@ -348,7 +360,7 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      {isInteractiveMapSupported ? (
+      {shouldUseInteractiveMap ? (
         <InteractiveMap
           ref={mapRef}
           initialCoordinates={{
@@ -363,6 +375,7 @@ export default function MapScreen() {
           }
           maxZoom={OSM_MAX_ZOOM_LEVEL}
           onReady={handleMapReady}
+          onError={handleMapError}
           style={styles.map}
           tileUrlTemplate={OSM_TILE_URL}
         />

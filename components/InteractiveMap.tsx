@@ -31,6 +31,7 @@ type InteractiveMapProps = {
   tileUrlTemplate: string;
   style?: StyleProp<ViewStyle>;
   onReady?: () => void;
+  onError?: () => void;
 };
 
 export type InteractiveMapHandle = {
@@ -59,7 +60,6 @@ function createHtmlTemplate({
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-o9N1j7sG0G7hFfAdZjXu1Jx0C6ZcPZrjG3n3ItvrQbM="
       crossorigin=""
     />
     <style>
@@ -83,7 +83,6 @@ function createHtmlTemplate({
     <div id="map" role="img" aria-label="Interactive map"></div>
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-QV8t6kBxGwZTiHHLR8dAYzk2dM7pPphb+J1uQDxPdHU="
       crossorigin=""
     ></script>
     <script>
@@ -205,6 +204,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       tileUrlTemplate,
       style,
       onReady,
+      onError,
     },
     ref
   ) => {
@@ -326,16 +326,27 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       });
     }, [flushPendingMarker, notifyReady]);
 
+    const handleError = useCallback(() => {
+      onError?.();
+    }, [onError]);
+
     return (
       <WebView
         ref={webViewRef}
         injectedJavaScriptBeforeContentLoaded={"true;"}
         onLoadEnd={handleLoadEnd}
         onMessage={handleMessage}
+        onError={handleError}
+        onHttpError={handleError}
         originWhitelist={["*"]}
         scrollEnabled={false}
         source={{ html }}
         style={style}
+        javaScriptEnabled
+        domStorageEnabled
+        automaticallyAdjustContentInsets={false}
+        setSupportMultipleWindows={false}
+        androidLayerType="hardware"
         testID="interactive-map"
       />
     );
