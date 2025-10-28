@@ -210,6 +210,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
   ) => {
     const webViewRef = useRef<WebView>(null);
     const isReadyRef = useRef(false);
+    const hasNotifiedReadyRef = useRef(false);
     const pendingMarkerRef = useRef<Coordinates | null>(marker ?? null);
 
     const defaultCoordinatesRef = useRef(initialCoordinates);
@@ -248,6 +249,27 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       [postMessage]
     );
 
+    const flushPendingMarker = useCallback(() => {
+      if (!pendingMarkerRef.current) {
+        return;
+      }
+
+      postMessage({
+        type: "updateLocation",
+        coords: pendingMarkerRef.current,
+        animate: false,
+      });
+    }, [postMessage]);
+
+    const notifyReady = useCallback(() => {
+      if (hasNotifiedReadyRef.current) {
+        return;
+      }
+
+      hasNotifiedReadyRef.current = true;
+      onReady?.();
+    }, [onReady]);
+
     useImperativeHandle(
       ref,
       () => ({
@@ -278,26 +300,37 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
             isReadyRef.current = true;
 
             if (pendingMarkerRef.current) {
-              postMessage({
-                type: "updateLocation",
-                coords: pendingMarkerRef.current,
-                animate: false,
-              });
+              flushPendingMarker();
             }
 
-            onReady?.();
+            notifyReady();
           }
         } catch (error) {
           console.warn("Failed to handle message from map", error);
         }
       },
-      [onReady, postMessage]
+      [flushPendingMarker, notifyReady]
     );
+
+    const handleLoadEnd = useCallback(() => {
+      if (isReadyRef.current) {
+        notifyReady();
+        return;
+      }
+
+      isReadyRef.current = true;
+
+      requestAnimationFrame(() => {
+        flushPendingMarker();
+        notifyReady();
+      });
+    }, [flushPendingMarker, notifyReady]);
 
     return (
       <WebView
         ref={webViewRef}
         injectedJavaScriptBeforeContentLoaded={"true;"}
+        onLoadEnd={handleLoadEnd}
         onMessage={handleMessage}
         originWhitelist={["*"]}
         scrollEnabled={false}
