@@ -4,6 +4,7 @@ import {
   NavigationContainer,
   ParamListBase,
   NavigationProp,
+  NavigatorScreenParams,
 } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -17,18 +18,24 @@ import Animated, {
 import MapScreen, { MapScreenParams } from "../screens/MapScreen";
 import FavoritesScreen from "../screens/FavoritesScreen";
 import MessagesScreen from "../screens/MessagesScreen";
+import ConversationScreen, {
+  ConversationScreenParams,
+} from "../screens/ConversationScreen";
+import ProfileSettingsScreen from "../screens/ProfileSettingsScreen";
 import { Colors } from "../../constants/theme";
 
 export type RootTabParamList = {
-  Search: undefined;
+  Search: NavigatorScreenParams<SearchStackParamList> | undefined;
   Favorites: undefined;
-  Messages: undefined;
+  Messages: NavigatorScreenParams<MessagesStackParamList> | undefined;
+  Profile: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
-type SearchStackParamList = {
+export type SearchStackParamList = {
   Map: MapScreenParams;
+  Conversation: ConversationScreenParams;
 };
 
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -37,7 +44,28 @@ function SearchStackNavigator() {
   return (
     <SearchStack.Navigator screenOptions={{ headerShown: false }}>
       <SearchStack.Screen name="Map" component={MapScreen} initialParams={{}} />
+      <SearchStack.Screen
+        name="Conversation"
+        component={ConversationScreen}
+        options={{ presentation: "fullScreenModal" }}
+      />
     </SearchStack.Navigator>
+  );
+}
+
+export type MessagesStackParamList = {
+  Inbox: undefined;
+  Conversation: ConversationScreenParams;
+};
+
+const MessagesStack = createNativeStackNavigator<MessagesStackParamList>();
+
+function MessagesStackNavigator() {
+  return (
+    <MessagesStack.Navigator screenOptions={{ headerShown: false }}>
+      <MessagesStack.Screen name="Inbox" component={MessagesScreen} />
+      <MessagesStack.Screen name="Conversation" component={ConversationScreen} />
+    </MessagesStack.Navigator>
   );
 }
 
@@ -95,6 +123,7 @@ const TAB_ITEMS: TabConfigItem[] = [
   { name: "Search", label: "Search", icon: "search-outline" },
   { name: "Favorites", label: "Favorites", icon: "heart-outline" },
   { name: "Messages", label: "Messages", icon: "chatbubbles-outline" },
+  { name: "Profile", label: "Profile", icon: "person-circle-outline" },
 ];
 
 function CustomTabBar({
@@ -150,7 +179,8 @@ export default function AppNavigator() {
       >
         <Tab.Screen name="Search" component={SearchStackNavigator} />
         <Tab.Screen name="Favorites" component={FavoritesScreen} />
-        <Tab.Screen name="Messages" component={MessagesScreen} />
+        <Tab.Screen name="Messages" component={MessagesStackNavigator} />
+        <Tab.Screen name="Profile" component={ProfileSettingsScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );

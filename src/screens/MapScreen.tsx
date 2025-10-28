@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 import MapView, {
+  Callout,
   Circle,
   LatLng,
   Marker,
@@ -30,7 +31,12 @@ import { Button } from "react-native-paper";
 import Constants from "expo-constants";
 import type VoiceModuleType from "@react-native-voice/voice";
 import type { SpeechErrorEvent, SpeechResultsEvent } from "@react-native-voice/voice";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import {
+  NavigationProp,
+  RouteProp,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import MapSearchBar, { MapSearchBarHandle } from "../components/MapSearchBar";
@@ -49,8 +55,15 @@ import {
   SearchResult,
 } from "../services/MapService";
 import { useFavorites } from "../context/FavoritesContext";
+import { useChatConversations } from "../context/ChatConversationsContext";
+import { useUserProfile } from "../context/UserProfileContext";
 import { Colors } from "../../constants/theme";
 import { DEFAULT_COORDINATES } from "../../constants/map";
+import CreateConversationModal from "../components/CreateConversationModal";
+import type {
+  RootTabParamList,
+  SearchStackParamList,
+} from "../navigation/AppNavigator";
 
 export type MapScreenParams = {
   trigger?: {
@@ -59,9 +72,9 @@ export type MapScreenParams = {
   };
 };
 
-type MapScreenRoute = RouteProp<{ Map: MapScreenParams }, "Map">;
+type MapScreenRoute = RouteProp<SearchStackParamList, "Map">;
 type MapScreenNavigation = NativeStackNavigationProp<
-  { Map: MapScreenParams },
+  SearchStackParamList,
   "Map"
 >;
 
@@ -205,6 +218,10 @@ export default function MapScreen() {
   }, []);
 
   const { addFavorite } = useFavorites();
+  const { conversations, createConversation } = useChatConversations();
+  const { profile } = useUserProfile();
+  const [pendingCoordinate, setPendingCoordinate] = useState<LatLng | null>(null);
+  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
   const {
     location: userLocation,
     refresh: refreshLocation,
@@ -485,10 +502,53 @@ export default function MapScreen() {
     Alert.alert("Saved", "Added to your favorites.");
   }, [addFavorite, selectedPlace]);
 
-  const handleMapPress = useCallback((event: MapPressEvent) => {
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    console.log(`Tapped coordinates: ${latitude}, ${longitude}`);
+  const openConversation = useCallback(
+    (conversationId: string) => {
+      const parentNavigation =
+        navigation.getParent<NavigationProp<RootTabParamList>>();
+      parentNavigation?.navigate("Messages", {
+        screen: "Conversation",
+        params: { conversationId },
+      });
+    },
+    [navigation]
+  );
+
+  const handleMapPress = useCallback(
+    (event: MapPressEvent) => {
+      const action = (event.nativeEvent as unknown as { action?: string }).action;
+      if (action === "marker-press" || action === "callout-press") {
+        return;
+      }
+
+      const { coordinate } = event.nativeEvent;
+      setPendingCoordinate(coordinate);
+      setCreateModalVisible(true);
+    },
+    []
+  );
+
+  const handleDismissCreateConversation = useCallback(() => {
+    setCreateModalVisible(false);
+    setPendingCoordinate(null);
   }, []);
+
+  const handleConfirmCreateConversation = useCallback(
+    (title: string) => {
+      if (!pendingCoordinate) {
+        return;
+      }
+      const conversationId = createConversation({
+        title,
+        coordinate: pendingCoordinate,
+        host: profile,
+      });
+      setCreateModalVisible(false);
+      setPendingCoordinate(null);
+      openConversation(conversationId);
+    },
+    [createConversation, openConversation, pendingCoordinate, profile]
+  );
 
   const nightOverlayStyle = useMemo(
     () => [
@@ -541,6 +601,26 @@ export default function MapScreen() {
             title={selectedPlace.displayName}
           />
         )}
+        {conversations.map((conversation) => (
+          <Marker
+            key={conversation.id}
+            coordinate={conversation.coordinate}
+            title={conversation.title}
+            pinColor={
+              conversation.hostId === profile.id ? "#1d4ed8" : "#9333ea"
+            }
+          >
+            <Callout onPress={() => openConversation(conversation.id)}>
+              <View style={styles.calloutContainer}>
+                <Text style={styles.calloutTitle}>{conversation.title}</Text>
+                <Text style={styles.calloutSubtitle}>
+                  Host: {conversation.hostName}
+                </Text>
+                <Text style={styles.calloutLink}>Open chat ↗</Text>
+              </View>
+            </Callout>
+          </Marker>
+        ))}
         {filters.traffic &&
           TRAFFIC_SEGMENTS.map((segment, index) => (
             <Polyline
@@ -707,6 +787,13 @@ export default function MapScreen() {
 
       <View pointerEvents="none" style={nightOverlayStyle} />
 
+      <CreateConversationModal
+        visible={isCreateModalVisible}
+        coordinate={pendingCoordinate}
+        onDismiss={handleDismissCreateConversation}
+        onCreate={handleConfirmCreateConversation}
+      />
+
       <FilterBottomSheet
         visible={isFilterSheetVisible}
         onDismiss={() => setFilterSheetVisible(false)}
@@ -747,6 +834,23 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     marginTop: 10,
     borderRadius: 14,
+  },
+  calloutContainer: {
+    width: 200,
+    paddingVertical: 8,
+  },
+  calloutTitle: {
+    fontWeight: "700",
+    color: Colors.light.text,
+    marginBottom: 4,
+  },
+  calloutSubtitle: {
+    color: Colors.light.icon,
+    marginBottom: 6,
+  },
+  calloutLink: {
+    color: "#1d4ed8",
+    fontWeight: "600",
   },
   resultsList: {
     marginTop: 12,
