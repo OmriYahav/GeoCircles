@@ -8,6 +8,8 @@ import AppNavigator from "./navigation/AppNavigator";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
 import { ChatConversationsProvider } from "./context/ChatConversationsContext";
+import { BusinessProvider } from "./context/BusinessContext";
+import BusinessProximityManager from "../components/BusinessProximityManager";
 
 export default function App() {
   return (
@@ -15,12 +17,15 @@ export default function App() {
       <SafeAreaProvider>
         <PaperProvider>
           <UserProfileProvider>
-            <ChatConversationsProvider>
-              <FavoritesProvider>
-                <StatusBar barStyle="dark-content" />
-                <AppNavigator />
-              </FavoritesProvider>
-            </ChatConversationsProvider>
+            <BusinessProvider>
+              <ChatConversationsProvider>
+                <FavoritesProvider>
+                  <StatusBar barStyle="dark-content" />
+                  <AppNavigator />
+                  <BusinessProximityManager />
+                </FavoritesProvider>
+              </ChatConversationsProvider>
+            </BusinessProvider>
           </UserProfileProvider>
         </PaperProvider>
       </SafeAreaProvider>

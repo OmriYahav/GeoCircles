@@ -27,6 +27,7 @@ import {
   useChatConversations,
 } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
+import { useNearbyBusinessChat } from "../context/BusinessContext";
 import { Colors } from "../../constants/theme";
 
 export type ConversationScreenParams = {
@@ -44,6 +45,7 @@ export default function ConversationScreen() {
   const { profile } = useUserProfile();
   const { conversations, sendMessage, respondToJoinRequest, requestToJoin } =
     useChatConversations();
+  const { nearbyBusiness } = useNearbyBusinessChat();
 
   const conversation = useMemo<Conversation | undefined>(
     () => conversations.find((item) => item.id === route.params.conversationId),
@@ -179,6 +181,17 @@ export default function ConversationScreen() {
           Close
         </Button>
       </View>
+
+      {nearbyBusiness && (
+        <View style={styles.businessBanner}>
+          <Text style={styles.businessBannerTitle}>
+            You’re chatting near {nearbyBusiness.name}
+          </Text>
+          <Text style={styles.businessBannerHint}>
+            Check the business chat to connect with other visitors and staff.
+          </Text>
+        </View>
+      )}
 
       <View style={styles.metaSection}>
         <Text style={styles.metaTitle}>Participants</Text>
@@ -413,6 +426,23 @@ const styles = StyleSheet.create({
   },
   input: {
     maxHeight: 120,
+  },
+  businessBanner: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#EFF6FF",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#BFDBFE",
+  },
+  businessBannerTitle: {
+    fontWeight: "700",
+    marginBottom: 4,
+    color: "#1D4ED8",
+  },
+  businessBannerHint: {
+    color: "#1E3A8A",
   },
   joinBanner: {
     marginHorizontal: 20,

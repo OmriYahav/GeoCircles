@@ -5,6 +5,7 @@ import {
   ParamListBase,
   NavigationProp,
   NavigatorScreenParams,
+  createNavigationContainerRef,
 } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -22,7 +23,12 @@ import ConversationScreen, {
   ConversationScreenParams,
 } from "../screens/ConversationScreen";
 import ProfileSettingsScreen from "../screens/ProfileSettingsScreen";
+import BusinessOfferScreen, {
+  BusinessOfferScreenParams,
+} from "../screens/BusinessOfferScreen";
 import { Colors } from "../../constants/theme";
+
+export const navigationRef = createNavigationContainerRef();
 
 export type RootTabParamList = {
   Search: NavigatorScreenParams<SearchStackParamList> | undefined;
@@ -36,6 +42,7 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 export type SearchStackParamList = {
   Map: MapScreenParams;
   Conversation: ConversationScreenParams;
+  BusinessOffer: BusinessOfferScreenParams;
 };
 
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
@@ -48,6 +55,11 @@ function SearchStackNavigator() {
         name="Conversation"
         component={ConversationScreen}
         options={{ presentation: "fullScreenModal" }}
+      />
+      <SearchStack.Screen
+        name="BusinessOffer"
+        component={BusinessOfferScreen}
+        options={{ headerShown: true, title: "Business Offer" }}
       />
     </SearchStack.Navigator>
   );
@@ -172,7 +184,7 @@ function CustomTabBar({
 
 export default function AppNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Tab.Navigator
         screenOptions={{ headerShown: false }}
         tabBar={(props) => <CustomTabBar {...props} />}
