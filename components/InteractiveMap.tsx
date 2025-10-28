@@ -81,6 +81,23 @@ function createHtmlTemplate({
       .leaflet-bottom {
         z-index: 1;
       }
+      .person-marker-icon {
+        background: transparent;
+        border: none;
+      }
+      .person-marker {
+        width: 32px;
+        height: 32px;
+        border-radius: 50% 50% 40% 40%;
+        background: #1d4ed8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 18px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+        transform: translateY(-4px);
+      }
     </style>
   </head>
   <body>
@@ -129,6 +146,14 @@ function createHtmlTemplate({
       map.whenReady(() => postReadyMessage());
 
       let marker = null;
+      let circle = null;
+
+      const personIcon = L.divIcon({
+        className: 'person-marker-icon',
+        html: '<div class="person-marker">👤</div>',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+      });
 
       function focusOn(coords, animate) {
         if (!coords) {
@@ -142,9 +167,23 @@ function createHtmlTemplate({
           marker = L.marker(latLng, {
             keyboard: true,
             title: 'Your location',
+            icon: personIcon,
           }).addTo(map);
         } else {
           marker.setLatLng(latLng);
+        }
+
+        if (!circle) {
+          circle = L.circle(latLng, {
+            radius: 100,
+            color: '#1d4ed8',
+            weight: 2,
+            opacity: 0.6,
+            fillColor: '#60a5fa',
+            fillOpacity: 0.2,
+          }).addTo(map);
+        } else {
+          circle.setLatLng(latLng);
         }
 
         if (animate) {
@@ -171,6 +210,10 @@ function createHtmlTemplate({
           if (marker) {
             map.removeLayer(marker);
             marker = null;
+          }
+          if (circle) {
+            map.removeLayer(circle);
+            circle = null;
           }
           map.setView(initialCenter, initialZoom, { animate: false });
           return;
