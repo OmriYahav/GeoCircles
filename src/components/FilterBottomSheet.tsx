@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Keyboard, StyleSheet, View } from "react-native";
 import { Button, Modal, Portal, Switch, Text } from "react-native-paper";
 
 import { Colors } from "../../constants/theme";
@@ -25,9 +25,18 @@ export default function FilterBottomSheet({
     onChange({ ...filters, [key]: !filters[key] });
   };
 
+  const handleBackToMap = () => {
+    Keyboard.dismiss();
+    onDismiss();
+  };
+
   return (
     <Portal>
-      <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.modal}>
+      <Modal
+        visible={visible}
+        onDismiss={handleBackToMap}
+        contentContainerStyle={styles.modal}
+      >
         <Text style={styles.title}>Map Filters</Text>
         <Text style={styles.subtitle}>Control the layers you want to see in real time.</Text>
         <View style={styles.optionRow}>
@@ -61,8 +70,8 @@ export default function FilterBottomSheet({
           </View>
           <Switch value={filters.night} onValueChange={() => toggle("night")} />
         </View>
-        <Button mode="contained" onPress={onDismiss} style={styles.closeButton}>
-          Done
+        <Button mode="contained" onPress={handleBackToMap} style={styles.closeButton}>
+          Back to map
         </Button>
       </Modal>
     </Portal>

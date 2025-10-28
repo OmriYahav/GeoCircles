@@ -9,6 +9,7 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
@@ -360,6 +361,32 @@ export default function MapScreen() {
     setFilterSheetVisible(true);
   }, []);
 
+  const handleBackToMap = useCallback(() => {
+    Keyboard.dismiss();
+    searchBarRef.current?.blur();
+    setSearchQuery("");
+    setSearchResults([]);
+    setFilterSheetVisible(false);
+    setRouteModalVisible(false);
+    setQrScannerVisible(false);
+  }, []);
+
+  const shouldShowBackButton = useMemo(
+    () =>
+      searchResults.length > 0 ||
+      isFilterSheetVisible ||
+      isRouteModalVisible ||
+      isQrScannerVisible ||
+      searchQuery.trim().length > 0,
+    [
+      isFilterSheetVisible,
+      isQrScannerVisible,
+      isRouteModalVisible,
+      searchQuery,
+      searchResults.length,
+    ]
+  );
+
   const stopVoiceSearch = useCallback(async () => {
     if (!voiceModule) {
       setIsVoiceListening(false);
@@ -586,6 +613,16 @@ export default function MapScreen() {
           onQrPress={() => setQrScannerVisible(true)}
           isLoading={isSearching || isVoiceListening}
         />
+        {shouldShowBackButton && (
+          <Button
+            mode="contained-tonal"
+            icon="map"
+            onPress={handleBackToMap}
+            style={styles.backToMapButton}
+          >
+            Back to map
+          </Button>
+        )}
         {searchResults.length > 0 && (
           <View style={styles.resultsList}>
             <FlatList
@@ -705,6 +742,11 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     zIndex: 10,
+  },
+  backToMapButton: {
+    alignSelf: "flex-end",
+    marginTop: 10,
+    borderRadius: 14,
   },
   resultsList: {
     marginTop: 12,

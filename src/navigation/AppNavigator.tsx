@@ -15,15 +15,12 @@ import Animated, {
 } from "react-native-reanimated";
 
 import MapScreen, { MapScreenParams } from "../screens/MapScreen";
-import HubScreen from "../screens/HubScreen";
 import FavoritesScreen from "../screens/FavoritesScreen";
 import MessagesScreen from "../screens/MessagesScreen";
 import { Colors } from "../../constants/theme";
 
 export type RootTabParamList = {
   Search: undefined;
-  Route: undefined;
-  Hub: undefined;
   Favorites: undefined;
   Messages: undefined;
 };
@@ -42,10 +39,6 @@ function SearchStackNavigator() {
       <SearchStack.Screen name="Map" component={MapScreen} initialParams={{}} />
     </SearchStack.Navigator>
   );
-}
-
-function RoutePlaceholder() {
-  return null;
 }
 
 type TabButtonProps = {
@@ -100,8 +93,6 @@ type TabConfigItem = {
 
 const TAB_ITEMS: TabConfigItem[] = [
   { name: "Search", label: "Search", icon: "search-outline" },
-  { name: "Route", label: "Route", icon: "navigate-outline" },
-  { name: "Hub", label: "Hub", icon: "people-outline" },
   { name: "Favorites", label: "Favorites", icon: "heart-outline" },
   { name: "Messages", label: "Messages", icon: "chatbubbles-outline" },
 ];
@@ -119,17 +110,12 @@ function CustomTabBar({
     <View style={styles.tabBar}>
       {state.routes.map((route: any, index: number) => {
         const isFocused = state.index === index;
-        const config = TAB_ITEMS.find((item) => item.name === route.name)!;
+        const config = TAB_ITEMS.find((item) => item.name === route.name);
+        if (!config) {
+          return null;
+        }
 
         const onPress = () => {
-          if (route.name === "Route") {
-            navigation.navigate("Search" as never, {
-              screen: "Map",
-              params: { trigger: { type: "openRoute", timestamp: Date.now() } },
-            } as never);
-            return;
-          }
-
           if (route.name === "Search") {
             navigation.navigate("Search" as never, {
               screen: "Map",
@@ -163,8 +149,6 @@ export default function AppNavigator() {
         tabBar={(props) => <CustomTabBar {...props} />}
       >
         <Tab.Screen name="Search" component={SearchStackNavigator} />
-        <Tab.Screen name="Route" component={RoutePlaceholder} />
-        <Tab.Screen name="Hub" component={HubScreen} />
         <Tab.Screen name="Favorites" component={FavoritesScreen} />
         <Tab.Screen name="Messages" component={MessagesScreen} />
       </Tab.Navigator>
