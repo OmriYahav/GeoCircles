@@ -15,6 +15,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import {
   DEFAULT_COORDINATES,
@@ -51,12 +52,49 @@ type ChatMessage = {
   timestamp: string;
 };
 
+type BottomTabId =
+  | "search"
+  | "route"
+  | "hub"
+  | "favorites"
+  | "messages";
+
+type BottomTabItem = {
+  id: BottomTabId;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
+
+type TopToolbarActionId = "filters" | "layers" | "locate";
+
+type TopToolbarAction = {
+  id: TopToolbarActionId;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
+
+const BOTTOM_TABS: BottomTabItem[] = [
+  { id: "search", label: "Search", icon: "search-outline" },
+  { id: "route", label: "Route", icon: "navigate-outline" },
+  { id: "hub", label: "Hub", icon: "people-outline" },
+  { id: "favorites", label: "Favorites", icon: "heart-outline" },
+  { id: "messages", label: "Messages", icon: "chatbubbles-outline" },
+];
+
+const TOP_TOOLBAR_ACTIONS: TopToolbarAction[] = [
+  { id: "filters", label: "Filters", icon: "options-outline" },
+  { id: "layers", label: "Layers", icon: "layers-outline" },
+  { id: "locate", label: "My location", icon: "locate-outline" },
+];
+
 const DEFAULT_REGION: MapRegion = {
   latitude: DEFAULT_COORDINATES.latitude,
   longitude: DEFAULT_COORDINATES.longitude,
   latitudeDelta: 0.12,
   longitudeDelta: 0.12,
 };
+
+const MIN_STATIC_MAP_ZOOM_LEVEL = 3;
 
 function createRegionFromCoords(coords: Location.LocationObjectCoords): MapRegion {
   return {
@@ -78,6 +116,7 @@ export default function MapScreen() {
   const [isChatVisible, setChatVisible] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [draftMessage, setDraftMessage] = useState("");
+  const [activeBottomTab, setActiveBottomTab] = useState<BottomTabId>("search");
   const mapRef = useRef<InteractiveMapHandle | null>(null);
   const isMountedRef = useRef(true);
   const isFetchingLocationRef = useRef(false);
@@ -412,15 +451,21 @@ export default function MapScreen() {
     });
   }, []);
 
-  const handleOpenChat = useCallback(() => {
-    setChatVisible(true);
-  }, []);
-
-  const handleCloseChat = useCallback(() => {
+  const closeChat = useCallback(() => {
     setChatVisible(false);
     setSelectedUserId(null);
     setDraftMessage("");
   }, []);
+
+  const handleOpenChat = useCallback(() => {
+    setActiveBottomTab("messages");
+    setChatVisible(true);
+  }, []);
+
+  const handleCloseChat = useCallback(() => {
+    closeChat();
+    setActiveBottomTab("search");
+  }, [closeChat]);
 
   const handleSelectUser = useCallback((userId: string) => {
     setSelectedUserId(userId);
@@ -464,6 +509,67 @@ export default function MapScreen() {
     setDraftMessage("");
   }, [draftMessage, selectedUserId]);
 
+  const handleSelectBottomTab = useCallback(
+    (tabId: BottomTabId) => {
+      if (tabId === "messages") {
+        handleOpenChat();
+        return;
+      }
+
+      setActiveBottomTab(tabId);
+
+      if (isChatVisible) {
+        closeChat();
+      }
+    },
+    [closeChat, handleOpenChat, isChatVisible]
+  );
+
+  const handleToolbarAction = useCallback(
+    (actionId: TopToolbarActionId) => {
+      if (actionId === "locate") {
+        if (coords) {
+          mapRef.current?.focusOn(coords);
+        } else {
+          requestLocation();
+        }
+        return;
+      }
+
+      if (actionId === "layers") {
+        refreshLocationIfPossible();
+        return;
+      }
+
+      if (actionId === "filters") {
+        setOverlayDismissed(false);
+      }
+    },
+    [coords, refreshLocationIfPossible, requestLocation]
+  );
+
+  const handleZoomIn = useCallback(() => {
+    if (shouldUseInteractiveMap) {
+      mapRef.current?.zoomIn();
+      return;
+    }
+
+    setFallbackZoomLevel((current) =>
+      Math.min(current + 1, OSM_MAX_ZOOM_LEVEL)
+    );
+  }, [shouldUseInteractiveMap]);
+
+  const handleZoomOut = useCallback(() => {
+    if (shouldUseInteractiveMap) {
+      mapRef.current?.zoomOut();
+      return;
+    }
+
+    setFallbackZoomLevel((current) =>
+      Math.max(current - 1, MIN_STATIC_MAP_ZOOM_LEVEL)
+    );
+  }, [shouldUseInteractiveMap]);
+
   const handleOpenInMaps = useCallback(async () => {
     const coords = location?.coords;
     const url = coords
@@ -501,6 +607,11 @@ export default function MapScreen() {
 
   const mapRegion = coords ? createRegionFromCoords(coords) : DEFAULT_REGION;
   const mapZoomLevel = coords ? 15 : DEFAULT_COORDINATES.zoomLevel;
+  const [fallbackZoomLevel, setFallbackZoomLevel] = useState(mapZoomLevel);
+
+  useEffect(() => {
+    setFallbackZoomLevel(mapZoomLevel);
+  }, [mapZoomLevel]);
 
   const mapUnavailableMessage = (() => {
     if (hasMapError) {
@@ -517,10 +628,17 @@ export default function MapScreen() {
   const fallbackMapUrl = useMemo(() => {
     const latitude = coords?.latitude ?? mapRegion.latitude;
     const longitude = coords?.longitude ?? mapRegion.longitude;
-    const zoom = mapZoomLevel;
+    const zoom = shouldUseInteractiveMap ? mapZoomLevel : fallbackZoomLevel;
     const marker = coords ? `&markers=${latitude},${longitude},lightblue1` : "";
     return `${STATIC_MAP_BASE_URL}?center=${latitude},${longitude}&zoom=${zoom}&size=600x600${marker}`;
-  }, [coords, mapRegion.latitude, mapRegion.longitude, mapZoomLevel]);
+  }, [
+    coords,
+    fallbackZoomLevel,
+    mapRegion.latitude,
+    mapRegion.longitude,
+    mapZoomLevel,
+    shouldUseInteractiveMap,
+  ]);
 
   return (
     <View style={styles.container}>
@@ -558,6 +676,86 @@ export default function MapScreen() {
           <Text style={styles.mapUnavailableText}>{mapUnavailableMessage}</Text>
         </View>
       )}
+
+      <View style={styles.topToolbarContainer}>
+        <Pressable
+          accessibilityHint="Search for places and meetups"
+          accessibilityRole="button"
+          onPress={() => handleSelectBottomTab("search")}
+          style={({ pressed }) => [
+            styles.searchBar,
+            pressed && { opacity: 0.9 },
+          ]}
+        >
+          <Ionicons
+            name="search-outline"
+            size={20}
+            color={Colors.light.icon}
+            style={styles.searchIcon}
+          />
+          <Text style={styles.searchPlaceholder}>Search the map</Text>
+          <View style={styles.searchTrailingIcons}>
+            <Ionicons
+              name="mic-outline"
+              size={18}
+              color={Colors.light.icon}
+            />
+            <Ionicons
+              name="qr-code-outline"
+              size={18}
+              color={Colors.light.icon}
+              style={styles.scanIcon}
+            />
+          </View>
+        </Pressable>
+
+        <View style={styles.topToolbarActions}>
+          {TOP_TOOLBAR_ACTIONS.map((action, index) => (
+            <Pressable
+              key={action.id}
+              accessibilityLabel={action.label}
+              accessibilityRole="button"
+              onPress={() => handleToolbarAction(action.id)}
+              style={({ pressed }) => [
+                styles.topToolbarAction,
+                index === 0 && styles.topToolbarActionFirst,
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Ionicons
+                name={action.icon}
+                size={20}
+                color={Colors.light.text}
+              />
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.mapControls}>
+        <Pressable
+          accessibilityLabel="Zoom in"
+          accessibilityRole="button"
+          onPress={handleZoomIn}
+          style={({ pressed }) => [
+            styles.mapControlButton,
+            pressed && { opacity: 0.85 },
+          ]}
+        >
+          <Ionicons name="add" size={22} color={Colors.light.text} />
+        </Pressable>
+        <Pressable
+          accessibilityLabel="Zoom out"
+          accessibilityRole="button"
+          onPress={handleZoomOut}
+          style={({ pressed }) => [
+            styles.mapControlButton,
+            pressed && { opacity: 0.85 },
+          ]}
+        >
+          <Ionicons name="remove" size={22} color={Colors.light.text} />
+        </Pressable>
+      </View>
 
       <View pointerEvents="none" style={styles.attributionContainer}>
         <Text style={styles.attributionText}>© OpenStreetMap contributors</Text>
@@ -650,21 +848,44 @@ export default function MapScreen() {
         </Pressable>
       )}
 
-      <Pressable
-        accessibilityHint="Open a chat with people nearby"
-        accessibilityLabel="Open nearby chat"
-        accessibilityRole="button"
-        onPress={handleOpenChat}
-        style={({ pressed }) => [
-          styles.chatFab,
-          pressed && { opacity: 0.85 },
-        ]}
-      >
-        <Text style={styles.chatFabLabel}>Nearby chat</Text>
-        <Text style={styles.chatFabSubLabel}>
-          {`${nearbyUsers.length} people within 250m`}
-        </Text>
-      </Pressable>
+      <View style={styles.bottomToolbar}>
+        {BOTTOM_TABS.map((tab) => {
+          const isActive = activeBottomTab === tab.id;
+          return (
+            <Pressable
+              key={tab.id}
+              accessibilityLabel={tab.label}
+              accessibilityRole="button"
+              onPress={() => handleSelectBottomTab(tab.id)}
+              style={({ pressed }) => [
+                styles.bottomToolbarItem,
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.bottomToolbarIcon,
+                  isActive && styles.bottomToolbarIconActive,
+                ]}
+              >
+                <Ionicons
+                  name={tab.icon}
+                  size={22}
+                  color={isActive ? Colors.light.tint : Colors.light.icon}
+                />
+              </View>
+              <Text
+                style={[
+                  styles.bottomToolbarLabel,
+                  isActive && styles.bottomToolbarLabelActive,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <Modal
         animationType="slide"
@@ -853,7 +1074,7 @@ const styles = StyleSheet.create({
   attributionContainer: {
     position: "absolute",
     left: 16,
-    bottom: 16,
+    bottom: 132,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
@@ -881,7 +1102,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 24,
     right: 24,
-    bottom: 32,
+    bottom: 140,
     backgroundColor: "rgba(255, 255, 255, 0.92)",
     padding: 20,
     paddingTop: 32,
@@ -914,7 +1135,7 @@ const styles = StyleSheet.create({
   overlayRestore: {
     position: "absolute",
     right: 24,
-    bottom: 32,
+    bottom: 140,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
@@ -969,7 +1190,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 24,
     right: 24,
-    bottom: 32,
+    bottom: 140,
     backgroundColor: "rgba(18, 18, 18, 0.94)",
     padding: 20,
     borderRadius: 20,
@@ -1021,31 +1242,129 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.sans,
   },
-  chatFab: {
+  topToolbarContainer: {
     position: "absolute",
-    left: 24,
-    bottom: 32,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderRadius: 18,
+    left: 16,
+    right: 16,
+    top: 52,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.94)",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 18,
     shadowColor: "#000",
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.15,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    elevation: 6,
   },
-  chatFabLabel: {
-    color: Colors.light.text,
-    fontSize: 16,
-    fontWeight: "700",
-    fontFamily: Fonts.rounded,
-    marginBottom: 4,
+  searchIcon: {
+    marginRight: 10,
   },
-  chatFabSubLabel: {
+  searchPlaceholder: {
+    flex: 1,
     color: Colors.light.icon,
-    fontSize: 12,
+    fontSize: 15,
     fontFamily: Fonts.sans,
+  },
+  searchTrailingIcons: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  scanIcon: {
+    marginLeft: 10,
+  },
+  topToolbarActions: {
+    flexDirection: "row",
+    marginLeft: 12,
+  },
+  topToolbarAction: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    marginLeft: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  topToolbarActionFirst: {
+    marginLeft: 0,
+  },
+  mapControls: {
+    position: "absolute",
+    right: 16,
+    top: 200,
+  },
+  mapControlButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  bottomToolbar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingTop: 12,
+    paddingBottom: 28,
+    paddingHorizontal: 24,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 12,
+  },
+  bottomToolbarItem: {
+    flex: 1,
+    alignItems: "center",
+    marginHorizontal: 6,
+  },
+  bottomToolbarIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  bottomToolbarIconActive: {
+    backgroundColor: "rgba(10, 126, 164, 0.12)",
+  },
+  bottomToolbarLabel: {
+    marginTop: 6,
+    fontSize: 12,
+    color: Colors.light.icon,
+    fontFamily: Fonts.sans,
+  },
+  bottomToolbarLabelActive: {
+    color: Colors.light.tint,
+    fontWeight: "600",
   },
   chatBackdrop: {
     flex: 1,

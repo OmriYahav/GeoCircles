@@ -21,7 +21,9 @@ type InteractiveMapMessage =
       coords: Coordinates;
       animate?: boolean;
     }
-  | { type: "clearMarker" };
+  | { type: "clearMarker" }
+  | { type: "zoomIn" }
+  | { type: "zoomOut" };
 
 type InteractiveMapProps = {
   initialCoordinates: Coordinates;
@@ -36,6 +38,8 @@ type InteractiveMapProps = {
 
 export type InteractiveMapHandle = {
   focusOn: (coords: Coordinates) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
 };
 
 function createHtmlTemplate({
@@ -169,6 +173,17 @@ function createHtmlTemplate({
             marker = null;
           }
           map.setView(initialCenter, initialZoom, { animate: false });
+          return;
+        }
+
+        if (data.type === 'zoomIn') {
+          map.zoomIn();
+          return;
+        }
+
+        if (data.type === 'zoomOut') {
+          map.zoomOut();
+          return;
         }
       }
 
@@ -249,6 +264,22 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
       [postMessage]
     );
 
+    const zoomIn = useCallback(() => {
+      if (!isReadyRef.current) {
+        return;
+      }
+
+      postMessage({ type: "zoomIn" });
+    }, [postMessage]);
+
+    const zoomOut = useCallback(() => {
+      if (!isReadyRef.current) {
+        return;
+      }
+
+      postMessage({ type: "zoomOut" });
+    }, [postMessage]);
+
     const flushPendingMarker = useCallback(() => {
       if (!pendingMarkerRef.current) {
         return;
@@ -276,8 +307,14 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(
         focusOn(coords: Coordinates) {
           focusOn(coords);
         },
+        zoomIn() {
+          zoomIn();
+        },
+        zoomOut() {
+          zoomOut();
+        },
       }),
-      [focusOn]
+      [focusOn, zoomIn, zoomOut]
     );
 
     useEffect(() => {
