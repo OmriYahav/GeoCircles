@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FlatList, Pressable, StyleSheet, View } from "react-native";
+import { FlatList, Keyboard, Pressable, StyleSheet, View } from "react-native";
 import { Button, Modal, Portal, Text, TextInput } from "react-native-paper";
 
 import { Colors } from "../../constants/theme";
@@ -74,9 +74,14 @@ export default function RoutePlannerModal({
 
   const canSubmit = Boolean(startResult && destinationResult);
 
+  const handleDismiss = () => {
+    Keyboard.dismiss();
+    onDismiss();
+  };
+
   return (
     <Portal>
-      <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.modal}>
+      <Modal visible={visible} onDismiss={handleDismiss} contentContainerStyle={styles.modal}>
         <Text style={styles.title}>Plan a route</Text>
         <Text style={styles.subtitle}>Choose where you’d like to start and finish.</Text>
         <TextInput
@@ -138,8 +143,8 @@ export default function RoutePlannerModal({
         >
           {isLoading ? "Searching…" : "Show route"}
         </Button>
-        <Button onPress={onDismiss} style={styles.cancelButton}>
-          Cancel
+        <Button onPress={handleDismiss} style={styles.cancelButton}>
+          Back to map
         </Button>
       </Modal>
     </Portal>

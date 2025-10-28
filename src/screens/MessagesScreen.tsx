@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
-import { Avatar, Text } from "react-native-paper";
+import { FlatList, Keyboard, StyleSheet, View } from "react-native";
+import { Avatar, Button, Text } from "react-native-paper";
+import { NavigationProp, ParamListBase, useNavigation } from "@react-navigation/native";
 
 const dummyMessages = [
   {
@@ -19,12 +20,25 @@ const dummyMessages = [
 
 export default function MessagesScreen() {
   const messages = useMemo(() => dummyMessages, []);
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
+
+  const handleBackToMap = () => {
+    Keyboard.dismiss();
+    navigation.navigate("Search" as never, { screen: "Map" } as never);
+  };
 
   return (
     <FlatList
       contentContainerStyle={styles.list}
       data={messages}
       keyExtractor={(item) => item.id}
+      ListHeaderComponent={() => (
+        <View style={styles.headerActions}>
+          <Button mode="contained" onPress={handleBackToMap} style={styles.backButton}>
+            Back to map
+          </Button>
+        </View>
+      )}
       renderItem={({ item }) => (
         <View style={styles.row}>
           <Avatar.Text
@@ -53,6 +67,13 @@ const styles = StyleSheet.create({
   list: {
     padding: 24,
     gap: 16,
+  },
+  headerActions: {
+    marginBottom: 16,
+    alignItems: "flex-end",
+  },
+  backButton: {
+    borderRadius: 12,
   },
   row: {
     flexDirection: "row",

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Keyboard, Platform, StyleSheet, View } from "react-native";
 import { Button, Modal, Portal, Text } from "react-native-paper";
 import type { BarCodeEvent } from "expo-barcode-scanner";
 
@@ -91,9 +91,14 @@ export default function QRScannerModal({
 
   const ScannerView = scannerModuleRef.current?.BarCodeScanner;
 
+  const handleDismiss = () => {
+    Keyboard.dismiss();
+    onDismiss();
+  };
+
   return (
     <Portal>
-      <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.modal}>
+      <Modal visible={visible} onDismiss={handleDismiss} contentContainerStyle={styles.modal}>
         <Text style={styles.title}>Scan QR code</Text>
         {hasPermission === false ? (
           <Text style={styles.permissionText}>{permissionMessage}</Text>
@@ -112,8 +117,8 @@ export default function QRScannerModal({
             <View style={styles.overlayBox} pointerEvents="none" />
           </View>
         )}
-        <Button onPress={onDismiss} style={styles.closeButton} mode="contained">
-          Close
+        <Button onPress={handleDismiss} style={styles.closeButton} mode="contained">
+          Back to map
         </Button>
       </Modal>
     </Portal>
