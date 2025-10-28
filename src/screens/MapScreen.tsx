@@ -16,16 +16,7 @@ import {
   Text,
   View,
 } from "react-native";
-import MapView, {
-  Callout,
-  Circle,
-  LatLng,
-  Marker,
-  Polyline,
-  UrlTile,
-  PROVIDER_DEFAULT,
-  MapPressEvent,
-} from "react-native-maps";
+import type MapViewType from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "react-native-paper";
 import Constants from "expo-constants";
@@ -57,6 +48,8 @@ import {
 import { useFavorites } from "../context/FavoritesContext";
 import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
+import { reactNativeMapsModule, reactNativeMapsUnavailableReason } from "../utils/reactNativeMaps";
+import { LatLng, MapPressEvent } from "../types/coordinates";
 import { Colors } from "../../constants/theme";
 import { DEFAULT_COORDINATES } from "../../constants/map";
 import CreateConversationModal from "../components/CreateConversationModal";
@@ -159,7 +152,7 @@ export default function MapScreen() {
   const navigation = useNavigation<MapScreenNavigation>();
   const route = useRoute<MapScreenRoute>();
   const insets = useSafeAreaInsets();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<MapViewType | null>(null);
   const searchBarRef = useRef<MapSearchBarHandle>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -573,6 +566,22 @@ export default function MapScreen() {
     [handleSelectSearchResult]
   );
 
+  if (!reactNativeMapsModule) {
+    return (
+      <View style={styles.mapUnavailableContainer}>
+        <Text style={styles.mapUnavailableTitle}>Map unavailable</Text>
+        <Text style={styles.mapUnavailableMessage}>
+          {reactNativeMapsUnavailableReason === "expo-go"
+            ? "Maps require a development build because Expo Go doesn't include the native react-native-maps module. Run `expo run:android` or `expo run:ios` to continue."
+            : "The native react-native-maps module could not be loaded. Double-check your native build configuration and rebuild the app."}
+        </Text>
+      </View>
+    );
+  }
+
+  const { default: MapView, Callout, Circle, Marker, Polyline, UrlTile, PROVIDER_DEFAULT } =
+    reactNativeMapsModule;
+
   const mapHeight = Dimensions.get("window").height;
 
   return (
@@ -817,6 +826,26 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
+  mapUnavailableContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    backgroundColor: Colors.light.background,
+  },
+  mapUnavailableTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: Colors.light.text,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  mapUnavailableMessage: {
+    textAlign: "center",
+    color: Colors.light.icon,
+    fontSize: 16,
+    lineHeight: 22,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,

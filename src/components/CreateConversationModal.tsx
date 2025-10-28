@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, Modal, Portal, Text, TextInput } from "react-native-paper";
-import { LatLng } from "react-native-maps";
+import { LatLng } from "../types/coordinates";
 
 import { Colors } from "../../constants/theme";
 

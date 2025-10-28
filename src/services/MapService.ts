@@ -1,4 +1,4 @@
-import type { LatLng } from "react-native-maps";
+import type { LatLng } from "../types/coordinates";
 
 export type SearchResult = {
   id: string;
