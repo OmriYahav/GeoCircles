@@ -48,7 +48,7 @@ export default function FloatingActionButton({
       style={[styles.container, style, animatedStyle]}
     >
       <View style={styles.iconContainer}>
-        <Ionicons name={icon} size={22} color={Palette.primary} />
+        <Ionicons name={icon} size={24} color={Palette.primary} />
       </View>
     </AnimatedPressable>
   );
@@ -58,8 +58,8 @@ const styles = StyleSheet.create({
   container: {
     width: 52,
     height: 52,
-    borderRadius: 26,
-    backgroundColor: Palette.surface,
+    borderRadius: 50,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     shadowColor: "rgba(15, 23, 42, 0.15)",
     shadowOpacity: 1,
     shadowRadius: 16,
@@ -67,12 +67,11 @@ const styles = StyleSheet.create({
     elevation: 9,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Palette.primaryTint,

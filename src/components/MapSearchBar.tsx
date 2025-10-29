@@ -62,7 +62,7 @@ const MapSearchBar = (
   };
 
   const animatedStyle = useAnimatedStyle(() => ({
-    shadowOpacity: interpolate(focusAnimation.value, [0, 1], [0.1, 0.25]),
+    shadowOpacity: interpolate(focusAnimation.value, [0, 1], [0.1, 0.2]),
     transform: [
       {
         scale: interpolate(focusAnimation.value, [0, 1], [1, 1.01]),
@@ -86,7 +86,7 @@ const MapSearchBar = (
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
       <View style={styles.leadingIconContainer}>
-        <Ionicons name="search-outline" size={20} color={Colors.light.icon} />
+        <Ionicons name="search-outline" size={18} color={Colors.light.icon} />
       </View>
       <TextInput
         ref={inputRef}
@@ -153,30 +153,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Palette.surface,
-    borderRadius: 22,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    shadowColor: "rgba(15, 23, 42, 0.15)",
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 20,
-    elevation: 9,
+    paddingVertical: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(60, 60, 67, 0.12)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
   },
   leadingIconContainer: {
-    width: 28,
+    width: 26,
     alignItems: "center",
     justifyContent: "center",
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.light.text,
     paddingVertical: 0,
-    marginHorizontal: 8,
+    marginHorizontal: 6,
   },
   trailingIcons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   iconButton: {
     width: 28,
