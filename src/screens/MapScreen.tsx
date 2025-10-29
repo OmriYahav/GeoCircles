@@ -598,7 +598,7 @@ export default function MapScreen() {
   );
 
   const nativeMapsModule = reactNativeMapsModule as typeof import("react-native-maps") | null;
-  const NativeMapView = nativeMapsModule?.default ?? null;
+  const NativeMapView = nativeMapsModule?.default ?? nativeMapsModule?.MapView ?? null;
   const NativeMarker = nativeMapsModule?.Marker ?? null;
   const NativeCallout = nativeMapsModule?.Callout ?? null;
   const NativeCircle = nativeMapsModule?.Circle ?? null;
