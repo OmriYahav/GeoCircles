@@ -12,9 +12,6 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Allow OpenSpot to access your location so we can show where you are on the map."
-      },
-      "config": {
-        "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
       }
     },
 
@@ -31,12 +28,7 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
-      ],
-      "config": {
-        "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
-        }
-      }
+      ]
     },
 
     "splash": {
@@ -51,8 +43,7 @@
     },
 
     "plugins": [
-      ["@rnmapbox/maps", {}],
-      "react-native-maps"
+      ["@rnmapbox/maps", {}]
     ],
 
     "experiments": {
@@ -60,7 +51,8 @@
       "reactCompiler": true
     },
     "extra": {
-      "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+      "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY",
+      "mapboxAccessToken": "YOUR_MAPBOX_ACCESS_TOKEN"
     }
   }
 }
