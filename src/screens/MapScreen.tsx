@@ -47,11 +47,11 @@ import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
 import { LatLng } from "../types/coordinates";
 import { Colors } from "../../constants/theme";
-import { DEFAULT_COORDINATES, GOOGLE_DARK_MAP_STYLE } from "../../constants/map";
-import { getGoogleMapsApiKey } from "../utils/googleMaps";
+import { DEFAULT_COORDINATES } from "../../constants/map";
 import CreateConversationModal from "../components/CreateConversationModal";
 import ExpoGoMapView, { ExpoGoMapHandle } from "../components/ExpoGoMapView";
 import {
+  getMapboxAccessToken,
   isMapboxAvailable,
   mapboxModule,
   mapboxUnavailableReason,
@@ -78,8 +78,6 @@ type MapLayer = {
   id: "standard" | "satellite" | "terrain" | "dark";
   label: string;
   mapboxStyleURL: string;
-  webMapType: "roadmap" | "satellite" | "terrain" | "hybrid";
-  customMapStyle?: typeof GOOGLE_DARK_MAP_STYLE;
 };
 
 const MAP_LAYERS: MapLayer[] = [
@@ -87,26 +85,21 @@ const MAP_LAYERS: MapLayer[] = [
     id: "standard",
     label: "Standard",
     mapboxStyleURL: "mapbox://styles/mapbox/streets-v12",
-    webMapType: "roadmap",
   },
   {
     id: "satellite",
     label: "Satellite",
     mapboxStyleURL: "mapbox://styles/mapbox/satellite-v9",
-    webMapType: "satellite",
   },
   {
     id: "terrain",
     label: "Terrain",
     mapboxStyleURL: "mapbox://styles/mapbox/outdoors-v12",
-    webMapType: "terrain",
   },
   {
     id: "dark",
     label: "Night",
-    mapboxStyleURL: "mapbox://styles/mapbox/dark-v11",
-    webMapType: "roadmap",
-    customMapStyle: GOOGLE_DARK_MAP_STYLE,
+    mapboxStyleURL: "mapbox://styles/mapbox/navigation-night-v1",
   },
 ];
 
@@ -336,7 +329,7 @@ export default function MapScreen() {
   } | null>(null);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [voiceModule, setVoiceModule] = useState<VoiceModuleType | null>(null);
-  const googleMapsApiKey = getGoogleMapsApiKey();
+  const mapboxAccessToken = getMapboxAccessToken();
 
   useEffect(() => {
     if (Platform.OS === "web") {
@@ -782,10 +775,9 @@ export default function MapScreen() {
   const expoGoActiveLayer = useMemo(
     () => ({
       id: activeLayer.id,
-      mapTypeId: activeLayer.webMapType,
-      customMapStyle: activeLayer.customMapStyle ?? null,
+      styleURL: activeLayer.mapboxStyleURL,
     }),
-    [activeLayer]
+    [activeLayer.mapboxStyleURL, activeLayer.id]
   );
 
   const trafficShape = useMemo(
@@ -1020,7 +1012,7 @@ export default function MapScreen() {
             ref={setExpoMapRef}
             style={styles.map}
             initialRegion={INITIAL_REGION}
-            apiKey={googleMapsApiKey ?? undefined}
+            accessToken={mapboxAccessToken ?? undefined}
             activeLayer={expoGoActiveLayer}
             selectedPlace={
               selectedPlace

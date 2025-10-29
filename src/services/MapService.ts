@@ -1,5 +1,5 @@
 import type { LatLng } from "../types/coordinates";
-import { requireGoogleMapsApiKey } from "../utils/googleMaps";
+import { requireMapboxAccessToken } from "../utils/mapbox";
 
 export type SearchResult = {
   id: string;
@@ -15,97 +15,72 @@ export type RouteResult = {
   durationInSeconds: number;
 };
 
-const GOOGLE_PLACES_ENDPOINT = "https://maps.googleapis.com/maps/api/place/textsearch/json";
-const GOOGLE_DIRECTIONS_ENDPOINT = "https://maps.googleapis.com/maps/api/directions/json";
+const MAPBOX_GEOCODING_ENDPOINT = "https://api.mapbox.com/geocoding/v5/mapbox.places";
+const MAPBOX_DIRECTIONS_ENDPOINT = "https://api.mapbox.com/directions/v5/mapbox/driving-traffic";
 
-type GoogleLatLng = { lat: number; lng: number };
-
-type GoogleDirectionsLeg = {
-  distance?: { value: number };
-  duration?: { value: number };
+type MapboxGeocodingFeature = {
+  id: string;
+  place_name?: string;
+  text?: string;
+  center?: [number, number];
+  bbox?: [number, number, number, number];
 };
 
-type GoogleDirectionsRoute = {
-  legs?: GoogleDirectionsLeg[];
-  overview_polyline?: { points?: string };
+type MapboxGeocodingResponse = {
+  features?: MapboxGeocodingFeature[];
+  message?: string;
 };
 
-type GoogleDirectionsResponse = {
-  status: string;
-  routes?: GoogleDirectionsRoute[];
-  error_message?: string;
-};
-
-type GooglePlaceResult = {
-  place_id: string;
-  formatted_address?: string;
-  name?: string;
+type MapboxDirectionsRoute = {
+  distance?: number;
+  duration?: number;
   geometry?: {
-    location: GoogleLatLng;
-    viewport?: {
-      south: number;
-      west: number;
-      north: number;
-      east: number;
-    };
+    coordinates?: [number, number][];
   };
 };
 
-type GooglePlaceResponse = {
-  status: string;
-  results?: GooglePlaceResult[];
-  error_message?: string;
+type MapboxDirectionsResponse = {
+  routes?: MapboxDirectionsRoute[];
+  code?: string;
+  message?: string;
 };
 
-function decodePolyline(polyline: string): LatLng[] {
-  let index = 0;
-  const points: LatLng[] = [];
-  const length = polyline.length;
-  let lat = 0;
-  let lng = 0;
-
-  while (index < length) {
-    let result = 0;
-    let shift = 0;
-    let byte: number;
-
-    do {
-      byte = polyline.charCodeAt(index++) - 63;
-      result |= (byte & 0x1f) << shift;
-      shift += 5;
-    } while (byte >= 0x20);
-
-    const deltaLat = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
-    lat += deltaLat;
-
-    result = 0;
-    shift = 0;
-
-    do {
-      byte = polyline.charCodeAt(index++) - 63;
-      result |= (byte & 0x1f) << shift;
-      shift += 5;
-    } while (byte >= 0x20);
-
-    const deltaLng = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
-    lng += deltaLng;
-
-    points.push({
-      latitude: lat / 1e5,
-      longitude: lng / 1e5,
-    });
+function toBoundingBox(
+  bbox: [number, number, number, number] | undefined
+): [number, number, number, number] | undefined {
+  if (!bbox) {
+    return undefined;
   }
-
-  return points;
+  const [west, south, east, north] = bbox;
+  return [south, north, west, east];
 }
 
-function assertGoogleStatus(status: string, errorMessage?: string) {
-  if (status === "OK" || status === "ZERO_RESULTS") {
+function toLatLngCollection(
+  coordinates: [number, number][] | undefined
+): LatLng[] {
+  if (!coordinates || coordinates.length === 0) {
+    return [];
+  }
+  return coordinates.map(([longitude, latitude]) => ({ latitude, longitude }));
+}
+
+function assertMapboxResponse(
+  response: Response,
+  body: { message?: string }
+) {
+  if (response.ok) {
     return;
   }
+  const details = body.message ? `: ${body.message}` : "";
+  throw new Error(`Mapbox request failed (${response.status})${details}`);
+}
 
-  const message = errorMessage ? `${status}: ${errorMessage}` : status;
-  throw new Error(`Google Maps request failed: ${message}`);
+function assertMapboxCode(code: string | undefined, message?: string) {
+  if (code === "Ok" || code === "NoRoute" || code === undefined) {
+    return;
+  }
+  const details = message ? `: ${message}` : "";
+  throw new Error(`Mapbox request failed (${code})${details}`);
 }
 
 export async function searchPlaces(query: string): Promise<SearchResult[]> {
@@ -114,33 +89,31 @@ export async function searchPlaces(query: string): Promise<SearchResult[]> {
     return [];
   }
 
-  const key = requireGoogleMapsApiKey();
-  const params = new URLSearchParams({ query: trimmed, key });
+  const token = requireMapboxAccessToken();
+  const params = new URLSearchParams({
+    access_token: token,
+    limit: "8",
+    language: "en",
+  });
 
-  const response = await fetch(`${GOOGLE_PLACES_ENDPOINT}?${params.toString()}`);
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Request failed: ${response.status} ${text}`);
-  }
-  const data = (await response.json()) as GooglePlaceResponse;
-  assertGoogleStatus(data.status, data.error_message);
+  const encodedQuery = encodeURIComponent(trimmed);
+  const response = await fetch(
+    `${MAPBOX_GEOCODING_ENDPOINT}/${encodedQuery}.json?${params.toString()}`
+  );
+  const data = (await response.json()) as MapboxGeocodingResponse;
+  assertMapboxResponse(response, data);
 
-  const results = data.results ?? [];
-  return results.map((item) => {
-    const name = item.name ?? "";
-    const address = item.formatted_address ?? "";
-    const displayName = name && address ? `${name}, ${address}` : name || address || trimmed;
-    const location = item.geometry?.location ?? { lat: 0, lng: 0 };
-    const viewport = item.geometry?.viewport;
+  const features = data.features ?? [];
+  return features.map((feature) => {
+    const center = feature.center ?? [0, 0];
+    const displayName = feature.place_name ?? feature.text ?? trimmed;
 
     return {
-      id: item.place_id,
+      id: feature.id,
       displayName,
-      latitude: location.lat,
-      longitude: location.lng,
-      boundingBox: viewport
-        ? [viewport.south, viewport.north, viewport.west, viewport.east]
-        : undefined,
+      latitude: center[1],
+      longitude: center[0],
+      boundingBox: toBoundingBox(feature.bbox),
     };
   });
 }
@@ -149,37 +122,30 @@ export async function fetchRoute(
   start: LatLng,
   destination: LatLng
 ): Promise<RouteResult | null> {
-  const key = requireGoogleMapsApiKey();
+  const token = requireMapboxAccessToken();
   const params = new URLSearchParams({
-    origin: `${start.latitude},${start.longitude}`,
-    destination: `${destination.latitude},${destination.longitude}`,
-    key,
+    access_token: token,
+    geometries: "geojson",
+    overview: "full",
+    steps: "false",
   });
 
-  const response = await fetch(`${GOOGLE_DIRECTIONS_ENDPOINT}?${params.toString()}`);
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Request failed: ${response.status} ${text}`);
-  }
-
-  const data = (await response.json()) as GoogleDirectionsResponse;
-  assertGoogleStatus(data.status, data.error_message);
+  const waypointParam = `${start.longitude},${start.latitude};${destination.longitude},${destination.latitude}`;
+  const response = await fetch(
+    `${MAPBOX_DIRECTIONS_ENDPOINT}/${waypointParam}?${params.toString()}`
+  );
+  const data = (await response.json()) as MapboxDirectionsResponse;
+  assertMapboxResponse(response, data);
+  assertMapboxCode(data.code, data.message);
 
   const [route] = data.routes ?? [];
-  if (!route?.overview_polyline?.points) {
+  if (!route?.geometry?.coordinates || route.geometry.coordinates.length === 0) {
     return null;
   }
 
-  const coordinates = decodePolyline(route.overview_polyline.points);
-  const legs = route.legs ?? [];
-  const distanceInMeters = legs.reduce(
-    (total, leg) => total + (leg.distance?.value ?? 0),
-    0
-  );
-  const durationInSeconds = legs.reduce(
-    (total, leg) => total + (leg.duration?.value ?? 0),
-    0
-  );
+  const coordinates = toLatLngCollection(route.geometry.coordinates);
+  const distanceInMeters = route.distance ?? 0;
+  const durationInSeconds = route.duration ?? 0;
 
   return {
     coordinates,

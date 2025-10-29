@@ -16,27 +16,21 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
-### Configure Google Maps
+### Configure Mapbox
 
-This project now uses the Google Maps Platform for maps, place search, and routing. Before running the app, add your Google Maps API key to `app.json`:
+OpenSpot uses Mapbox for maps, place search, and routing. Before running the app, add your Mapbox access token to `app.json`:
 
 ```json
 {
   "expo": {
-    "ios": {
-      "config": { "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY" }
-    },
-    "android": {
-      "config": { "googleMaps": { "apiKey": "YOUR_GOOGLE_MAPS_API_KEY" } }
-    },
     "extra": {
-      "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+      "mapboxAccessToken": "YOUR_MAPBOX_ACCESS_TOKEN"
     }
   }
 }
 ```
 
-You can also provide the key at runtime by setting the `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` environment variable.
+Alternatively, you can set the access token at runtime with the `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` environment variable.
 
 In the output, you'll find options to open the app in a
 
