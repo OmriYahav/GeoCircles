@@ -16,21 +16,9 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
-### Configure Mapbox
+### Map configuration
 
-OpenSpot uses Mapbox for maps, place search, and routing. Before running the app, add your Mapbox access token to `app.json`:
-
-```json
-{
-  "expo": {
-    "extra": {
-      "mapboxAccessToken": "YOUR_MAPBOX_ACCESS_TOKEN"
-    }
-  }
-}
-```
-
-Alternatively, you can set the access token at runtime with the `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` environment variable.
+OpenSpot now uses [Leaflet](https://leafletjs.com/) with open map tile providers. No API keys are required to start the project.
 
 In the output, you'll find options to open the app in a
 

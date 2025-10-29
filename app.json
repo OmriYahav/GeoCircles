@@ -42,16 +42,12 @@
       "favicon": "./assets/images/favicon.png"
     },
 
-    "plugins": [
-      ["@rnmapbox/maps", {}]
-    ],
+    "plugins": [],
 
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "extra": {
-      "mapboxAccessToken": "YOUR_MAPBOX_ACCESS_TOKEN"
-    }
+    "extra": {}
   }
 }
