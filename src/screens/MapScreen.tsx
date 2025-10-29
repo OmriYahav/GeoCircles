@@ -15,13 +15,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  NavigationProp,
-  RouteProp,
-  useNavigation,
-  useRoute,
-} from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import MapSearchBar, { MapSearchBarHandle } from "../components/MapSearchBar";
 import FloatingActionButton from "../components/FloatingActionButton";
@@ -42,29 +36,18 @@ import LeafletMapView, {
   LeafletLayerConfig,
   LeafletMapHandle,
 } from "../components/LeafletMapView";
-import type {
-  RootTabParamList,
-  SearchStackParamList,
-} from "../navigation/AppNavigator";
 import useVoiceSearch from "../hooks/useVoiceSearch";
 import usePlaceSearch from "../hooks/usePlaceSearch";
 import SelectedPlaceCard from "../components/map/SelectedPlaceCard";
 import LocationErrorBanner from "../components/map/LocationErrorBanner";
 import LayerBadge from "../components/map/LayerBadge";
 import MapOverlayCard from "../components/map/MapOverlayCard";
+import ScreenScaffold from "../components/layout/ScreenScaffold";
 
 export type MapScreenParams = {
-  trigger?: {
-    type: "focusSearch";
-    timestamp: number;
-  };
+  triggerType?: string | string[];
+  triggerTimestamp?: string | string[];
 };
-
-type MapScreenRoute = RouteProp<SearchStackParamList, "Map">;
-type MapScreenNavigation = NativeStackNavigationProp<
-  SearchStackParamList,
-  "Map"
->;
 
 type MapLayer = LeafletLayerConfig & {
   id: "standard" | "satellite" | "terrain" | "dark";
@@ -149,11 +132,13 @@ const TRANSPORT_POINTS = [
 ];
 
 const DEBOUNCE_DELAY = 380;
+const TOP_MENU_OFFSET = 96;
 
 export default function MapScreen() {
-  const navigation = useNavigation<MapScreenNavigation>();
-  const route = useRoute<MapScreenRoute>();
+  const router = useRouter();
+  const params = useLocalSearchParams<MapScreenParams>();
   const insets = useSafeAreaInsets();
+  const triggerHandledRef = useRef<string | null>(null);
   const mapRef = useRef<LeafletMapHandle | null>(null);
   const searchBarRef = useRef<MapSearchBarHandle>(null);
 
@@ -209,20 +194,28 @@ export default function MapScreen() {
   const activeLayer = MAP_LAYERS[mapLayerIndex];
 
   useEffect(() => {
-    const trigger = route.params?.trigger;
-    if (!trigger) {
+    if (params?.triggerType !== "focusSearch") {
       return;
     }
 
-    if (trigger.type === "focusSearch") {
-      requestAnimationFrame(() => {
-        setShouldShowResults(true);
-        searchBarRef.current?.focus();
-      });
+    const rawTimestamp = params.triggerTimestamp;
+    const timestamp = Array.isArray(rawTimestamp)
+      ? rawTimestamp[0]
+      : rawTimestamp ?? null;
+
+    if (timestamp && triggerHandledRef.current === timestamp) {
+      return;
     }
 
-    navigation.setParams({ trigger: undefined });
-  }, [navigation, route.params?.trigger]);
+    if (timestamp) {
+      triggerHandledRef.current = timestamp;
+    }
+
+    requestAnimationFrame(() => {
+      setShouldShowResults(true);
+      searchBarRef.current?.focus();
+    });
+  }, [params?.triggerType, params?.triggerTimestamp]);
 
   useEffect(() => {
     const coords = userLocation.coords;
@@ -353,14 +346,12 @@ export default function MapScreen() {
 
   const openConversation = useCallback(
     (conversationId: string) => {
-      const parentNavigation =
-        navigation.getParent<NavigationProp<RootTabParamList>>();
-      parentNavigation?.navigate("Messages", {
-        screen: "Conversation",
+      router.navigate({
+        pathname: "/conversation/[conversationId]",
         params: { conversationId },
       });
     },
-    [navigation]
+    [router]
   );
 
   const handleCoordinatePress = useCallback((coordinate: LatLng) => {
@@ -430,9 +421,10 @@ export default function MapScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.mapContainer}>
-        <LeafletMapView
+    <ScreenScaffold contentStyle={styles.screenContent}>
+      <View style={styles.container}>
+        <View style={styles.mapContainer}>
+          <LeafletMapView
           ref={(instance) => {
             mapRef.current = instance;
           }}
@@ -460,7 +452,7 @@ export default function MapScreen() {
         />
       </View>
 
-      <View style={[styles.searchContainer, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.searchContainer, { paddingTop: TOP_MENU_OFFSET }]}>
         <MapSearchBar
           ref={searchBarRef}
           value={searchQuery}
@@ -516,7 +508,7 @@ export default function MapScreen() {
         )}
       </View>
 
-      <View style={[styles.fabColumn, { top: insets.top + 100 }]}>
+      <View style={[styles.fabColumn, { top: TOP_MENU_OFFSET + 20 }]}>
         <FloatingActionButton
           icon="options-outline"
           accessibilityLabel="Open filters"
@@ -534,7 +526,10 @@ export default function MapScreen() {
         />
       </View>
 
-      <LayerBadge style={[styles.layerBadge, { top: insets.top + 16 }]} label={activeLayer.label} />
+      <LayerBadge
+        style={[styles.layerBadge, { top: TOP_MENU_OFFSET - 16 }]}
+        label={activeLayer.label}
+      />
 
       {selectedPlace && (
         <View style={[styles.overlayPosition, { bottom: insets.bottom + 140 }]}>
@@ -562,11 +557,15 @@ export default function MapScreen() {
         onChange={setFilters}
       />
 
-    </View>
+      </View>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
+  screenContent: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,

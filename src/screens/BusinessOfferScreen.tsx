@@ -8,10 +8,11 @@ import {
 import {
   ActivityIndicator,
   Button,
+  Surface,
   Text,
   useTheme,
 } from "react-native-paper";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { useLocalSearchParams } from "expo-router";
 
 import { Business } from "../context/BusinessContext";
 import { formatExpiryDate, parseBusinessDocument } from "../utils/business";
@@ -25,32 +26,33 @@ import {
 import { useUserProfile } from "../context/UserProfileContext";
 import BackToMapButton from "../components/BackToMapButton";
 import { Palette } from "../../constants/theme";
+import ScreenScaffold from "../components/layout/ScreenScaffold";
 
 export type BusinessOfferScreenParams = {
-  businessId: string;
+  businessId?: string | string[];
 };
-
-type BusinessOfferRoute = RouteProp<
-  { BusinessOffer: BusinessOfferScreenParams },
-  "BusinessOffer"
->;
 
 const BusinessOfferScreen = () => {
   const { profile } = useUserProfile();
   const theme = useTheme();
-  const navigation = useNavigation();
-  const route = useRoute<BusinessOfferRoute>();
+  const params = useLocalSearchParams<BusinessOfferScreenParams>();
   const [business, setBusiness] = useState<Business | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
 
   useEffect(() => {
-    navigation.setOptions({ title: "Business Offer" });
-  }, [navigation]);
-
-  useEffect(() => {
     let isMounted = true;
+
+    const businessId = Array.isArray(params.businessId)
+      ? params.businessId[0]
+      : params.businessId;
+
+    if (!businessId) {
+      setError("This offer is no longer available.");
+      setIsLoading(false);
+      return;
+    }
 
     const fetchBusiness = async () => {
       const firestore = getFirestoreClient();
@@ -62,7 +64,7 @@ const BusinessOfferScreen = () => {
 
       try {
         const snapshot = await getDoc(
-          doc(firestore, "businesses", route.params.businessId)
+          doc(firestore, "businesses", businessId)
         );
         if (!snapshot.exists()) {
           if (isMounted) {
@@ -97,7 +99,7 @@ const BusinessOfferScreen = () => {
     return () => {
       isMounted = false;
     };
-  }, [route.params.businessId]);
+  }, [params.businessId]);
 
   const expiryDisplay = useMemo(
     () => formatExpiryDate(business?.expiryDate ?? null),
@@ -128,18 +130,22 @@ const BusinessOfferScreen = () => {
 
   if (isLoading) {
     return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator animating color={theme.colors.primary} />
-        <Text style={styles.loaderText}>Loading offer…</Text>
-      </View>
+      <ScreenScaffold contentStyle={styles.centerContent}>
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator animating color={theme.colors.primary} />
+          <Text style={styles.loaderText}>Loading offer…</Text>
+        </View>
+      </ScreenScaffold>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.loaderContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
+      <ScreenScaffold contentStyle={styles.centerContent}>
+        <View style={styles.loaderContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      </ScreenScaffold>
     );
   }
 
@@ -148,37 +154,47 @@ const BusinessOfferScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
-      <BackToMapButton mode="contained-tonal" style={styles.backButton} />
-      {business.logoUrl && (
-        <View style={styles.logoWrapper}>
-          <Image source={{ uri: business.logoUrl }} style={styles.logo} />
-        </View>
-      )}
-      <Text variant="headlineMedium" style={styles.title}>
-        {business.name}
-      </Text>
-      <Text variant="bodyLarge" style={styles.offerText}>
-        {business.offerText}
-      </Text>
-      {expiryDisplay && (
-        <Text variant="bodyMedium" style={styles.expiry}>
-          Valid until {expiryDisplay}
-        </Text>
-      )}
-      <Button
-        mode="contained"
-        style={styles.actionButton}
-        onPress={handleRedeemPress}
-        loading={isInteracting}
-      >
-        Show this at checkout
-      </Button>
-    </ScrollView>
+    <ScreenScaffold contentStyle={styles.screenContent}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+        <BackToMapButton mode="contained-tonal" style={styles.backButton} />
+        <Surface style={styles.offerCard} elevation={3}>
+          {business.logoUrl && (
+            <View style={styles.logoWrapper}>
+              <Image source={{ uri: business.logoUrl }} style={styles.logo} />
+            </View>
+          )}
+          <Text variant="headlineMedium" style={styles.title}>
+            {business.name}
+          </Text>
+          <Text variant="bodyLarge" style={styles.offerText}>
+            {business.offerText}
+          </Text>
+          {expiryDisplay && (
+            <Text variant="bodyMedium" style={styles.expiry}>
+              Valid until {expiryDisplay}
+            </Text>
+          )}
+          <Button
+            mode="contained"
+            style={styles.actionButton}
+            onPress={handleRedeemPress}
+            loading={isInteracting}
+          >
+            Show this at checkout
+          </Button>
+        </Surface>
+      </ScrollView>
+    </ScreenScaffold>
   );
 };
 
 const styles = StyleSheet.create({
+  screenContent: {
+    flex: 1,
+  },
+  centerContent: {
+    flex: 1,
+  },
   scroll: {
     flex: 1,
     backgroundColor: Palette.background,
@@ -192,6 +208,17 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: "flex-start",
     marginBottom: 8,
+  },
+  offerCard: {
+    gap: 16,
+    padding: 24,
+    borderRadius: 28,
+    backgroundColor: Palette.surface,
+    shadowColor: "rgba(15, 23, 42, 0.12)",
+    shadowOpacity: 1,
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 24,
+    elevation: 4,
   },
   loaderContainer: {
     flex: 1,
@@ -213,14 +240,6 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     marginBottom: 16,
-    padding: 16,
-    borderRadius: 24,
-    backgroundColor: Palette.surface,
-    shadowColor: "rgba(15, 23, 42, 0.12)",
-    shadowOpacity: 1,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 20,
-    elevation: 4,
   },
   logo: {
     width: 160,

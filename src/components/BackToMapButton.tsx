@@ -1,7 +1,7 @@
 import React from "react";
 import { Keyboard, StyleProp, ViewStyle } from "react-native";
 import { Button } from "react-native-paper";
-import { navigationRef } from "../navigation/navigationRef";
+import { useRouter } from "expo-router";
 
 export type BackToMapButtonProps = Omit<
   React.ComponentProps<typeof Button>,
@@ -18,11 +18,10 @@ const BackToMapButton: React.FC<BackToMapButtonProps> = ({
   compact = true,
   ...rest
 }) => {
+  const router = useRouter();
   const handlePress = () => {
     Keyboard.dismiss();
-    if (navigationRef.isReady()) {
-      navigationRef.navigate("Search" as never, { screen: "Map" } as never);
-    }
+    router.navigate({ pathname: "/(tabs)/search" });
     onPress?.();
   };
 
