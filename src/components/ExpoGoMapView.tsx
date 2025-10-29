@@ -129,6 +129,21 @@ const BASE_HTML = `<!DOCTYPE html>
         maxZoom: 19,
       }).addTo(map);
 
+      function scheduleInvalidateSize() {
+        if (typeof requestAnimationFrame === "function") {
+          requestAnimationFrame(function () {
+            map.invalidateSize();
+          });
+          return;
+        }
+
+        setTimeout(function () {
+          map.invalidateSize();
+        }, 32);
+      }
+
+      scheduleInvalidateSize();
+
       const overlays = {
         selectedPlace: null,
         conversationMarkers: {},
@@ -172,6 +187,8 @@ const BASE_HTML = `<!DOCTYPE html>
             maxZoom: data.tileLayer.maximumZ || 19,
           }).addTo(map);
         }
+
+        scheduleInvalidateSize();
 
         if (overlays.selectedPlace) {
           map.removeLayer(overlays.selectedPlace);
@@ -378,6 +395,9 @@ const BASE_HTML = `<!DOCTYPE html>
         handleMessage(event.data);
       });
 
+      window.addEventListener("resize", scheduleInvalidateSize);
+      window.addEventListener("orientationchange", scheduleInvalidateSize);
+
       map.on("click", function (event) {
         window.ReactNativeWebView?.postMessage(
           JSON.stringify({
@@ -397,6 +417,7 @@ const BASE_HTML = `<!DOCTYPE html>
       }
 
       setTimeout(function () {
+        scheduleInvalidateSize();
         isReady = true;
         window.ReactNativeWebView?.postMessage(
           JSON.stringify({ type: "ready" })
