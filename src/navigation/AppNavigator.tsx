@@ -5,6 +5,7 @@ import {
   ParamListBase,
   NavigationProp,
   NavigatorScreenParams,
+  type Theme,
 } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -25,8 +26,12 @@ import ProfileSettingsScreen from "../screens/ProfileSettingsScreen";
 import BusinessOfferScreen, {
   BusinessOfferScreenParams,
 } from "../screens/BusinessOfferScreen";
-import { Colors } from "../../constants/theme";
+import { Colors, Palette } from "../../constants/theme";
 import { navigationRef } from "./navigationRef";
+
+type AppNavigatorProps = {
+  theme?: Theme;
+};
 
 export type RootTabParamList = {
   Search: NavigatorScreenParams<SearchStackParamList> | undefined;
@@ -92,7 +97,7 @@ function TabButton({ label, icon, isFocused, onPress }: TabButtonProps) {
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
     backgroundColor: withTiming(
-      isFocused ? "rgba(37, 99, 235, 0.12)" : "transparent"
+      isFocused ? Palette.primaryTint : "transparent"
     ),
   }));
 
@@ -180,11 +185,11 @@ function CustomTabBar({
   );
 }
 
-export default function AppNavigator() {
+export default function AppNavigator({ theme }: AppNavigatorProps) {
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} theme={theme}>
       <Tab.Navigator
-        screenOptions={{ headerShown: false }}
+        screenOptions={{ headerShown: false, tabBarStyle: { display: "none" } }}
         tabBar={(props) => <CustomTabBar {...props} />}
       >
         <Tab.Screen name="Search" component={SearchStackNavigator} />
@@ -203,17 +208,17 @@ const styles = StyleSheet.create({
     right: 16,
     bottom: 24,
     borderRadius: 24,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.95)",
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
+    backgroundColor: Palette.surface,
+    shadowColor: "rgba(15, 23, 42, 0.18)",
+    shadowOpacity: 1,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 14,
   },
   tabButtonContainer: {
     flex: 1,
@@ -221,7 +226,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   touchable: {
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",

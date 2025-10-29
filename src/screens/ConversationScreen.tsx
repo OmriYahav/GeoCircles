@@ -28,7 +28,7 @@ import {
 } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
 import { useNearbyBusinessChat } from "../context/BusinessContext";
-import { Colors } from "../../constants/theme";
+import { Colors, Palette } from "../../constants/theme";
 
 export type ConversationScreenParams = {
   conversationId: string;
@@ -316,7 +316,9 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f4f6fb",
+    backgroundColor: Palette.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Palette.border,
   },
   title: {
     fontSize: 22,
@@ -382,25 +384,27 @@ const styles = StyleSheet.create({
   },
   bubble: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 2,
+    shadowColor: "rgba(15, 23, 42, 0.12)",
+    shadowOpacity: 1,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
+    elevation: 3,
   },
   myBubble: {
-    backgroundColor: "rgba(37,99,235,0.12)",
+    backgroundColor: Palette.primaryTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Palette.primarySoft,
   },
   otherBubble: {
-    backgroundColor: "#fff",
+    backgroundColor: Palette.surface,
   },
   myAvatar: {
-    backgroundColor: "#1d4ed8",
+    backgroundColor: Palette.primary,
   },
   otherAvatar: {
-    backgroundColor: "#9333ea",
+    backgroundColor: Palette.accent,
   },
   sender: {
     fontWeight: "700",
@@ -408,7 +412,7 @@ const styles = StyleSheet.create({
   },
   messageText: {
     marginTop: 6,
-    color: "rgba(17, 24, 28, 0.85)",
+    color: Palette.textSecondary,
   },
   timestamp: {
     marginTop: 10,
@@ -419,9 +423,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: Platform.OS === "ios" ? 24 : 18,
-    backgroundColor: "#f8fafc",
+    backgroundColor: Palette.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(15, 23, 42, 0.08)",
+    borderTopColor: Palette.border,
     gap: 10,
   },
   input: {
@@ -430,26 +434,26 @@ const styles = StyleSheet.create({
   businessBanner: {
     marginHorizontal: 20,
     marginBottom: 16,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: "#EFF6FF",
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: Palette.primarySoft,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#BFDBFE",
+    borderColor: Palette.primary,
   },
   businessBannerTitle: {
     fontWeight: "700",
     marginBottom: 4,
-    color: "#1D4ED8",
+    color: Palette.primary,
   },
   businessBannerHint: {
-    color: "#1E3A8A",
+    color: Palette.textSecondary,
   },
   joinBanner: {
     marginHorizontal: 20,
     marginBottom: 12,
     padding: 16,
-    borderRadius: 16,
-    backgroundColor: "rgba(14,165,233,0.12)",
+    borderRadius: 18,
+    backgroundColor: Palette.primaryTint,
   },
   joinTitle: {
     fontWeight: "700",
@@ -457,7 +461,7 @@ const styles = StyleSheet.create({
   },
   joinSubtitle: {
     marginTop: 6,
-    color: Colors.light.icon,
+    color: Palette.textMuted,
     marginBottom: 12,
   },
 });

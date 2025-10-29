@@ -6,9 +6,9 @@ import dayjs from "dayjs";
 
 import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
-import { Colors } from "../../constants/theme";
 import type { MessagesStackParamList } from "../navigation/AppNavigator";
 import BackToMapButton from "../components/BackToMapButton";
+import { Palette } from "../../constants/theme";
 
 export default function MessagesScreen() {
   const navigation =
@@ -31,6 +31,7 @@ export default function MessagesScreen() {
 
   return (
     <FlatList
+      style={styles.container}
       data={sortedConversations}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={() => (
@@ -98,6 +99,10 @@ export default function MessagesScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Palette.background,
+  },
   list: {
     padding: 20,
     gap: 18,
@@ -110,30 +115,30 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   emptyCard: {
-    borderRadius: 18,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 3,
+    borderRadius: 20,
+    backgroundColor: Palette.surface,
+    shadowColor: "rgba(15, 23, 42, 0.14)",
+    shadowOpacity: 1,
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 24,
+    elevation: 4,
   },
   emptyTitle: {
     fontWeight: "700",
     marginBottom: 6,
-    color: Colors.light.text,
+    color: Palette.textPrimary,
   },
   emptySubtitle: {
-    color: Colors.light.icon,
+    color: Palette.textMuted,
   },
   card: {
-    borderRadius: 18,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 3,
+    borderRadius: 20,
+    backgroundColor: Palette.surface,
+    shadowColor: "rgba(15, 23, 42, 0.12)",
+    shadowOpacity: 1,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    elevation: 4,
   },
   cardContent: {
     flexDirection: "row",
@@ -141,7 +146,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cardAvatar: {
-    backgroundColor: "#2563eb",
+    backgroundColor: Palette.primary,
   },
   cardText: {
     flex: 1,
@@ -149,20 +154,20 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: Colors.light.text,
+    color: Palette.textPrimary,
   },
   cardSubtitle: {
     marginTop: 6,
-    color: Colors.light.icon,
+    color: Palette.textSecondary,
   },
   cardMeta: {
     marginTop: 8,
     fontSize: 12,
-    color: "rgba(17, 24, 39, 0.5)",
+    color: Palette.textMuted,
   },
   pendingBadge: {
     marginTop: 8,
-    color: "#d97706",
+    color: Palette.accent,
     fontWeight: "600",
   },
 });

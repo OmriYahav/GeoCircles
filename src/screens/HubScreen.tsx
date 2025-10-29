@@ -2,6 +2,8 @@ import React, { useMemo } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { Text, Avatar } from "react-native-paper";
 
+import { Palette } from "../../constants/theme";
+
 const dummyHubItems = [
   {
     id: "art-hub",
@@ -29,6 +31,7 @@ export default function HubScreen() {
   return (
     <FlatList
       contentContainerStyle={styles.list}
+      style={styles.container}
       data={items}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
@@ -52,37 +55,42 @@ export default function HubScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Palette.background,
+  },
   list: {
     padding: 24,
     gap: 16,
   },
   card: {
     flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: Palette.surface,
     borderRadius: 18,
-    padding: 16,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    padding: 18,
+    elevation: 3,
+    shadowColor: "rgba(15, 23, 42, 0.16)",
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
   },
   avatar: {
     marginRight: 16,
-    backgroundColor: "#2563eb",
+    backgroundColor: Palette.primary,
   },
   cardBody: {
     flex: 1,
   },
   cardTitle: {
     fontWeight: "700",
+    color: Palette.textPrimary,
   },
   cardDescription: {
     marginTop: 4,
-    color: "rgba(0,0,0,0.6)",
+    color: Palette.textSecondary,
   },
   cardMeta: {
     marginTop: 8,
-    color: "rgba(0,0,0,0.45)",
+    color: Palette.textMuted,
   },
 });

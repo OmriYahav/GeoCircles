@@ -145,15 +145,15 @@ function createLeafletHtml(
       }
 
       .marker--self {
-        background-color: #1d4ed8;
+        background-color: #1e3a8a;
       }
 
       .marker--other {
-        background-color: #9333ea;
+        background-color: #0ea5e9;
       }
 
       .marker--selected {
-        background-color: #ef4444;
+        background-color: #f97316;
       }
 
       .marker--transport {
@@ -161,7 +161,7 @@ function createLeafletHtml(
         height: 24px;
         border-radius: 12px;
         border: 2px solid #ffffff;
-        background-color: #6366f1;
+        background-color: #312e81;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       }
 
@@ -338,7 +338,7 @@ function createLeafletHtml(
         state.routeLayer.clearLayers();
         if (routeCoordinates && Array.isArray(routeCoordinates) && routeCoordinates.length > 0) {
           L.polyline(routeCoordinates.map(toLatLngTuple), {
-            color: '#2563eb',
+            color: '#1e3a8a',
             weight: 5,
             lineCap: 'round',
             lineJoin: 'round',
@@ -357,8 +357,8 @@ function createLeafletHtml(
         if (userLocation) {
           state.userLocationCircle = L.circle([userLocation.latitude, userLocation.longitude], {
             radius: userLocation.radius || 0,
-            color: 'rgba(37,99,235,0.35)',
-            fillColor: 'rgba(59,130,246,0.15)',
+            color: 'rgba(30,58,138,0.4)',
+            fillColor: 'rgba(99,102,241,0.18)',
             fillOpacity: 0.6,
             weight: 1,
           }).addTo(map);
@@ -366,7 +366,7 @@ function createLeafletHtml(
             radius: 6,
             color: '#ffffff',
             weight: 2,
-            fillColor: '#1d4ed8',
+            fillColor: '#1e3a8a',
             fillOpacity: 1,
           }).addTo(map);
         }
