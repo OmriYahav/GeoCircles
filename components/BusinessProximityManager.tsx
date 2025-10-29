@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
+import Constants from "expo-constants";
 import { onSnapshot, collection, doc, getDoc } from "firebase/firestore";
 
 import { useBusinessContext, Business } from "../src/context/BusinessContext";
@@ -25,6 +26,9 @@ const CURRENT_USER_ID_KEY = "@openspot:current-user-id";
 
 const businessRegistry = new Map<string, Business>();
 let geofenceTaskRegistered = false;
+const appOwnership = Constants.appOwnership ?? "standalone";
+const isExpoGo = appOwnership === "expo";
+const supportsBusinessProximity = !isExpoGo;
 
 type GeofenceEventData = {
   eventType: Location.GeofencingEventType;
@@ -66,6 +70,9 @@ async function getStoredUserId(): Promise<string | null> {
 }
 
 async function triggerBusinessNotification(business: Business) {
+  if (!supportsBusinessProximity) {
+    return;
+  }
   try {
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -117,6 +124,9 @@ async function processBusinessEntry({
 }
 
 async function ensureGeofenceTaskRegistered() {
+  if (!supportsBusinessProximity) {
+    return;
+  }
   if (geofenceTaskRegistered) {
     return;
   }
@@ -179,6 +189,9 @@ async function ensureGeofenceTaskRegistered() {
 }
 
 async function syncGeofences(businesses: Business[]) {
+  if (!supportsBusinessProximity) {
+    return;
+  }
   await ensureGeofenceTaskRegistered();
   const regions = businesses.map((business) => ({
     identifier: business.id,
@@ -205,6 +218,9 @@ async function syncGeofences(businesses: Business[]) {
 }
 
 function handleNotificationResponses() {
+  if (!supportsBusinessProximity) {
+    return;
+  }
   Notifications.addNotificationResponseReceivedListener((response) => {
     const businessId = response.notification.request.content.data?.businessId;
     if (typeof businessId === "string" && businessId.length > 0) {
@@ -238,12 +254,23 @@ const BusinessProximityManager = () => {
   const geofenceSyncRef = useRef<string[]>([]);
 
   useEffect(() => {
+    if (!supportsBusinessProximity) {
+      if (__DEV__) {
+        console.info(
+          "Business proximity alerts are disabled in Expo Go. Build a development client to enable background geofencing."
+        );
+      }
+      return;
+    }
     AsyncStorage.setItem(CURRENT_USER_ID_KEY, profile.id).catch((error) => {
       console.warn("Failed to persist current user id", error);
     });
   }, [profile.id]);
 
   useEffect(() => {
+    if (!supportsBusinessProximity) {
+      return;
+    }
     (async () => {
       await Notifications.requestPermissionsAsync();
       if (!notificationResponseHandlerRegistered) {
@@ -299,6 +326,9 @@ const BusinessProximityManager = () => {
   );
 
   useEffect(() => {
+    if (!supportsBusinessProximity) {
+      return;
+    }
     let subscription: Location.LocationSubscription | null = null;
     let isMounted = true;
 
@@ -342,6 +372,9 @@ const BusinessProximityManager = () => {
   }, [handleLocationUpdate]);
 
   useEffect(() => {
+    if (!supportsBusinessProximity) {
+      return () => undefined;
+    }
     const firestore = getFirestoreClient();
     if (!firestore) {
       return () => undefined;
