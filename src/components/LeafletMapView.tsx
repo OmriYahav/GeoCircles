@@ -100,10 +100,12 @@ function createLeafletHtml(
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <!-- Subresource Integrity is avoided because Android WebView ignores resources with integrity
+         attributes, which left the map uninitialized on devices that only showed the fallback
+         background color. -->
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-o9N1j7kGStbXgGiVHtP8gC0bK7Zk8YuyCkAo5c4J3j8="
       crossorigin=""
     />
     <style>
@@ -173,7 +175,6 @@ function createLeafletHtml(
     <div id="nightOverlay"></div>
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-o9f+Q0bG8Kpqs2QJ1jYp+J9tZbHsuw0ex0i+c2j4yww="
       crossorigin=""
     ></script>
     <script>
