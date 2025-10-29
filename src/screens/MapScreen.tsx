@@ -9,7 +9,6 @@ import {
   Alert,
   FlatList,
   Keyboard,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -17,8 +16,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "react-native-paper";
-import Constants from "expo-constants";
-import type { SpeechErrorEvent, SpeechResultsEvent } from "@react-native-voice/voice";
 import {
   NavigationProp,
   RouteProp,
@@ -39,7 +36,6 @@ import useUserLocation from "../hooks/useUserLocation";
 import {
   fetchRoute,
   parseGeoUri,
-  searchPlaces,
   RouteResult,
   SearchResult,
 } from "../services/MapService";
@@ -58,6 +54,13 @@ import type {
   RootTabParamList,
   SearchStackParamList,
 } from "../navigation/AppNavigator";
+import useVoiceSearch from "../hooks/useVoiceSearch";
+import usePlaceSearch from "../hooks/usePlaceSearch";
+import SelectedPlaceCard from "../components/map/SelectedPlaceCard";
+import RouteSummaryCard from "../components/map/RouteSummaryCard";
+import LocationErrorBanner from "../components/map/LocationErrorBanner";
+import LayerBadge from "../components/map/LayerBadge";
+import MapOverlayCard from "../components/map/MapOverlayCard";
 
 export type MapScreenParams = {
   trigger?: {
@@ -122,8 +125,6 @@ const INITIAL_VIEW = {
   zoom: DEFAULT_COORDINATES.zoomLevel ?? 11,
 };
 
-type VoiceModuleType = typeof import("@react-native-voice/voice").default;
-
 const TRAFFIC_SEGMENTS: LatLng[][] = [
   [
     { latitude: 40.7158, longitude: -74.0111 },
@@ -164,11 +165,10 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<LeafletMapHandle | null>(null);
   const searchBarRef = useRef<MapSearchBarHandle>(null);
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [shouldShowResults, setShouldShowResults] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<SearchResult | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     traffic: true,
     hiking: false,
@@ -184,51 +184,43 @@ export default function MapScreen() {
     start: SearchResult;
     destination: SearchResult;
   } | null>(null);
-  const [isVoiceListening, setIsVoiceListening] = useState(false);
-  const [voiceModule, setVoiceModule] = useState<VoiceModuleType | null>(null);
-  useEffect(() => {
-    if (Platform.OS === "web") {
-      return;
-    }
-
-    if (Constants.appOwnership === "expo") {
-      console.warn(
-        "Voice search is unavailable in Expo Go. Create a development build to enable this feature."
-      );
-      return;
-    }
-
-    let isMounted = true;
-
-    (async () => {
-      try {
-        const module = (await import("@react-native-voice/voice")).default as VoiceModuleType;
-        if (isMounted) {
-          setVoiceModule(module);
-        }
-      } catch (error) {
-        console.warn(
-          "Voice search is unavailable because the native voice module could not be loaded.",
-          error
-        );
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const [pendingCoordinate, setPendingCoordinate] = useState<LatLng | null>(null);
+  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
 
   const { addFavorite } = useFavorites();
   const { conversations, createConversation } = useChatConversations();
   const { profile } = useUserProfile();
-  const [pendingCoordinate, setPendingCoordinate] = useState<LatLng | null>(null);
-  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
+
   const {
     location: userLocation,
     refresh: refreshLocation,
     error: locationError,
   } = useUserLocation();
+
+  const { results: searchResults, isSearching, error: searchError } = usePlaceSearch(
+    searchQuery,
+    { debounceMs: DEBOUNCE_DELAY }
+  );
+
+  const handleVoiceTranscript = useCallback((transcript: string) => {
+    setSearchQuery(transcript);
+    setShouldShowResults(true);
+  }, []);
+
+  const handleVoiceError = useCallback((message: string) => {
+    Alert.alert("Voice search", message);
+  }, []);
+
+  const {
+    isSupported: isVoiceSupported,
+    isListening: isVoiceListening,
+    start: startVoiceSearch,
+    stop: stopVoiceSearch,
+    error: voiceError,
+  } = useVoiceSearch({
+    onResult: handleVoiceTranscript,
+    onError: handleVoiceError,
+  });
 
   const activeLayer = MAP_LAYERS[mapLayerIndex];
 
@@ -245,6 +237,7 @@ export default function MapScreen() {
 
     if (trigger.type === "focusSearch") {
       requestAnimationFrame(() => {
+        setShouldShowResults(true);
         searchBarRef.current?.focus();
       });
     }
@@ -255,93 +248,6 @@ export default function MapScreen() {
 
     navigation.setParams({ trigger: undefined });
   }, [navigation, route.params?.trigger]);
-
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    searchTimeoutRef.current = setTimeout(() => {
-      setIsSearching(true);
-      searchPlaces(searchQuery)
-        .then((results) => {
-          setSearchResults(results);
-        })
-        .catch((error) => {
-          console.warn("Failed to search places", error);
-        })
-        .finally(() => {
-          setIsSearching(false);
-        });
-    }, DEBOUNCE_DELAY);
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchQuery]);
-
-  useEffect(() => {
-    if (!voiceModule) {
-      return;
-    }
-
-    const handleSpeechResults = (event: SpeechResultsEvent) => {
-      const [transcript] = event.value ?? [];
-      if (transcript) {
-        setSearchQuery(transcript);
-      }
-      setIsVoiceListening(false);
-    };
-
-    const handleSpeechError = (event: SpeechErrorEvent) => {
-      setIsVoiceListening(false);
-      if (event.error) {
-        Alert.alert("Voice search", event.error.message ?? "We couldn't understand that.");
-      }
-    };
-
-    voiceModule.onSpeechResults = handleSpeechResults;
-    voiceModule.onSpeechError = handleSpeechError;
-    voiceModule.onSpeechEnd = () => setIsVoiceListening(false);
-
-    return () => {
-      voiceModule.destroy().finally(() => voiceModule.removeAllListeners());
-    };
-  }, [voiceModule]);
-
-  const focusCamera = useCallback((coords: LatLng, zoom = 14) => {
-    mapRef.current?.animateCamera(
-      {
-        center: coords,
-        zoom,
-      },
-      { duration: 650 }
-    );
-  }, []);
-
-  const handleSelectSearchResult = useCallback(
-    (result: SearchResult) => {
-      setSelectedPlace(result);
-      setSearchQuery(result.displayName);
-      setSearchResults([]);
-      focusCamera({ latitude: result.latitude, longitude: result.longitude }, 15);
-    },
-    [focusCamera]
-  );
-
-  const handleSubmitSearch = useCallback(() => {
-    if (searchResults.length > 0) {
-      handleSelectSearchResult(searchResults[0]);
-    }
-  }, [handleSelectSearchResult, searchResults]);
 
   useEffect(() => {
     if (!routeResult?.coordinates?.length) {
@@ -359,31 +265,108 @@ export default function MapScreen() {
     if (!coords) {
       return;
     }
-    focusCamera({ latitude: coords.latitude, longitude: coords.longitude }, 14);
-  }, [focusCamera, userLocation.coords]);
+    mapRef.current?.animateCamera(
+      {
+        center: { latitude: coords.latitude, longitude: coords.longitude },
+        zoom: 14,
+      },
+      { duration: 650 }
+    );
+  }, [userLocation.coords]);
 
-  const handleCycleLayer = useCallback(() => {
-    setMapLayerIndex((current) => (current + 1) % MAP_LAYERS.length);
+  const focusCamera = useCallback((coords: LatLng, zoom = 14) => {
+    mapRef.current?.animateCamera(
+      {
+        center: coords,
+        zoom,
+      },
+      { duration: 650 }
+    );
   }, []);
 
-  const handleLocateMe = useCallback(() => {
-    const coords = userLocation.coords;
-    if (coords) {
-      focusCamera({ latitude: coords.latitude, longitude: coords.longitude }, 15);
-      return;
+  const handleSelectSearchResult = useCallback(
+    (result: SearchResult) => {
+      setSelectedPlace(result);
+      setSearchQuery(result.displayName);
+      setShouldShowResults(false);
+      focusCamera({ latitude: result.latitude, longitude: result.longitude }, 15);
+    },
+    [focusCamera]
+  );
+
+  const handleSubmitSearch = useCallback(() => {
+    if (searchResults.length > 0) {
+      handleSelectSearchResult(searchResults[0]);
     }
-    refreshLocation();
-  }, [focusCamera, refreshLocation, userLocation.coords]);
+  }, [handleSelectSearchResult, searchResults]);
 
-  const handleToggleFilters = useCallback(() => {
-    setFilterSheetVisible(true);
-  }, []);
+  const conversationMarkers = useMemo(
+    () =>
+      conversations.map((conversation) => ({
+        id: conversation.id,
+        latitude: conversation.coordinate.latitude,
+        longitude: conversation.coordinate.longitude,
+        title: conversation.title,
+        hostName: conversation.hostName,
+        isSelf: conversation.hostId === profile.id,
+      })),
+    [conversations, profile.id]
+  );
+
+  const transportMarkers = useMemo(
+    () =>
+      TRANSPORT_POINTS.map((point) => ({
+        id: point.id,
+        latitude: point.coordinate.latitude,
+        longitude: point.coordinate.longitude,
+        label: point.label,
+      })),
+    []
+  );
+
+  const mapUserLocation = useMemo(
+    () =>
+      userLocation.coords
+        ? {
+            latitude: userLocation.coords.latitude,
+            longitude: userLocation.coords.longitude,
+            radius: 120,
+          }
+        : null,
+    [userLocation.coords]
+  );
+
+  const mapFilters = useMemo(
+    () => ({
+      traffic: filters.traffic,
+      hiking: filters.hiking,
+      transport: filters.transport,
+      night: filters.night,
+    }),
+    [filters.hiking, filters.night, filters.traffic, filters.transport]
+  );
+
+  const routeCoordinates = useMemo(
+    () => (routeResult?.coordinates?.length ? routeResult.coordinates : null),
+    [routeResult]
+  );
+
+  const trafficSegments = useMemo(() => TRAFFIC_SEGMENTS, []);
+  const hikingTrails = useMemo(() => HIKING_TRAILS, []);
+
+  const handleVoiceSearch = useCallback(async () => {
+    const started = await startVoiceSearch();
+    if (!started && voiceError && !isVoiceSupported) {
+      Alert.alert("Voice search", voiceError);
+    }
+  }, [isVoiceSupported, startVoiceSearch, voiceError]);
 
   const handleBackToMap = useCallback(() => {
     Keyboard.dismiss();
     searchBarRef.current?.blur();
     setSearchQuery("");
-    setSearchResults([]);
+    setShouldShowResults(false);
+    setSelectedPlace(null);
     setFilterSheetVisible(false);
     setRouteModalVisible(false);
     setQrScannerVisible(false);
@@ -391,7 +374,7 @@ export default function MapScreen() {
 
   const shouldShowBackButton = useMemo(
     () =>
-      searchResults.length > 0 ||
+      shouldShowResults ||
       isFilterSheetVisible ||
       isRouteModalVisible ||
       isQrScannerVisible ||
@@ -401,48 +384,9 @@ export default function MapScreen() {
       isQrScannerVisible,
       isRouteModalVisible,
       searchQuery,
-      searchResults.length,
+      shouldShowResults,
     ]
   );
-
-  const stopVoiceSearch = useCallback(async () => {
-    if (!voiceModule) {
-      setIsVoiceListening(false);
-      return;
-    }
-
-    try {
-      await voiceModule.stop();
-    } catch (error) {
-      console.warn("Failed to stop voice search", error);
-    } finally {
-      setIsVoiceListening(false);
-    }
-  }, [voiceModule]);
-
-  const handleVoiceSearch = useCallback(async () => {
-    if (!voiceModule) {
-      const message =
-        Platform.OS === "web"
-          ? "Voice input is not supported on the web yet."
-          : "Voice input requires a development build of the app.";
-
-      Alert.alert("Voice search", message);
-      return;
-    }
-
-    try {
-      setIsVoiceListening(true);
-      await voiceModule.start("en-US");
-    } catch (error) {
-      console.warn("Failed to start voice search", error);
-      setIsVoiceListening(false);
-      Alert.alert(
-        "Voice search",
-        "We couldn't access the microphone. Check your permissions and try again."
-      );
-    }
-  }, [voiceModule]);
 
   const handleQrScanned = useCallback(
     (data: string) => {
@@ -459,6 +403,7 @@ export default function MapScreen() {
         return;
       }
       setSearchQuery(data);
+      setShouldShowResults(true);
       Alert.alert("QR content", data);
     },
     [focusCamera]
@@ -549,61 +494,6 @@ export default function MapScreen() {
     [createConversation, openConversation, pendingCoordinate, profile]
   );
 
-
-  const conversationMarkers = useMemo(
-    () =>
-      conversations.map((conversation) => ({
-        id: conversation.id,
-        latitude: conversation.coordinate.latitude,
-        longitude: conversation.coordinate.longitude,
-        title: conversation.title,
-        hostName: conversation.hostName,
-        isSelf: conversation.hostId === profile.id,
-      })),
-    [conversations, profile.id]
-  );
-
-  const transportMarkers = useMemo(
-    () =>
-      TRANSPORT_POINTS.map((point) => ({
-        id: point.id,
-        latitude: point.coordinate.latitude,
-        longitude: point.coordinate.longitude,
-        label: point.label,
-      })),
-    []
-  );
-
-  const mapUserLocation = useMemo(
-    () =>
-      userLocation.coords
-        ? {
-            latitude: userLocation.coords.latitude,
-            longitude: userLocation.coords.longitude,
-            radius: 120,
-          }
-        : null,
-    [userLocation.coords]
-  );
-
-  const mapFilters = useMemo(
-    () => ({
-      traffic: filters.traffic,
-      hiking: filters.hiking,
-      transport: filters.transport,
-      night: filters.night,
-    }),
-    [filters.hiking, filters.night, filters.traffic, filters.transport]
-  );
-
-  const routeCoordinates = useMemo(
-    () => (routeResult?.coordinates?.length ? routeResult.coordinates : null),
-    [routeResult]
-  );
-
-  const trafficSegments = useMemo(() => TRAFFIC_SEGMENTS, []);
-  const hikingTrails = useMemo(() => HIKING_TRAILS, []);
-
   const renderSearchResult = useCallback(
     ({ item }: { item: SearchResult }) => (
       <Pressable
@@ -618,6 +508,31 @@ export default function MapScreen() {
     ),
     [handleSelectSearchResult]
   );
+
+  const handleCycleLayer = useCallback(() => {
+    setMapLayerIndex((current) => (current + 1) % MAP_LAYERS.length);
+  }, []);
+
+  const handleLocateMe = useCallback(() => {
+    const coords = userLocation.coords;
+    if (coords) {
+      focusCamera({ latitude: coords.latitude, longitude: coords.longitude }, 15);
+      return;
+    }
+    refreshLocation();
+  }, [focusCamera, refreshLocation, userLocation.coords]);
+
+  const handleOpenFilters = useCallback(() => {
+    setFilterSheetVisible(true);
+  }, []);
+
+  const handleOpenRoutePlanner = useCallback(() => {
+    setRouteModalVisible(true);
+  }, []);
+
+  const handleOpenQrScanner = useCallback(() => {
+    setQrScannerVisible(true);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -654,27 +569,73 @@ export default function MapScreen() {
         <MapSearchBar
           ref={searchBarRef}
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={(value) => {
+            setSearchQuery(value);
+            setShouldShowResults(true);
+          }}
           onSubmitEditing={handleSubmitSearch}
+          onFocus={() => setShouldShowResults(true)}
           onMicPress={isVoiceListening ? stopVoiceSearch : handleVoiceSearch}
           isLoading={isSearching || isVoiceListening}
         />
-        {shouldShowBackButton && (
-          <BackToMapButton
+        <View style={styles.searchActionsRow}>
+          {shouldShowBackButton ? (
+            <BackToMapButton
+              mode="contained-tonal"
+              onPress={handleBackToMap}
+              style={styles.backToMapButton}
+            />
+          ) : null}
+          <Button
             mode="contained-tonal"
-            onPress={handleBackToMap}
-            style={styles.backToMapButton}
-          />
-        )}
-        {searchResults.length > 0 && (
-          <View style={styles.resultsList}>
+            compact
+            icon="navigate-outline"
+            onPress={handleOpenRoutePlanner}
+            style={styles.searchActionButton}
+          >
+            Plan route
+          </Button>
+          <Button
+            mode="contained-tonal"
+            compact
+            icon="qr-code-outline"
+            onPress={handleOpenQrScanner}
+            style={styles.searchActionButton}
+          >
+            Scan code
+          </Button>
+        </View>
+
+        {shouldShowResults && searchResults.length > 0 && (
+          <MapOverlayCard style={styles.resultsCard}>
             <FlatList
               data={searchResults}
               keyExtractor={(item) => item.id}
               renderItem={renderSearchResult}
               keyboardShouldPersistTaps="handled"
+              ItemSeparatorComponent={() => <View style={styles.resultSeparator} />}
             />
-          </View>
+          </MapOverlayCard>
+        )}
+
+        {shouldShowResults &&
+          !isSearching &&
+          !searchError &&
+          searchQuery.trim().length > 0 &&
+          searchResults.length === 0 && (
+            <MapOverlayCard style={styles.resultsCard}>
+              <Text style={styles.resultsErrorTitle}>No places found</Text>
+              <Text style={styles.resultsErrorMessage}>
+                Try a different address or landmark.
+              </Text>
+            </MapOverlayCard>
+          )}
+
+        {searchError && (
+          <MapOverlayCard style={styles.resultsCard}>
+            <Text style={styles.resultsErrorTitle}>Search unavailable</Text>
+            <Text style={styles.resultsErrorMessage}>{searchError}</Text>
+          </MapOverlayCard>
         )}
       </View>
 
@@ -682,13 +643,17 @@ export default function MapScreen() {
         <FloatingActionButton
           icon="options-outline"
           accessibilityLabel="Open filters"
-          onPress={handleToggleFilters}
+          onPress={handleOpenFilters}
         />
         <FloatingActionButton
           icon="layers-outline"
           accessibilityLabel="Change map layer"
           onPress={handleCycleLayer}
-          style={styles.fabSpacing}
+        />
+        <FloatingActionButton
+          icon="compass-outline"
+          accessibilityLabel="Open route planner"
+          onPress={handleOpenRoutePlanner}
         />
         <FloatingActionButton
           icon="locate-outline"
@@ -697,54 +662,28 @@ export default function MapScreen() {
         />
       </View>
 
-      <View style={[styles.layerBadge, { top: insets.top + 16 }]}>
-        <Text style={styles.layerBadgeText}>{activeLayer.label}</Text>
-      </View>
+      <LayerBadge style={[styles.layerBadge, { top: insets.top + 16 }]} label={activeLayer.label} />
 
       {selectedPlace && (
-        <View style={[styles.selectedPlaceCard, { bottom: insets.bottom + 140 }]}>
-          <Text numberOfLines={2} style={styles.selectedPlaceTitle}>
-            {selectedPlace.displayName}
-          </Text>
-          <Text style={styles.selectedPlaceCoords}>
-            {selectedPlace.latitude.toFixed(4)}, {selectedPlace.longitude.toFixed(4)}
-          </Text>
-          <Button
-            mode="contained"
-            onPress={handleSaveFavorite}
-            style={styles.favoriteButton}
-          >
-            Save to favorites
-          </Button>
+        <View style={[styles.overlayPosition, { bottom: insets.bottom + 140 }]}>
+          <SelectedPlaceCard place={selectedPlace} onSave={handleSaveFavorite} />
         </View>
       )}
 
       {routeResult && routeEndpoints && (
-        <View style={[styles.routeSummary, { bottom: insets.bottom + 100 }]}>
-          <Text style={styles.routeSummaryTitle}>Route overview</Text>
-          <Text style={styles.routeSummarySubtitle}>
-            {routeEndpoints.start.displayName.split(",")[0]} →
-            {" "}
-            {routeEndpoints.destination.displayName.split(",")[0]}
-          </Text>
-          <View style={styles.routeSummaryRow}>
-            <Text style={styles.routeStatLabel}>
-              {(routeResult.distanceInMeters / 1000).toFixed(1)} km
-            </Text>
-            <Text style={styles.routeStatLabel}>
-              {Math.round(routeResult.durationInSeconds / 60)} min
-            </Text>
-          </View>
+        <View style={[styles.overlayPosition, { bottom: insets.bottom + 220 }]}>
+          <RouteSummaryCard
+            title="Route overview"
+            subtitle={`${routeEndpoints.start.displayName.split(",")[0]} → ${routeEndpoints.destination.displayName.split(",")[0]}`}
+            distanceKilometers={routeResult.distanceInMeters / 1000}
+            durationMinutes={routeResult.durationInSeconds / 60}
+          />
         </View>
       )}
 
       {locationError && (
-        <View style={[styles.locationError, { bottom: insets.bottom + 140 }]}>
-          <Text style={styles.locationErrorTitle}>Location unavailable</Text>
-          <Text style={styles.locationErrorMessage}>{locationError}</Text>
-          <Button mode="contained-tonal" onPress={refreshLocation}>
-            Try again
-          </Button>
+        <View style={[styles.overlayPosition, { bottom: insets.bottom + 260 }]}>
+          <LocationErrorBanner message={locationError} onRetry={refreshLocation} />
         </View>
       )}
 
@@ -793,28 +732,28 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     zIndex: 10,
+    gap: 12,
+  },
+  searchActionsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
   },
   backToMapButton: {
-    alignSelf: "flex-end",
-    marginTop: 10,
     borderRadius: 14,
   },
-  resultsList: {
-    marginTop: 12,
-    backgroundColor: Palette.surface,
-    borderRadius: 18,
-    shadowColor: "rgba(15, 23, 42, 0.16)",
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 9,
-    maxHeight: 240,
+  searchActionButton: {
+    borderRadius: 14,
+  },
+  resultsCard: {
+    gap: 0,
+    paddingVertical: 4,
+    paddingHorizontal: 0,
+    maxHeight: 260,
   },
   resultItem: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Palette.border,
   },
   resultItemPressed: {
     backgroundColor: Palette.primaryTint,
@@ -829,109 +768,35 @@ const styles = StyleSheet.create({
     color: Colors.light.icon,
     fontSize: 12,
   },
+  resultSeparator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Palette.border,
+  },
+  resultsErrorTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Palette.textPrimary,
+    marginBottom: 4,
+    paddingHorizontal: 18,
+  },
+  resultsErrorMessage: {
+    color: Palette.textSecondary,
+    paddingHorizontal: 18,
+    paddingBottom: 12,
+  },
   fabColumn: {
     position: "absolute",
     right: 16,
     alignItems: "center",
     gap: 16,
   },
-  fabSpacing: {
-    marginVertical: 16,
-  },
   layerBadge: {
     position: "absolute",
     right: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: Palette.primary,
-    borderRadius: 16,
-    shadowColor: "rgba(15, 23, 42, 0.18)",
-    shadowOpacity: 1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
   },
-  layerBadgeText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  selectedPlaceCard: {
+  overlayPosition: {
     position: "absolute",
     left: 16,
     right: 16,
-    backgroundColor: Palette.surface,
-    borderRadius: 22,
-    padding: 18,
-    shadowColor: "rgba(15, 23, 42, 0.18)",
-    shadowOpacity: 1,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 11,
-  },
-  selectedPlaceTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: Colors.light.text,
-  },
-  selectedPlaceCoords: {
-    marginTop: 6,
-    color: Colors.light.icon,
-  },
-  favoriteButton: {
-    marginTop: 14,
-    borderRadius: 14,
-  },
-  routeSummary: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    backgroundColor: Palette.primary,
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "rgba(15, 23, 42, 0.22)",
-    shadowOpacity: 1,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-  },
-  routeSummaryTitle: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-  routeSummarySubtitle: {
-    color: "rgba(255,255,255,0.78)",
-    marginTop: 6,
-  },
-  routeSummaryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 12,
-  },
-  routeStatLabel: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-  locationError: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    backgroundColor: Palette.surface,
-    borderRadius: 20,
-    padding: 18,
-    shadowColor: "rgba(15, 23, 42, 0.16)",
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
-  },
-  locationErrorTitle: {
-    fontWeight: "700",
-    fontSize: 16,
-    color: Colors.light.text,
-  },
-  locationErrorMessage: {
-    marginTop: 6,
-    color: Colors.light.icon,
   },
 });
