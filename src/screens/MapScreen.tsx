@@ -132,7 +132,7 @@ const TRANSPORT_POINTS = [
 ];
 
 const DEBOUNCE_DELAY = 380;
-const TOP_MENU_OFFSET = 96;
+const TOP_MENU_OFFSET = 76;
 
 export default function MapScreen() {
   const router = useRouter();
@@ -508,7 +508,7 @@ export default function MapScreen() {
         )}
       </View>
 
-      <View style={[styles.fabColumn, { top: TOP_MENU_OFFSET + 20 }]}>
+      <View style={[styles.fabColumn, { top: TOP_MENU_OFFSET + 12 }]}>
         <FloatingActionButton
           icon="options-outline"
           accessibilityLabel="Open filters"
@@ -527,7 +527,7 @@ export default function MapScreen() {
       </View>
 
       <LayerBadge
-        style={[styles.layerBadge, { top: TOP_MENU_OFFSET - 16 }]}
+        style={[styles.layerBadge, { top: TOP_MENU_OFFSET - 12 }]}
         label={activeLayer.label}
       />
 
@@ -575,13 +575,15 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+    bottom: 12,
   },
   searchContainer: {
     position: "absolute",
-    left: 16,
-    right: 16,
+    alignSelf: "center",
+    width: "92%",
+    maxWidth: 420,
     zIndex: 10,
-    gap: 12,
+    gap: 10,
   },
   searchActionsRow: {
     flexDirection: "row",
@@ -632,17 +634,18 @@ const styles = StyleSheet.create({
   },
   fabColumn: {
     position: "absolute",
-    right: 16,
+    right: 20,
     alignItems: "center",
-    gap: 16,
+    gap: 12,
   },
   layerBadge: {
     position: "absolute",
-    right: 16,
+    right: 20,
   },
   overlayPosition: {
     position: "absolute",
-    left: 16,
-    right: 16,
+    alignSelf: "center",
+    width: "92%",
+    maxWidth: 420,
   },
 });

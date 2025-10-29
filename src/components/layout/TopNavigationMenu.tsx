@@ -82,7 +82,7 @@ export default function TopNavigationMenu({
   };
 
   return (
-    <Surface elevation={1} style={styles.surface}>
+    <Surface elevation={2} style={styles.surface}>
       <Appbar.Header
         mode="small"
         statusBarHeight={0}
@@ -128,15 +128,23 @@ export default function TopNavigationMenu({
 
 const styles = StyleSheet.create({
   surface: {
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    marginBottom: 4,
+    borderRadius: 28,
+    alignSelf: "center",
+    width: "92%",
+    maxWidth: 420,
     overflow: "hidden",
+    backgroundColor: Palette.surface,
+    shadowColor: "rgba(15, 23, 42, 0.12)",
+    shadowOpacity: 1,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 14,
+    elevation: 6,
   },
   header: {
     alignItems: "center",
     justifyContent: "flex-start",
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
+    minHeight: 68,
   },
   divider: {
     width: 1,
