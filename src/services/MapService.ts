@@ -59,7 +59,16 @@ function toLatLngCollection(coordinates: [number, number][] | undefined): LatLng
   return coordinates.map(([longitude, latitude]) => ({ latitude, longitude }));
 }
 
-export async function searchPlaces(query: string): Promise<SearchResult[]> {
+type SearchPlacesOptions = {
+  signal?: AbortSignal;
+  limit?: number;
+  language?: string;
+};
+
+export async function searchPlaces(
+  query: string,
+  { signal, limit = 8, language }: SearchPlacesOptions = {}
+): Promise<SearchResult[]> {
   const trimmed = query.trim();
   if (!trimmed) {
     return [];
@@ -68,15 +77,20 @@ export async function searchPlaces(query: string): Promise<SearchResult[]> {
   const params = new URLSearchParams({
     format: "jsonv2",
     q: trimmed,
-    limit: "8",
+    limit: String(limit),
     addressdetails: "0",
   });
+
+  if (language) {
+    params.set("accept-language", language);
+  }
 
   const response = await fetch(`${NOMINATIM_ENDPOINT}?${params.toString()}`, {
     headers: {
       Accept: "application/json",
       "User-Agent": NOMINATIM_USER_AGENT,
     },
+    signal,
   });
 
   if (!response.ok) {
