@@ -49,13 +49,10 @@ import { LatLng } from "../types/coordinates";
 import { Colors } from "../../constants/theme";
 import { DEFAULT_COORDINATES } from "../../constants/map";
 import CreateConversationModal from "../components/CreateConversationModal";
-import ExpoGoMapView, { ExpoGoMapHandle } from "../components/ExpoGoMapView";
-import {
-  getMapboxAccessToken,
-  isMapboxAvailable,
-  mapboxModule,
-  mapboxUnavailableReason,
-} from "../utils/mapbox";
+import LeafletMapView, {
+  LeafletLayerConfig,
+  LeafletMapHandle,
+} from "../components/LeafletMapView";
 import type {
   RootTabParamList,
   SearchStackParamList,
@@ -74,121 +71,56 @@ type MapScreenNavigation = NativeStackNavigationProp<
   "Map"
 >;
 
-type MapLayer = {
+type MapLayer = LeafletLayerConfig & {
   id: "standard" | "satellite" | "terrain" | "dark";
   label: string;
-  mapboxStyleURL: string;
 };
 
 const MAP_LAYERS: MapLayer[] = [
   {
     id: "standard",
     label: "Standard",
-    mapboxStyleURL: "mapbox://styles/mapbox/streets-v12",
+    tileUrlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: "&copy; OpenStreetMap contributors",
+    maxZoom: 19,
+    subdomains: ["a", "b", "c"],
   },
   {
     id: "satellite",
     label: "Satellite",
-    mapboxStyleURL: "mapbox://styles/mapbox/satellite-v9",
+    tileUrlTemplate:
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution:
+      "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+    maxZoom: 19,
   },
   {
     id: "terrain",
     label: "Terrain",
-    mapboxStyleURL: "mapbox://styles/mapbox/outdoors-v12",
+    tileUrlTemplate: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+    attribution:
+      "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)",
+    maxZoom: 17,
+    subdomains: ["a", "b", "c"],
   },
   {
     id: "dark",
     label: "Night",
-    mapboxStyleURL: "mapbox://styles/mapbox/navigation-night-v1",
+    tileUrlTemplate:
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    attribution:
+      "&copy; OpenStreetMap contributors &copy; CARTO",
+    maxZoom: 19,
+    subdomains: ["a", "b", "c", "d"],
   },
 ];
 
-const INITIAL_REGION = {
+const INITIAL_VIEW = {
   latitude: DEFAULT_COORDINATES.latitude,
   longitude: DEFAULT_COORDINATES.longitude,
-  latitudeDelta: 0.1,
-  longitudeDelta: 0.1,
+  zoom: DEFAULT_COORDINATES.zoomLevel ?? 11,
 };
 
-const INITIAL_CAMERA = {
-  centerCoordinate: [
-    DEFAULT_COORDINATES.longitude,
-    DEFAULT_COORDINATES.latitude,
-  ] as [number, number],
-  zoomLevel: DEFAULT_COORDINATES.zoomLevel ?? 11,
-};
-
-type GeoJsonFeature = {
-  type: "Feature";
-  id?: string;
-  properties: Record<string, unknown>;
-  geometry:
-    | { type: "Point"; coordinates: [number, number] }
-    | { type: "LineString"; coordinates: [number, number][] }
-    | { type: "Polygon"; coordinates: [number, number][][] };
-};
-
-type GeoJsonFeatureCollection = {
-  type: "FeatureCollection";
-  features: GeoJsonFeature[];
-};
-
-function toLineFeatureCollection(segments: LatLng[][], prefix: string): GeoJsonFeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: segments.map((segment, index) => ({
-      type: "Feature",
-      id: `${prefix}-${index}`,
-      properties: {},
-      geometry: {
-        type: "LineString",
-        coordinates: segment.map((point) => [point.longitude, point.latitude]),
-      },
-    })),
-  };
-}
-
-function createRouteFeature(route: LatLng[]): GeoJsonFeature {
-  return {
-    type: "Feature",
-    properties: {},
-    geometry: {
-      type: "LineString",
-      coordinates: route.map((point) => [point.longitude, point.latitude]),
-    },
-  };
-}
-
-function createCircleFeature(center: LatLng, radiusMeters: number, steps = 64): GeoJsonFeature {
-  const earthRadius = 6_378_137; // meters
-  const coordinates: [number, number][] = [];
-  const centerLatRadians = (center.latitude * Math.PI) / 180;
-
-  for (let step = 0; step <= steps; step += 1) {
-    const angle = (step / steps) * 2 * Math.PI;
-    const dx = radiusMeters * Math.cos(angle);
-    const dy = radiusMeters * Math.sin(angle);
-
-    const latitude =
-      center.latitude + (dy / earthRadius) * (180 / Math.PI);
-    const longitude =
-      center.longitude +
-      (dx / (earthRadius * Math.cos(centerLatRadians))) * (180 / Math.PI);
-
-    coordinates.push([longitude, latitude]);
-  }
-
-  return {
-    type: "Feature",
-    properties: {},
-    geometry: {
-      type: "Polygon",
-      coordinates: [coordinates],
-    },
-  };
-}
-
-type MapboxModuleType = typeof import("@rnmapbox/maps");
 type VoiceModuleType = typeof import("@react-native-voice/voice").default;
 
 const TRAFFIC_SEGMENTS: LatLng[][] = [
@@ -225,87 +157,11 @@ const TRANSPORT_POINTS = [
 
 const DEBOUNCE_DELAY = 380;
 
-type MapHandle = {
-  animateCamera: (
-    options: { center: LatLng; zoom?: number },
-    config?: { duration?: number }
-  ) => void;
-  fitToCoordinates: (
-    coordinates: LatLng[],
-    options?: {
-      edgePadding?: { top: number; bottom: number; left: number; right: number };
-      animated?: boolean;
-    }
-  ) => void;
-};
-
 export default function MapScreen() {
   const navigation = useNavigation<MapScreenNavigation>();
   const route = useRoute<MapScreenRoute>();
   const insets = useSafeAreaInsets();
-  const mapRef = useRef<MapHandle | null>(null);
-  const setMapboxCameraRef = useCallback((instance: unknown) => {
-    if (!instance) {
-      mapRef.current = null;
-      return;
-    }
-
-    const camera = instance as {
-      setCamera: (options: Record<string, unknown>) => void;
-    };
-
-    mapRef.current = {
-      animateCamera: (options, config) => {
-        camera.setCamera({
-          centerCoordinate: [options.center.longitude, options.center.latitude],
-          zoomLevel: options.zoom ?? 14,
-          animationDuration: config?.duration ?? 650,
-          animationMode: "easeTo",
-        });
-      },
-      fitToCoordinates: (coordinates, options) => {
-        if (!coordinates.length) {
-          return;
-        }
-
-        const latitudes = coordinates.map((coord) => coord.latitude);
-        const longitudes = coordinates.map((coord) => coord.longitude);
-        const ne: [number, number] = [
-          Math.max(...longitudes),
-          Math.max(...latitudes),
-        ];
-        const sw: [number, number] = [
-          Math.min(...longitudes),
-          Math.min(...latitudes),
-        ];
-
-        camera.setCamera({
-          bounds: {
-            ne,
-            sw,
-            paddingLeft: options?.edgePadding?.left ?? 40,
-            paddingRight: options?.edgePadding?.right ?? 40,
-            paddingTop: options?.edgePadding?.top ?? 40,
-            paddingBottom: options?.edgePadding?.bottom ?? 40,
-          },
-          animationDuration: options?.animated === false ? 0 : 650,
-          animationMode: "easeTo",
-        });
-      },
-    };
-  }, []);
-  const setExpoMapRef = useCallback((instance: ExpoGoMapHandle | null) => {
-    if (!instance) {
-      mapRef.current = null;
-      return;
-    }
-
-    mapRef.current = {
-      animateCamera: (options, config) => instance.animateCamera(options, config),
-      fitToCoordinates: (coordinates, options) => instance.fitToCoordinates(coordinates, options),
-    };
-  }, []);
-  const skipNextMapPressRef = useRef(false);
+  const mapRef = useRef<LeafletMapHandle | null>(null);
   const searchBarRef = useRef<MapSearchBarHandle>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -329,8 +185,6 @@ export default function MapScreen() {
   } | null>(null);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [voiceModule, setVoiceModule] = useState<VoiceModuleType | null>(null);
-  const mapboxAccessToken = getMapboxAccessToken();
-
   useEffect(() => {
     if (Platform.OS === "web") {
       return;
@@ -665,26 +519,9 @@ export default function MapScreen() {
     setCreateModalVisible(true);
   }, []);
 
-  const handleAnnotationSelected = useCallback(() => {
-    skipNextMapPressRef.current = true;
-  }, []);
-
-  const handleMapboxMapPress = useCallback(
-    (event: { geometry?: { coordinates?: [number, number] }; features?: unknown[] }) => {
-      if (skipNextMapPressRef.current) {
-        skipNextMapPressRef.current = false;
-        return;
-      }
-
-      const coordinates = event.geometry?.coordinates;
-      if (!coordinates) {
-        return;
-      }
-
-      const [longitude, latitude] = coordinates;
-      if (typeof latitude === "number" && typeof longitude === "number") {
-        handleCoordinatePress({ latitude, longitude });
-      }
+  const handleMapPress = useCallback(
+    (coordinate: LatLng) => {
+      handleCoordinatePress(coordinate);
     },
     [handleCoordinatePress]
   );
@@ -711,37 +548,8 @@ export default function MapScreen() {
     [createConversation, openConversation, pendingCoordinate, profile]
   );
 
-  const nightOverlayStyle = useMemo(
-    () => [
-      styles.nightOverlay,
-      { opacity: filters.night ? 0.35 : 0 },
-    ],
-    [filters.night]
-  );
 
-  const mapboxMapsModule = mapboxModule as MapboxModuleType | null;
-  const MapboxMapView = mapboxMapsModule?.MapView ?? null;
-  const MapboxCamera = mapboxMapsModule?.Camera ?? null;
-  const MapboxPointAnnotation = mapboxMapsModule?.PointAnnotation ?? null;
-  const MapboxShapeSource = mapboxMapsModule?.ShapeSource ?? null;
-  const MapboxLineLayer = mapboxMapsModule?.LineLayer ?? null;
-  const MapboxCallout = mapboxMapsModule?.Callout ?? null;
-  const MapboxFillLayer = mapboxMapsModule?.FillLayer ?? null;
-  const MapboxCircleLayer = mapboxMapsModule?.CircleLayer ?? null;
-  const MapboxUserLocation = mapboxMapsModule?.UserLocation ?? null;
-  const isMapboxReady = Boolean(isMapboxAvailable && MapboxMapView && MapboxCamera);
-
-  const fallbackMessage = !isMapboxReady
-    ? mapboxUnavailableReason === "expo-go"
-      ? "Expo Go doesn't include the Mapbox native module. A lightweight preview map is shown instead."
-      : mapboxUnavailableReason === "missing-token"
-        ? "Set EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN (or expo.extra.mapboxAccessToken) to unlock the interactive map."
-        : mapboxUnavailableReason === "not-installed"
-          ? "The Mapbox native module isn't installed in this build. Install @rnmapbox/maps and rebuild to unlock full map features."
-          : null
-    : null;
-
-  const expoGoConversations = useMemo(
+  const conversationMarkers = useMemo(
     () =>
       conversations.map((conversation) => ({
         id: conversation.id,
@@ -749,12 +557,12 @@ export default function MapScreen() {
         longitude: conversation.coordinate.longitude,
         title: conversation.title,
         hostName: conversation.hostName,
-        pinColor: conversation.hostId === profile.id ? "#1d4ed8" : "#9333ea",
+        isSelf: conversation.hostId === profile.id,
       })),
     [conversations, profile.id]
   );
 
-  const expoGoTransportPoints = useMemo(
+  const transportMarkers = useMemo(
     () =>
       TRANSPORT_POINTS.map((point) => ({
         id: point.id,
@@ -765,70 +573,35 @@ export default function MapScreen() {
     []
   );
 
-  const expoGoUserLocation = userLocation.coords
-    ? {
-        latitude: userLocation.coords.latitude,
-        longitude: userLocation.coords.longitude,
-      }
-    : null;
-
-  const expoGoActiveLayer = useMemo(
-    () => ({
-      id: activeLayer.id,
-      styleURL: activeLayer.mapboxStyleURL,
-    }),
-    [activeLayer.mapboxStyleURL, activeLayer.id]
-  );
-
-  const trafficShape = useMemo(
-    () => toLineFeatureCollection(TRAFFIC_SEGMENTS, "traffic"),
-    []
-  );
-
-  const hikingShape = useMemo(
-    () => toLineFeatureCollection(HIKING_TRAILS, "trail"),
-    []
-  );
-
-  const routeShape = useMemo(
+  const mapUserLocation = useMemo(
     () =>
-      routeResult?.coordinates?.length
-        ? createRouteFeature(routeResult.coordinates)
+      userLocation.coords
+        ? {
+            latitude: userLocation.coords.latitude,
+            longitude: userLocation.coords.longitude,
+            radius: 120,
+          }
         : null,
+    [userLocation.coords]
+  );
+
+  const mapFilters = useMemo(
+    () => ({
+      traffic: filters.traffic,
+      hiking: filters.hiking,
+      transport: filters.transport,
+      night: filters.night,
+    }),
+    [filters.hiking, filters.night, filters.traffic, filters.transport]
+  );
+
+  const routeCoordinates = useMemo(
+    () => (routeResult?.coordinates?.length ? routeResult.coordinates : null),
     [routeResult]
   );
 
-  const userLocationCircleFeature = useMemo(
-    () =>
-      userLocation.coords
-        ? createCircleFeature(
-            {
-              latitude: userLocation.coords.latitude,
-              longitude: userLocation.coords.longitude,
-            },
-            120
-          )
-        : null,
-    [userLocation.coords]
-  );
-
-  const userLocationPointFeature = useMemo(
-    () =>
-      userLocation.coords
-        ? ({
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "Point",
-              coordinates: [
-                userLocation.coords.longitude,
-                userLocation.coords.latitude,
-              ],
-            },
-          } as GeoJsonFeature)
-        : null,
-    [userLocation.coords]
-  );
+  const trafficSegments = useMemo(() => TRAFFIC_SEGMENTS, []);
+  const hikingTrails = useMemo(() => HIKING_TRAILS, []);
 
   const renderSearchResult = useCallback(
     ({ item }: { item: SearchResult }) => (
@@ -848,202 +621,32 @@ export default function MapScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.mapContainer}>
-        {isMapboxReady && MapboxMapView && MapboxCamera ? (
-          <MapboxMapView
-            style={styles.map}
-            styleURL={activeLayer.mapboxStyleURL}
-            compassEnabled
-            scaleBarEnabled={false}
-            logoEnabled={false}
-            attributionEnabled={false}
-            zoomEnabled
-            rotateEnabled
-            pitchEnabled
-            onPress={handleMapboxMapPress}
-          >
-            <MapboxCamera
-              ref={setMapboxCameraRef}
-              defaultSettings={INITIAL_CAMERA}
-              animationMode="easeTo"
-            />
-            {MapboxUserLocation ? (
-              <MapboxUserLocation
-                androidRenderMode="compass"
-                showsUserHeadingIndicator
-              />
-            ) : null}
-            {selectedPlace && MapboxPointAnnotation ? (
-              <MapboxPointAnnotation
-                id="selected-place"
-                coordinate={[selectedPlace.longitude, selectedPlace.latitude]}
-                onSelected={handleAnnotationSelected}
-                anchor={{ x: 0.5, y: 1 }}
-              >
-                <View
-                  style={[styles.mapboxMarker, styles.mapboxSelectedPlaceMarker]}
-                />
-              </MapboxPointAnnotation>
-            ) : null}
-            {MapboxPointAnnotation &&
-              conversations.map((conversation) => (
-                <MapboxPointAnnotation
-                  id={`conversation-${conversation.id}`}
-                  key={conversation.id}
-                  coordinate={[
-                    conversation.coordinate.longitude,
-                    conversation.coordinate.latitude,
-                  ]}
-                  onSelected={handleAnnotationSelected}
-                  anchor={{ x: 0.5, y: 1 }}
-                >
-                  <View
-                    style={[
-                      styles.mapboxMarker,
-                      conversation.hostId === profile.id
-                        ? styles.mapboxMarkerSelf
-                        : styles.mapboxMarkerOther,
-                    ]}
-                  />
-                  {MapboxCallout ? (
-                    <MapboxCallout
-                      onPress={() => openConversation(conversation.id)}
-                    >
-                      <View style={styles.calloutContainer}>
-                        <Text style={styles.calloutTitle}>{conversation.title}</Text>
-                        <Text style={styles.calloutSubtitle}>
-                          Host: {conversation.hostName}
-                        </Text>
-                        <Text style={styles.calloutLink}>Open chat ↗</Text>
-                      </View>
-                    </MapboxCallout>
-                  ) : null}
-                </MapboxPointAnnotation>
-              ))}
-            {filters.transport && MapboxPointAnnotation &&
-              TRANSPORT_POINTS.map((point) => (
-                <MapboxPointAnnotation
-                  id={point.id}
-                  key={point.id}
-                  coordinate={[point.coordinate.longitude, point.coordinate.latitude]}
-                  onSelected={handleAnnotationSelected}
-                  anchor={{ x: 0.5, y: 1 }}
-                >
-                  <View
-                    style={[styles.mapboxMarker, styles.mapboxTransportMarker]}
-                  />
-                  {MapboxCallout ? (
-                    <MapboxCallout title={point.label} />
-                  ) : null}
-                </MapboxPointAnnotation>
-              ))}
-            {filters.traffic && MapboxShapeSource && MapboxLineLayer ? (
-              <MapboxShapeSource id="traffic" shape={trafficShape}>
-                <MapboxLineLayer
-                  id="traffic-line"
-                  style={{
-                    lineColor: "rgba(239, 68, 68, 0.85)",
-                    lineWidth: 4,
-                    lineCap: "round",
-                    lineJoin: "round",
-                  } as const}
-                />
-              </MapboxShapeSource>
-            ) : null}
-            {filters.hiking && MapboxShapeSource && MapboxLineLayer ? (
-              <MapboxShapeSource id="hiking" shape={hikingShape}>
-                <MapboxLineLayer
-                  id="hiking-line"
-                  style={{
-                    lineColor: "rgba(34,197,94,0.85)",
-                    lineWidth: 4,
-                    lineDasharray: [2, 2],
-                    lineCap: "round",
-                    lineJoin: "round",
-                  } as const}
-                />
-              </MapboxShapeSource>
-            ) : null}
-            {routeShape && MapboxShapeSource && MapboxLineLayer ? (
-              <MapboxShapeSource id="route" shape={routeShape}>
-                <MapboxLineLayer
-                  id="route-line"
-                  style={{
-                    lineColor: "#2563eb",
-                    lineWidth: 5,
-                    lineCap: "round",
-                    lineJoin: "round",
-                  } as const}
-                />
-              </MapboxShapeSource>
-            ) : null}
-            {userLocationCircleFeature && MapboxShapeSource && MapboxFillLayer ? (
-              <MapboxShapeSource
-                id="user-location-radius"
-                shape={userLocationCircleFeature}
-              >
-                <MapboxFillLayer
-                  id="user-location-radius-fill"
-                  style={{
-                    fillColor: "rgba(59,130,246,0.15)",
-                    fillOutlineColor: "rgba(37,99,235,0.35)",
-                  } as const}
-                />
-              </MapboxShapeSource>
-            ) : null}
-            {userLocationPointFeature && MapboxShapeSource && MapboxCircleLayer ? (
-              <MapboxShapeSource
-                id="user-location"
-                shape={userLocationPointFeature}
-              >
-                <MapboxCircleLayer
-                  id="user-location-circle"
-                  style={{
-                    circleColor: "#1d4ed8",
-                    circleRadius: 6,
-                    circleStrokeColor: "#ffffff",
-                    circleStrokeWidth: 2,
-                  } as const}
-                />
-              </MapboxShapeSource>
-            ) : null}
-          </MapboxMapView>
-        ) : (
-          <ExpoGoMapView
-            ref={setExpoMapRef}
-            style={styles.map}
-            initialRegion={INITIAL_REGION}
-            accessToken={mapboxAccessToken ?? undefined}
-            activeLayer={expoGoActiveLayer}
-            selectedPlace={
-              selectedPlace
-                ? {
-                    latitude: selectedPlace.latitude,
-                    longitude: selectedPlace.longitude,
-                    displayName: selectedPlace.displayName,
-                  }
-                : null
-            }
-            conversations={expoGoConversations}
-            transportPoints={expoGoTransportPoints}
-            trafficSegments={TRAFFIC_SEGMENTS}
-            hikingTrails={HIKING_TRAILS}
-            userLocation={expoGoUserLocation}
-            routeCoordinates={routeResult?.coordinates ?? null}
-            filters={{
-              traffic: filters.traffic,
-              hiking: filters.hiking,
-              transport: filters.transport,
-            }}
-            onMapPress={handleCoordinatePress}
-            onConversationPress={openConversation}
-          />
-        )}
-        {!isMapboxReady && fallbackMessage && (
-          <View style={styles.mapFallbackNotice} pointerEvents="none">
-            <Text style={styles.mapFallbackNoticeTitle}>Limited map preview</Text>
-            <Text style={styles.mapFallbackNoticeText}>{fallbackMessage}</Text>
-          </View>
-        )}
+        <LeafletMapView
+          ref={(instance) => {
+            mapRef.current = instance;
+          }}
+          style={styles.map}
+          initialCenter={INITIAL_VIEW}
+          activeLayer={activeLayer}
+          selectedPlace={
+            selectedPlace
+              ? {
+                  latitude: selectedPlace.latitude,
+                  longitude: selectedPlace.longitude,
+                  displayName: selectedPlace.displayName,
+                }
+              : null
+          }
+          conversations={conversationMarkers}
+          transportPoints={filters.transport ? transportMarkers : []}
+          trafficSegments={trafficSegments}
+          hikingTrails={hikingTrails}
+          routeCoordinates={routeCoordinates}
+          userLocation={mapUserLocation}
+          filters={mapFilters}
+          onMapPress={handleMapPress}
+          onConversationPress={openConversation}
+        />
       </View>
 
       <View style={[styles.searchContainer, { paddingTop: insets.top + 12 }]}>
@@ -1148,8 +751,6 @@ export default function MapScreen() {
         </View>
       )}
 
-      <View pointerEvents="none" style={nightOverlayStyle} />
-
       <CreateConversationModal
         visible={isCreateModalVisible}
         coordinate={pendingCoordinate}
@@ -1190,64 +791,6 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-  mapboxMarker: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#9333ea",
-    borderWidth: 3,
-    borderColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
-  },
-  mapboxMarkerSelf: {
-    backgroundColor: "#1d4ed8",
-  },
-  mapboxMarkerOther: {
-    backgroundColor: "#9333ea",
-  },
-  mapboxSelectedPlaceMarker: {
-    backgroundColor: "#ef4444",
-  },
-  mapboxTransportMarker: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#6366f1",
-    borderWidth: 2,
-    borderColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-  },
-  mapFallbackNotice: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "rgba(15,23,42,0.85)",
-    borderRadius: 16,
-  },
-  mapFallbackNoticeTitle: {
-    color: "#f8fafc",
-    fontWeight: "700",
-    fontSize: 14,
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  mapFallbackNoticeText: {
-    color: "#e2e8f0",
-    fontSize: 12,
-    lineHeight: 16,
-    textAlign: "center",
-  },
   searchContainer: {
     position: "absolute",
     left: 16,
@@ -1258,31 +801,6 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     marginTop: 10,
     borderRadius: 14,
-  },
-  calloutContainer: {
-    width: 200,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  calloutTitle: {
-    fontWeight: "700",
-    color: Colors.light.text,
-    marginBottom: 4,
-  },
-  calloutSubtitle: {
-    color: Colors.light.icon,
-    marginBottom: 6,
-  },
-  calloutLink: {
-    color: "#1d4ed8",
-    fontWeight: "600",
   },
   resultsList: {
     marginTop: 12,
@@ -1410,9 +928,5 @@ const styles = StyleSheet.create({
   locationErrorMessage: {
     marginTop: 6,
     color: Colors.light.icon,
-  },
-  nightOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#0b1120",
   },
 });
