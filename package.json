@@ -1,14 +1,20 @@
 {
-  "name": "geocircles",
+  "name": "openspot",
   "main": "index.js",
   "version": "1.0.0",
   "scripts": {
+    "generate-branding": "node ./scripts/generate-branding-assets.mjs",
+    "prestart": "npm run generate-branding",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
+    "preandroid": "npm run generate-branding",
     "android": "expo run:android",
+    "preios": "npm run generate-branding",
     "ios": "expo run:ios",
+    "preweb": "npm run generate-branding",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "postinstall": "npm run generate-branding"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

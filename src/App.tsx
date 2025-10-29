@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
+import * as SplashScreen from "expo-splash-screen";
 
 import AppNavigator from "./navigation/AppNavigator";
 import { FavoritesProvider } from "./context/FavoritesContext";
@@ -12,6 +13,41 @@ import { BusinessProvider } from "./context/BusinessContext";
 import BusinessProximityManager from "../components/BusinessProximityManager";
 
 export default function App() {
+  useEffect(() => {
+    let isMounted = true;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    const manageSplashScreen = async () => {
+      try {
+        await SplashScreen.preventAutoHideAsync();
+      } catch (error) {
+        console.warn(
+          "Failed to prevent auto-hiding the splash screen",
+          error
+        );
+      }
+
+      timeout = setTimeout(() => {
+        if (!isMounted) {
+          return;
+        }
+
+        SplashScreen.hideAsync().catch((hideError) => {
+          console.warn("Failed to hide splash screen", hideError);
+        });
+      }, 500);
+    };
+
+    manageSplashScreen();
+
+    return () => {
+      isMounted = false;
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

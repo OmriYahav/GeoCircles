@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
@@ -21,7 +21,7 @@ import { navigationRef } from "../src/navigation/AppNavigator";
 const BUSINESS_GEOFENCE_TASK = "BUSINESS_GEOFENCE";
 const LOCATION_UPDATE_INTERVAL = 60_000;
 const LOCATION_DISTANCE_INTERVAL = 100;
-const CURRENT_USER_ID_KEY = "@geocircles:current-user-id";
+const CURRENT_USER_ID_KEY = "@openspot:current-user-id";
 
 const businessRegistry = new Map<string, Business>();
 let geofenceTaskRegistered = false;

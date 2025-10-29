@@ -5,8 +5,8 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 import { getFirestoreClient } from "./firebaseApp";
 
-const RECENT_OFFERS_KEY = "@geocircles:recent-offers";
-const VISIT_LOG_KEY = "@geocircles:recent-visits";
+const RECENT_OFFERS_KEY = "@openspot:recent-offers";
+const VISIT_LOG_KEY = "@openspot:recent-visits";
 
 const OFFER_SUPPRESSION_MS = 30 * 60 * 1000; // 30 minutes
 const VISIT_SUPPRESSION_MS = 5 * 60 * 1000; // 5 minutes

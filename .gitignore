@@ -50,3 +50,11 @@ dist/
 build/
 .DS_Store
 .env
+
+# Generated branding assets
+/assets/images/icon.png
+/assets/images/android-icon-background.png
+/assets/images/android-icon-foreground.png
+/assets/images/android-icon-monochrome.png
+/assets/images/splash.png
+/assets/images/favicon.png
