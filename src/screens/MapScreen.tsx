@@ -27,14 +27,7 @@ import {
   useRoute,
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import MapView, {
-  Callout,
-  Circle,
-  Marker,
-  Polyline,
-  UrlTile,
-  PROVIDER_DEFAULT,
-} from "react-native-maps";
+import type MapView from "react-native-maps";
 
 import MapSearchBar, { MapSearchBarHandle } from "../components/MapSearchBar";
 import FloatingActionButton from "../components/FloatingActionButton";
@@ -58,6 +51,12 @@ import { LatLng, MapPressEvent } from "../types/coordinates";
 import { Colors } from "../../constants/theme";
 import { DEFAULT_COORDINATES } from "../../constants/map";
 import CreateConversationModal from "../components/CreateConversationModal";
+import ExpoGoMapView, { ExpoGoMapHandle } from "../components/ExpoGoMapView";
+import {
+  isReactNativeMapsAvailable,
+  reactNativeMapsModule,
+  reactNativeMapsUnavailableReason,
+} from "../utils/reactNativeMaps";
 import type {
   RootTabParamList,
   SearchStackParamList,
@@ -153,11 +152,51 @@ const TRANSPORT_POINTS = [
 
 const DEBOUNCE_DELAY = 380;
 
+type MapHandle = {
+  animateCamera: (
+    options: { center: LatLng; zoom?: number },
+    config?: { duration?: number }
+  ) => void;
+  fitToCoordinates: (
+    coordinates: LatLng[],
+    options?: {
+      edgePadding?: { top: number; bottom: number; left: number; right: number };
+      animated?: boolean;
+    }
+  ) => void;
+};
+
 export default function MapScreen() {
   const navigation = useNavigation<MapScreenNavigation>();
   const route = useRoute<MapScreenRoute>();
   const insets = useSafeAreaInsets();
-  const mapRef = useRef<MapView | null>(null);
+  const mapRef = useRef<MapHandle | null>(null);
+  const setNativeMapRef = useCallback((instance: MapView | null) => {
+    if (!instance) {
+      mapRef.current = null;
+      return;
+    }
+
+    mapRef.current = {
+      animateCamera: (options, config) => {
+        instance.animateCamera(options as unknown as Record<string, unknown>, config);
+      },
+      fitToCoordinates: (coordinates, options) => {
+        instance.fitToCoordinates(coordinates, options);
+      },
+    };
+  }, []);
+  const setExpoMapRef = useCallback((instance: ExpoGoMapHandle | null) => {
+    if (!instance) {
+      mapRef.current = null;
+      return;
+    }
+
+    mapRef.current = {
+      animateCamera: (options, config) => instance.animateCamera(options, config),
+      fitToCoordinates: (coordinates, options) => instance.fitToCoordinates(coordinates, options),
+    };
+  }, []);
   const searchBarRef = useRef<MapSearchBarHandle>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -511,18 +550,21 @@ export default function MapScreen() {
     [navigation]
   );
 
-  const handleMapPress = useCallback(
+  const handleCoordinatePress = useCallback((coordinate: LatLng) => {
+    setPendingCoordinate(coordinate);
+    setCreateModalVisible(true);
+  }, []);
+
+  const handleNativeMapPress = useCallback(
     (event: MapPressEvent) => {
       const action = (event.nativeEvent as unknown as { action?: string }).action;
       if (action === "marker-press" || action === "callout-press") {
         return;
       }
 
-      const { coordinate } = event.nativeEvent;
-      setPendingCoordinate(coordinate);
-      setCreateModalVisible(true);
+      handleCoordinatePress(event.nativeEvent.coordinate);
     },
-    []
+    [handleCoordinatePress]
   );
 
   const handleDismissCreateConversation = useCallback(() => {
@@ -555,6 +597,57 @@ export default function MapScreen() {
     [filters.night]
   );
 
+  const nativeMapsModule = reactNativeMapsModule as typeof import("react-native-maps") | null;
+  const NativeMapView = nativeMapsModule?.default ?? null;
+  const NativeMarker = nativeMapsModule?.Marker ?? null;
+  const NativeCallout = nativeMapsModule?.Callout ?? null;
+  const NativeCircle = nativeMapsModule?.Circle ?? null;
+  const NativePolyline = nativeMapsModule?.Polyline ?? null;
+  const NativeUrlTile = nativeMapsModule?.UrlTile ?? null;
+  const nativeProvider = nativeMapsModule?.PROVIDER_DEFAULT;
+  const isNativeMapReady = Boolean(
+    isReactNativeMapsAvailable && NativeMapView && NativeMarker && NativeUrlTile
+  );
+
+  const fallbackMessage = !isNativeMapReady
+    ? reactNativeMapsUnavailableReason === "expo-go"
+      ? "Expo Go doesn't include the native map module. A lightweight preview map is shown instead."
+      : reactNativeMapsUnavailableReason === "not-installed"
+        ? "The native map module isn't installed in this build. Install react-native-maps and rebuild to unlock full map features."
+        : null
+    : null;
+
+  const expoGoConversations = useMemo(
+    () =>
+      conversations.map((conversation) => ({
+        id: conversation.id,
+        latitude: conversation.coordinate.latitude,
+        longitude: conversation.coordinate.longitude,
+        title: conversation.title,
+        hostName: conversation.hostName,
+        pinColor: conversation.hostId === profile.id ? "#1d4ed8" : "#9333ea",
+      })),
+    [conversations, profile.id]
+  );
+
+  const expoGoTransportPoints = useMemo(
+    () =>
+      TRANSPORT_POINTS.map((point) => ({
+        id: point.id,
+        latitude: point.coordinate.latitude,
+        longitude: point.coordinate.longitude,
+        label: point.label,
+      })),
+    []
+  );
+
+  const expoGoUserLocation = userLocation.coords
+    ? {
+        latitude: userLocation.coords.latitude,
+        longitude: userLocation.coords.longitude,
+      }
+    : null;
+
   const renderSearchResult = useCallback(
     ({ item }: { item: SearchResult }) => (
       <Pressable
@@ -573,109 +666,153 @@ export default function MapScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          provider={PROVIDER_DEFAULT}
-          initialRegion={INITIAL_REGION}
-          onPress={handleMapPress}
-          showsCompass
-          showsPointsOfInterest={false}
-        >
-          <UrlTile
-            key={activeLayer.id}
-            urlTemplate={activeLayer.urlTemplate}
-            zIndex={0}
-            maximumZ={activeLayer.maximumZ ?? 19}
-          />
-          {selectedPlace && (
-            <Marker
-              coordinate={{
-                latitude: selectedPlace.latitude,
-                longitude: selectedPlace.longitude,
-              }}
-              title={selectedPlace.displayName}
+        {isNativeMapReady && NativeMapView && NativeMarker && NativeUrlTile ? (
+          <NativeMapView
+            ref={setNativeMapRef}
+            style={styles.map}
+            provider={nativeProvider ?? undefined}
+            initialRegion={INITIAL_REGION}
+            onPress={handleNativeMapPress}
+            showsCompass
+            showsPointsOfInterest={false}
+          >
+            <NativeUrlTile
+              key={activeLayer.id}
+              urlTemplate={activeLayer.urlTemplate}
+              zIndex={0}
+              maximumZ={activeLayer.maximumZ ?? 19}
             />
-          )}
-          {conversations.map((conversation) => (
-            <Marker
-              key={conversation.id}
-              coordinate={conversation.coordinate}
-              title={conversation.title}
-              pinColor={conversation.hostId === profile.id ? "#1d4ed8" : "#9333ea"}
-            >
-              <Callout onPress={() => openConversation(conversation.id)}>
-                <View style={styles.calloutContainer}>
-                  <Text style={styles.calloutTitle}>{conversation.title}</Text>
-                  <Text style={styles.calloutSubtitle}>
-                    Host: {conversation.hostName}
-                  </Text>
-                  <Text style={styles.calloutLink}>Open chat ↗</Text>
-                </View>
-              </Callout>
-            </Marker>
-          ))}
-          {filters.traffic &&
-            TRAFFIC_SEGMENTS.map((segment, index) => (
-              <Polyline
-                key={`traffic-${index}`}
-                coordinates={segment}
-                strokeColor="rgba(239, 68, 68, 0.85)"
-                strokeWidth={4}
-                zIndex={2}
-              />
-            ))}
-          {filters.hiking &&
-            HIKING_TRAILS.map((segment, index) => (
-              <Polyline
-                key={`trail-${index}`}
-                coordinates={segment}
-                strokeColor="rgba(34,197,94,0.85)"
-                strokeWidth={4}
-                lineDashPattern={[6, 6]}
-                zIndex={2}
-              />
-            ))}
-          {filters.transport &&
-            TRANSPORT_POINTS.map((point) => (
-              <Marker
-                key={point.id}
-                coordinate={point.coordinate}
-                title={point.label}
-                pinColor="#6366f1"
-              />
-            ))}
-          {userLocation.coords && (
-            <>
-              <Marker
+            {selectedPlace && (
+              <NativeMarker
                 coordinate={{
-                  latitude: userLocation.coords.latitude,
-                  longitude: userLocation.coords.longitude,
+                  latitude: selectedPlace.latitude,
+                  longitude: selectedPlace.longitude,
                 }}
-                title="Your location"
-                pinColor="#1d4ed8"
+                title={selectedPlace.displayName}
               />
-              <Circle
-                center={{
-                  latitude: userLocation.coords.latitude,
-                  longitude: userLocation.coords.longitude,
-                }}
-                radius={120}
-                strokeColor="rgba(37,99,235,0.35)"
-                fillColor="rgba(59,130,246,0.15)"
-                zIndex={1}
-              />
-            </>
-          )}
-          {routeResult?.coordinates && (
-            <Polyline
-              coordinates={routeResult.coordinates}
-              strokeColor="#2563eb"
-              strokeWidth={5}
-              zIndex={3}
-            />
-          )}
-        </MapView>
+            )}
+            {conversations.map((conversation) => (
+              <NativeMarker
+                key={conversation.id}
+                coordinate={conversation.coordinate}
+                title={conversation.title}
+                pinColor={conversation.hostId === profile.id ? "#1d4ed8" : "#9333ea"}
+              >
+                {NativeCallout && (
+                  <NativeCallout onPress={() => openConversation(conversation.id)}>
+                    <View style={styles.calloutContainer}>
+                      <Text style={styles.calloutTitle}>{conversation.title}</Text>
+                      <Text style={styles.calloutSubtitle}>
+                        Host: {conversation.hostName}
+                      </Text>
+                      <Text style={styles.calloutLink}>Open chat ↗</Text>
+                    </View>
+                  </NativeCallout>
+                )}
+              </NativeMarker>
+            ))}
+            {filters.traffic &&
+              NativePolyline &&
+              TRAFFIC_SEGMENTS.map((segment, index) => (
+                <NativePolyline
+                  key={`traffic-${index}`}
+                  coordinates={segment}
+                  strokeColor="rgba(239, 68, 68, 0.85)"
+                  strokeWidth={4}
+                  zIndex={2}
+                />
+              ))}
+            {filters.hiking &&
+              NativePolyline &&
+              HIKING_TRAILS.map((segment, index) => (
+                <NativePolyline
+                  key={`trail-${index}`}
+                  coordinates={segment}
+                  strokeColor="rgba(34,197,94,0.85)"
+                  strokeWidth={4}
+                  lineDashPattern={[6, 6]}
+                  zIndex={2}
+                />
+              ))}
+            {filters.transport &&
+              TRANSPORT_POINTS.map((point) => (
+                <NativeMarker
+                  key={point.id}
+                  coordinate={point.coordinate}
+                  title={point.label}
+                  pinColor="#6366f1"
+                />
+              ))}
+            {userLocation.coords && (
+              <>
+                <NativeMarker
+                  coordinate={{
+                    latitude: userLocation.coords.latitude,
+                    longitude: userLocation.coords.longitude,
+                  }}
+                  title="Your location"
+                  pinColor="#1d4ed8"
+                />
+                {NativeCircle && (
+                  <NativeCircle
+                    center={{
+                      latitude: userLocation.coords.latitude,
+                      longitude: userLocation.coords.longitude,
+                    }}
+                    radius={120}
+                    strokeColor="rgba(37,99,235,0.35)"
+                    fillColor="rgba(59,130,246,0.15)"
+                    zIndex={1}
+                  />
+                )}
+              </>
+            )}
+            {routeResult?.coordinates &&
+              NativePolyline && (
+                <NativePolyline
+                  coordinates={routeResult.coordinates}
+                  strokeColor="#2563eb"
+                  strokeWidth={5}
+                  zIndex={3}
+                />
+              )}
+          </NativeMapView>
+        ) : (
+          <ExpoGoMapView
+            ref={setExpoMapRef}
+            style={styles.map}
+            initialRegion={INITIAL_REGION}
+            activeLayer={activeLayer}
+            selectedPlace={
+              selectedPlace
+                ? {
+                    latitude: selectedPlace.latitude,
+                    longitude: selectedPlace.longitude,
+                    displayName: selectedPlace.displayName,
+                  }
+                : null
+            }
+            conversations={expoGoConversations}
+            transportPoints={expoGoTransportPoints}
+            trafficSegments={TRAFFIC_SEGMENTS}
+            hikingTrails={HIKING_TRAILS}
+            userLocation={expoGoUserLocation}
+            routeCoordinates={routeResult?.coordinates ?? null}
+            filters={{
+              traffic: filters.traffic,
+              hiking: filters.hiking,
+              transport: filters.transport,
+            }}
+            onMapPress={handleCoordinatePress}
+            onConversationPress={openConversation}
+          />
+        )}
+        {!isNativeMapReady && fallbackMessage && (
+          <View style={styles.mapFallbackNotice} pointerEvents="none">
+            <Text style={styles.mapFallbackNoticeTitle}>Limited map preview</Text>
+            <Text style={styles.mapFallbackNoticeText}>{fallbackMessage}</Text>
+          </View>
+        )}
       </View>
 
       <View style={[styles.searchContainer, { paddingTop: insets.top + 12 }]}>
@@ -821,6 +958,29 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+  },
+  mapFallbackNotice: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "rgba(15,23,42,0.85)",
+    borderRadius: 16,
+  },
+  mapFallbackNoticeTitle: {
+    color: "#f8fafc",
+    fontWeight: "700",
+    fontSize: 14,
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  mapFallbackNoticeText: {
+    color: "#e2e8f0",
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: "center",
   },
   searchContainer: {
     position: "absolute",
