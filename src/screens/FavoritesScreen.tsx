@@ -1,18 +1,12 @@
 import React from "react";
-import { FlatList, Keyboard, Pressable, StyleSheet, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
-import { NavigationProp, ParamListBase, useNavigation } from "@react-navigation/native";
 
 import { useFavorites } from "../context/FavoritesContext";
+import BackToMapButton from "../components/BackToMapButton";
 
 export default function FavoritesScreen() {
-  const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { favorites, removeFavorite, clearFavorites, isReady } = useFavorites();
-
-  const handleBackToMap = () => {
-    Keyboard.dismiss();
-    navigation.navigate("Search" as never, { screen: "Map" } as never);
-  };
 
   if (!isReady) {
     return (
@@ -31,13 +25,7 @@ export default function FavoritesScreen() {
         <Text variant="bodyMedium" style={styles.emptySubtitle}>
           Save a location from the map search to access it quickly here.
         </Text>
-        <Button
-          mode="contained"
-          onPress={handleBackToMap}
-          style={[styles.backButton, styles.emptyBackButton]}
-        >
-          Back to map
-        </Button>
+        <BackToMapButton style={[styles.backButton, styles.emptyBackButton]} />
       </View>
     );
   }
@@ -49,9 +37,7 @@ export default function FavoritesScreen() {
       keyExtractor={(item) => item.id}
       ListHeaderComponent={() => (
         <View style={styles.headerActions}>
-          <Button mode="contained" onPress={handleBackToMap} style={styles.backButton}>
-            Back to map
-          </Button>
+          <BackToMapButton style={styles.backButton} />
           <Button mode="contained-tonal" onPress={clearFavorites} style={styles.clearButton}>
             Clear all
           </Button>

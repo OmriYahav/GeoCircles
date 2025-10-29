@@ -5,7 +5,6 @@ import {
   ParamListBase,
   NavigationProp,
   NavigatorScreenParams,
-  createNavigationContainerRef,
 } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -27,8 +26,7 @@ import BusinessOfferScreen, {
   BusinessOfferScreenParams,
 } from "../screens/BusinessOfferScreen";
 import { Colors } from "../../constants/theme";
-
-export const navigationRef = createNavigationContainerRef();
+import { navigationRef } from "./navigationRef";
 
 export type RootTabParamList = {
   Search: NavigatorScreenParams<SearchStackParamList> | undefined;

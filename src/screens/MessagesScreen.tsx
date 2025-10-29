@@ -1,25 +1,18 @@
 import React, { useMemo } from "react";
 import { FlatList, Keyboard, StyleSheet, View } from "react-native";
-import { Avatar, Button, Card, Text } from "react-native-paper";
-import {
-  NavigationProp,
-  useFocusEffect,
-  useNavigation,
-} from "@react-navigation/native";
+import { Avatar, Card, Text } from "react-native-paper";
+import { NavigationProp, useFocusEffect, useNavigation } from "@react-navigation/native";
 import dayjs from "dayjs";
 
 import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
 import { Colors } from "../../constants/theme";
-import type {
-  MessagesStackParamList,
-  RootTabParamList,
-} from "../navigation/AppNavigator";
+import type { MessagesStackParamList } from "../navigation/AppNavigator";
+import BackToMapButton from "../components/BackToMapButton";
 
 export default function MessagesScreen() {
   const navigation =
     useNavigation<NavigationProp<MessagesStackParamList>>();
-  const parentNavigation = navigation.getParent<NavigationProp<RootTabParamList>>();
   const { conversations } = useChatConversations();
   const { profile } = useUserProfile();
 
@@ -36,22 +29,13 @@ export default function MessagesScreen() {
     [conversations]
   );
 
-  const handleBackToMap = () => {
-    Keyboard.dismiss();
-    parentNavigation?.navigate("Search", {
-      screen: "Map",
-    });
-  };
-
   return (
     <FlatList
       data={sortedConversations}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={() => (
         <View style={styles.headerActions}>
-          <Button mode="contained" onPress={handleBackToMap} style={styles.backButton}>
-            Back to map
-          </Button>
+          <BackToMapButton style={styles.backButton} />
         </View>
       )}
       ListEmptyComponent={() => (

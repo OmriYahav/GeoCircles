@@ -1,6 +1,7 @@
-import React, { forwardRef, useImperativeHandle, useRef } from "react";
+import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   Pressable,
   StyleSheet,
   TextInput,
@@ -23,7 +24,6 @@ type MapSearchBarProps = {
   onFocus?: () => void;
   placeholder?: string;
   onMicPress?: () => void;
-  onQrPress?: () => void;
   isLoading?: boolean;
   autoFocus?: boolean;
 };
@@ -41,7 +41,6 @@ const MapSearchBar = (
     onFocus,
     placeholder = "Search the map",
     onMicPress,
-    onQrPress,
     isLoading,
     autoFocus,
   }: MapSearchBarProps,
@@ -49,14 +48,17 @@ const MapSearchBar = (
 ) => {
   const inputRef = useRef<TextInput>(null);
   const focusAnimation = useSharedValue(0);
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleFocus = () => {
     focusAnimation.value = withTiming(1, { duration: 180 });
+    setIsFocused(true);
     onFocus?.();
   };
 
   const handleBlur = () => {
     focusAnimation.value = withTiming(0, { duration: 200 });
+    setIsFocused(false);
   };
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -117,21 +119,26 @@ const MapSearchBar = (
             >
               <Ionicons name="mic-outline" size={18} color={Colors.light.icon} />
             </Pressable>
-            <Pressable
-              accessibilityLabel="Scan QR code"
-              onPress={onQrPress}
-              hitSlop={12}
-              style={({ pressed }) => [
-                styles.iconButton,
-                pressed && styles.iconPressed,
-              ]}
-            >
-              <Ionicons
-                name="qr-code-outline"
-                size={18}
-                color={Colors.light.icon}
-              />
-            </Pressable>
+            {isFocused && (
+              <Pressable
+                accessibilityLabel="Hide keyboard"
+                onPress={() => {
+                  inputRef.current?.blur();
+                  Keyboard.dismiss();
+                }}
+                hitSlop={12}
+                style={({ pressed }) => [
+                  styles.iconButton,
+                  pressed && styles.iconPressed,
+                ]}
+              >
+                <Ionicons
+                  name="chevron-down-outline"
+                  size={18}
+                  color={Colors.light.icon}
+                />
+              </Pressable>
+            )}
           </>
         )}
       </View>

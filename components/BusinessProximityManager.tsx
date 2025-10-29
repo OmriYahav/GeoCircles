@@ -17,7 +17,7 @@ import {
   shouldLogBusinessVisit,
 } from "../src/services/businessTelemetry";
 import { calculateDistanceMeters, parseBusinessDocument } from "../src/utils/business";
-import { navigationRef } from "../src/navigation/AppNavigator";
+import { navigationRef } from "../src/navigation/navigationRef";
 
 const BUSINESS_GEOFENCE_TASK = "BUSINESS_GEOFENCE";
 const LOCATION_UPDATE_INTERVAL = 60_000;

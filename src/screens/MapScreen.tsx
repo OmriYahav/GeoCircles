@@ -34,6 +34,7 @@ import FilterBottomSheet, {
 } from "../components/FilterBottomSheet";
 import RoutePlannerModal from "../components/RoutePlannerModal";
 import QRScannerModal from "../components/QRScannerModal";
+import BackToMapButton from "../components/BackToMapButton";
 import useUserLocation from "../hooks/useUserLocation";
 import {
   fetchRoute,
@@ -656,18 +657,14 @@ export default function MapScreen() {
           onChangeText={setSearchQuery}
           onSubmitEditing={handleSubmitSearch}
           onMicPress={isVoiceListening ? stopVoiceSearch : handleVoiceSearch}
-          onQrPress={() => setQrScannerVisible(true)}
           isLoading={isSearching || isVoiceListening}
         />
         {shouldShowBackButton && (
-          <Button
+          <BackToMapButton
             mode="contained-tonal"
-            icon="map"
             onPress={handleBackToMap}
             style={styles.backToMapButton}
-          >
-            Back to map
-          </Button>
+          />
         )}
         {searchResults.length > 0 && (
           <View style={styles.resultsList}>
