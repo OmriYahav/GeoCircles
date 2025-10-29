@@ -40,7 +40,7 @@ export async function searchPlaces(query: string): Promise<SearchResult[]> {
 
   const response = await fetch(`${NOMINATIM_ENDPOINT}?${params.toString()}`, {
     headers: {
-      "User-Agent": "GeoCircles/1.0 (https://example.com)",
+      "User-Agent": "OpenSpot/1.0 (https://example.com)",
       Accept: "application/json",
     },
   });
@@ -79,7 +79,7 @@ export async function fetchRoute(
 
   const response = await fetch(url, {
     headers: {
-      "User-Agent": "GeoCircles/1.0 (https://example.com)",
+      "User-Agent": "OpenSpot/1.0 (https://example.com)",
       Accept: "application/json",
     },
   });

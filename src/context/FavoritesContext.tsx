@@ -25,7 +25,7 @@ export type FavoritesContextValue = {
   isReady: boolean;
 };
 
-const STORAGE_KEY = "geocircles:favorites";
+const STORAGE_KEY = "openspot:favorites";
 
 const FavoritesContext = createContext<FavoritesContextValue | undefined>(
   undefined
