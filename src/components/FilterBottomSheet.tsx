@@ -70,7 +70,12 @@ export default function FilterBottomSheet({
           </View>
           <Switch value={filters.night} onValueChange={() => toggle("night")} />
         </View>
-        <Button mode="contained" onPress={handleBackToMap} style={styles.closeButton}>
+        <Button
+          mode="contained"
+          icon="arrow-left"
+          onPress={handleBackToMap}
+          style={styles.closeButton}
+        >
           Back to map
         </Button>
       </Modal>

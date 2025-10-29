@@ -23,6 +23,7 @@ import {
   recordBusinessVisit,
 } from "../services/businessTelemetry";
 import { useUserProfile } from "../context/UserProfileContext";
+import BackToMapButton from "../components/BackToMapButton";
 
 export type BusinessOfferScreenParams = {
   businessId: string;
@@ -147,6 +148,7 @@ const BusinessOfferScreen = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <BackToMapButton mode="contained-tonal" style={styles.backButton} />
       {business.logoUrl && (
         <View style={styles.logoWrapper}>
           <Image source={{ uri: business.logoUrl }} style={styles.logo} />
@@ -180,6 +182,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 24,
     gap: 16,
+  },
+  backButton: {
+    alignSelf: "flex-start",
+    marginBottom: 8,
   },
   loaderContainer: {
     flex: 1,

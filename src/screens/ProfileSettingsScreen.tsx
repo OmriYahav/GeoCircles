@@ -4,6 +4,7 @@ import { Avatar, Button, Text, TextInput } from "react-native-paper";
 
 import { useUserProfile } from "../context/UserProfileContext";
 import { Colors } from "../../constants/theme";
+import BackToMapButton from "../components/BackToMapButton";
 
 export default function ProfileSettingsScreen() {
   const { profile, updateProfile, resetProfile, isLoading } = useUserProfile();
@@ -57,6 +58,7 @@ export default function ProfileSettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <BackToMapButton mode="contained-tonal" style={styles.backButton} />
       <View style={styles.header}>
         {avatarUrl ? (
           <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
@@ -137,6 +139,9 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 24,
     backgroundColor: Colors.light.background,
+  },
+  backButton: {
+    alignSelf: "flex-start",
   },
   header: {
     flexDirection: "row",

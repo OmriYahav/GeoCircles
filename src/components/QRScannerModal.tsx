@@ -117,7 +117,12 @@ export default function QRScannerModal({
             <View style={styles.overlayBox} pointerEvents="none" />
           </View>
         )}
-        <Button onPress={handleDismiss} style={styles.closeButton} mode="contained">
+        <Button
+          onPress={handleDismiss}
+          style={styles.closeButton}
+          mode="contained"
+          icon="arrow-left"
+        >
           Back to map
         </Button>
       </Modal>
