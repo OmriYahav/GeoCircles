@@ -1,24 +1,23 @@
 import React, { useEffect } from "react";
-import { StatusBar } from "react-native";
+import { StatusBar, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   MD3LightTheme,
   Provider as PaperProvider,
+  type MD3Theme,
 } from "react-native-paper";
 import * as SplashScreen from "expo-splash-screen";
 
-import AppNavigator from "./navigation/AppNavigator";
-import { FavoritesProvider } from "./context/FavoritesContext";
-import { UserProfileProvider } from "./context/UserProfileContext";
-import { ChatConversationsProvider } from "./context/ChatConversationsContext";
-import { BusinessProvider } from "./context/BusinessContext";
-import BusinessProximityManager from "../components/BusinessProximityManager";
-import KeyboardDismissView from "./components/KeyboardDismissView";
-import { Colors, Palette } from "../constants/theme";
-import { DefaultTheme, Theme } from "@react-navigation/native";
+import { FavoritesProvider } from "../context/FavoritesContext";
+import { UserProfileProvider } from "../context/UserProfileContext";
+import { ChatConversationsProvider } from "../context/ChatConversationsContext";
+import { BusinessProvider } from "../context/BusinessContext";
+import KeyboardDismissView from "../components/KeyboardDismissView";
+import BusinessProximityManager from "../../components/BusinessProximityManager";
+import { Colors, Palette } from "../../constants/theme";
 
-const paperTheme = {
+const paperTheme: MD3Theme = {
   ...MD3LightTheme,
   roundness: 14,
   colors: {
@@ -36,19 +35,11 @@ const paperTheme = {
   },
 };
 
-const navigationTheme: Theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: Palette.background,
-    card: Palette.surface,
-    border: Palette.border,
-    text: Palette.textPrimary,
-    primary: Palette.primary,
-  },
+export type AppProvidersProps = {
+  children: React.ReactNode;
 };
 
-export default function App() {
+export default function AppProviders({ children }: AppProvidersProps) {
   useEffect(() => {
     let isMounted = true;
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -57,10 +48,7 @@ export default function App() {
       try {
         await SplashScreen.preventAutoHideAsync();
       } catch (error) {
-        console.warn(
-          "Failed to prevent auto-hiding the splash screen",
-          error
-        );
+        console.warn("Failed to prevent auto-hiding the splash screen", error);
       }
 
       timeout = setTimeout(() => {
@@ -97,7 +85,7 @@ export default function App() {
                     backgroundColor={Colors.light.background}
                   />
                   <KeyboardDismissView>
-                    <AppNavigator theme={navigationTheme} />
+                    <View style={{ flex: 1 }}>{children}</View>
                   </KeyboardDismissView>
                   <BusinessProximityManager />
                 </FavoritesProvider>
@@ -109,3 +97,5 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+
+export { paperTheme };

@@ -1,18 +1,18 @@
 import React, { useMemo } from "react";
 import { FlatList, Keyboard, StyleSheet, View } from "react-native";
 import { Avatar, Card, Text } from "react-native-paper";
-import { NavigationProp, useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import dayjs from "dayjs";
 
 import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
-import type { MessagesStackParamList } from "../navigation/AppNavigator";
 import BackToMapButton from "../components/BackToMapButton";
 import { Palette } from "../../constants/theme";
+import ScreenScaffold from "../components/layout/ScreenScaffold";
 
 export default function MessagesScreen() {
-  const navigation =
-    useNavigation<NavigationProp<MessagesStackParamList>>();
+  const router = useRouter();
   const { conversations } = useChatConversations();
   const { profile } = useUserProfile();
 
@@ -30,29 +30,30 @@ export default function MessagesScreen() {
   );
 
   return (
-    <FlatList
-      style={styles.container}
-      data={sortedConversations}
-      keyExtractor={(item) => item.id}
-      ListHeaderComponent={() => (
-        <View style={styles.headerActions}>
-          <BackToMapButton style={styles.backButton} />
-        </View>
-      )}
-      ListEmptyComponent={() => (
-        <Card style={styles.emptyCard}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.emptyTitle}>
-              No chats yet
-            </Text>
-            <Text variant="bodyMedium" style={styles.emptySubtitle}>
-              Tap anywhere on the map to start a group conversation and invite friends.
-            </Text>
-          </Card.Content>
-        </Card>
-      )}
-      contentContainerStyle={styles.list}
-      renderItem={({ item }) => {
+    <ScreenScaffold contentStyle={styles.screenContent}>
+      <FlatList
+        style={styles.container}
+        data={sortedConversations}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={() => (
+          <View style={styles.headerActions}>
+            <BackToMapButton style={styles.backButton} />
+          </View>
+        )}
+        ListEmptyComponent={() => (
+          <Card style={styles.emptyCard}>
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.emptyTitle}>
+                No chats yet
+              </Text>
+              <Text variant="bodyMedium" style={styles.emptySubtitle}>
+                Tap anywhere on the map to start a group conversation and invite friends.
+              </Text>
+            </Card.Content>
+          </Card>
+        )}
+        contentContainerStyle={styles.list}
+        renderItem={({ item }) => {
         const lastMessage = item.messages[item.messages.length - 1];
         const pendingRequests = item.joinRequests.filter(
           (request) => request.status === "pending"
@@ -66,8 +67,9 @@ export default function MessagesScreen() {
           <Card
             style={styles.card}
             onPress={() =>
-              navigation.navigate("Conversation", {
-                conversationId: item.id,
+              router.navigate({
+                pathname: "/conversation/[conversationId]",
+                params: { conversationId: item.id },
               })
             }
           >
@@ -93,12 +95,16 @@ export default function MessagesScreen() {
             </Card.Content>
           </Card>
         );
-      }}
-    />
+        }}
+      />
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
+  screenContent: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Palette.background,

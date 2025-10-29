@@ -6,6 +6,8 @@ import * as TaskManager from "expo-task-manager";
 import Constants from "expo-constants";
 import { onSnapshot, collection, doc, getDoc } from "firebase/firestore";
 
+import { useRouter } from "expo-router";
+
 import { useBusinessContext, Business } from "../src/context/BusinessContext";
 import { useUserProfile } from "../src/context/UserProfileContext";
 import { getFirestoreClient } from "../src/services/firebaseApp";
@@ -17,7 +19,6 @@ import {
   shouldLogBusinessVisit,
 } from "../src/services/businessTelemetry";
 import { calculateDistanceMeters, parseBusinessDocument } from "../src/utils/business";
-import { navigationRef } from "../src/navigation/navigationRef";
 
 const BUSINESS_GEOFENCE_TASK = "BUSINESS_GEOFENCE";
 const LOCATION_UPDATE_INTERVAL = 60_000;
@@ -217,36 +218,8 @@ async function syncGeofences(businesses: Business[]) {
   }
 }
 
-function handleNotificationResponses() {
-  if (!supportsBusinessProximity) {
-    return;
-  }
-  Notifications.addNotificationResponseReceivedListener((response) => {
-    const businessId = response.notification.request.content.data?.businessId;
-    if (typeof businessId === "string" && businessId.length > 0) {
-      const navigateToOffer = () =>
-        navigationRef.navigate("Search" as never, {
-          screen: "BusinessOffer",
-          params: { businessId },
-        } as never);
-
-      if (navigationRef.isReady()) {
-        navigateToOffer();
-      } else {
-        const unsubscribe = navigationRef.addListener("state", () => {
-          if (navigationRef.isReady()) {
-            navigateToOffer();
-            unsubscribe();
-          }
-        });
-      }
-    }
-  });
-}
-
-let notificationResponseHandlerRegistered = false;
-
 const BusinessProximityManager = () => {
+  const router = useRouter();
   const { setNearbyBusiness } = useBusinessContext();
   const { profile } = useUserProfile();
   const activeBusinessIdRef = useRef<string | null>(null);
@@ -271,14 +244,28 @@ const BusinessProximityManager = () => {
     if (!supportsBusinessProximity) {
       return;
     }
+    let subscription: Notifications.Subscription | null = null;
+
     (async () => {
       await Notifications.requestPermissionsAsync();
-      if (!notificationResponseHandlerRegistered) {
-        handleNotificationResponses();
-        notificationResponseHandlerRegistered = true;
-      }
+      subscription = Notifications.addNotificationResponseReceivedListener(
+        (response) => {
+          const businessId =
+            response.notification.request.content.data?.businessId;
+          if (typeof businessId === "string" && businessId.length > 0) {
+            router.navigate({
+              pathname: "/business-offer/[businessId]",
+              params: { businessId },
+            });
+          }
+        }
+      );
     })();
-  }, []);
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [router]);
 
   const handleLocationUpdate = useCallback(
     async (location: Location.LocationObject) => {

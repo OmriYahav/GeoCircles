@@ -6,6 +6,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useUserProfile } from "../context/UserProfileContext";
 import BackToMapButton from "../components/BackToMapButton";
 import { Palette } from "../../constants/theme";
+import ScreenScaffold from "../components/layout/ScreenScaffold";
 
 export default function ProfileSettingsScreen() {
   const { profile, updateProfile, resetProfile, isLoading } = useUserProfile();
@@ -94,97 +95,102 @@ export default function ProfileSettingsScreen() {
   }, []);
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
-      <BackToMapButton mode="contained-tonal" style={styles.backButton} />
-      <View style={styles.header}>
-        {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-        ) : (
-          <Avatar.Text size={86} label={initials} style={styles.avatarFallback} />
-        )}
-        <View style={styles.headerText}>
-          <Text style={styles.displayName}>{displayName}</Text>
-          <Text style={styles.subtitle}>This is how other explorers see you.</Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Profile details</Text>
-        <TextInput
-          label="First name"
-          mode="outlined"
-          value={firstName}
-          onChangeText={setFirstName}
-          style={styles.input}
-        />
-        <TextInput
-          label="Last name"
-          mode="outlined"
-          value={lastName}
-          onChangeText={setLastName}
-          style={styles.input}
-        />
-        <TextInput
-          label="Nickname"
-          mode="outlined"
-          value={nickname}
-          onChangeText={setNickname}
-          placeholder="The name highlighted in chats"
-          style={styles.input}
-        />
-        <View style={styles.photoActions}>
-          <Button
-            mode="contained-tonal"
-            icon="image-plus"
-            onPress={handlePickPhoto}
-            style={styles.chooseButton}
-          >
-            Choose from device
-          </Button>
+    <ScreenScaffold contentStyle={styles.screenContent}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+        <BackToMapButton mode="contained-tonal" style={styles.backButton} />
+        <View style={styles.header}>
           {avatarUrl ? (
-            <Button mode="text" onPress={handleRemovePhoto} style={styles.removeButton}>
-              Remove photo
-            </Button>
-          ) : null}
+            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <Avatar.Text size={86} label={initials} style={styles.avatarFallback} />
+          )}
+          <View style={styles.headerText}>
+            <Text style={styles.displayName}>{displayName}</Text>
+            <Text style={styles.subtitle}>This is how other explorers see you.</Text>
+          </View>
         </View>
-        {photoError ? (
-          <HelperText type="error" visible style={styles.photoHelper}>
-            {photoError}
-          </HelperText>
-        ) : null}
-        <TextInput
-          label="Profile photo link (optional)"
-          mode="outlined"
-          value={avatarUrl}
-          onChangeText={setAvatarUrl}
-          placeholder="Paste a link or pick a photo"
-          style={styles.input}
-          autoCapitalize="none"
-        />
-      </View>
 
-      <View style={styles.actions}>
-        <Button
-          mode="contained"
-          onPress={handleSave}
-          loading={isSaving && !isLoading}
-          disabled={isSaving || isLoading}
-        >
-          Save changes
-        </Button>
-        <Button
-          mode="text"
-          onPress={handleReset}
-          disabled={isSaving || isLoading}
-        >
-          Reset profile
-        </Button>
-      </View>
-    </ScrollView>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Profile details</Text>
+          <TextInput
+            label="First name"
+            mode="outlined"
+            value={firstName}
+            onChangeText={setFirstName}
+            style={styles.input}
+          />
+          <TextInput
+            label="Last name"
+            mode="outlined"
+            value={lastName}
+            onChangeText={setLastName}
+            style={styles.input}
+          />
+          <TextInput
+            label="Nickname"
+            mode="outlined"
+            value={nickname}
+            onChangeText={setNickname}
+            placeholder="The name highlighted in chats"
+            style={styles.input}
+          />
+          <View style={styles.photoActions}>
+            <Button
+              mode="contained-tonal"
+              icon="image-plus"
+              onPress={handlePickPhoto}
+              style={styles.chooseButton}
+            >
+              Choose from device
+            </Button>
+            {avatarUrl ? (
+              <Button mode="text" onPress={handleRemovePhoto} style={styles.removeButton}>
+                Remove photo
+              </Button>
+            ) : null}
+          </View>
+          {photoError ? (
+            <HelperText type="error" visible style={styles.photoHelper}>
+              {photoError}
+            </HelperText>
+          ) : null}
+          <TextInput
+            label="Profile photo link (optional)"
+            mode="outlined"
+            value={avatarUrl}
+            onChangeText={setAvatarUrl}
+            placeholder="Paste a link or pick a photo"
+            style={styles.input}
+            autoCapitalize="none"
+          />
+        </View>
+
+        <View style={styles.actions}>
+          <Button
+            mode="contained"
+            onPress={handleSave}
+            loading={isSaving && !isLoading}
+            disabled={isSaving || isLoading}
+          >
+            Save changes
+          </Button>
+          <Button
+            mode="text"
+            onPress={handleReset}
+            disabled={isSaving || isLoading}
+          >
+            Reset profile
+          </Button>
+        </View>
+      </ScrollView>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
+  screenContent: {
+    flex: 1,
+  },
   scroll: {
     flex: 1,
     backgroundColor: Palette.background,

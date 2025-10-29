@@ -45,7 +45,7 @@
       "favicon": "./assets/images/favicon.png"
     },
 
-    "plugins": ["expo-image-picker"],
+    "plugins": ["expo-router", "expo-image-picker"],
 
     "experiments": {
       "typedRoutes": true,

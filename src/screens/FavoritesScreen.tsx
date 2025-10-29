@@ -5,68 +5,81 @@ import { Button, Text } from "react-native-paper";
 import { useFavorites } from "../context/FavoritesContext";
 import BackToMapButton from "../components/BackToMapButton";
 import { Palette } from "../../constants/theme";
+import ScreenScaffold from "../components/layout/ScreenScaffold";
 
 export default function FavoritesScreen() {
   const { favorites, removeFavorite, clearFavorites, isReady } = useFavorites();
 
   if (!isReady) {
     return (
-      <View style={styles.emptyState}>
-        <Text variant="bodyLarge">Loading your saved places…</Text>
-      </View>
+      <ScreenScaffold contentStyle={styles.loadingContent}>
+        <View style={styles.emptyState}>
+          <Text variant="bodyLarge">Loading your saved places…</Text>
+        </View>
+      </ScreenScaffold>
     );
   }
 
   if (favorites.length === 0) {
     return (
-      <View style={styles.emptyState}>
-        <Text variant="titleMedium" style={styles.emptyTitle}>
-          No favorites yet
-        </Text>
-        <Text variant="bodyMedium" style={styles.emptySubtitle}>
-          Save a location from the map search to access it quickly here.
-        </Text>
-        <BackToMapButton style={[styles.backButton, styles.emptyBackButton]} />
-      </View>
+      <ScreenScaffold contentStyle={styles.loadingContent}>
+        <View style={styles.emptyState}>
+          <Text variant="titleMedium" style={styles.emptyTitle}>
+            No favorites yet
+          </Text>
+          <Text variant="bodyMedium" style={styles.emptySubtitle}>
+            Save a location from the map search to access it quickly here.
+          </Text>
+          <BackToMapButton style={[styles.backButton, styles.emptyBackButton]} />
+        </View>
+      </ScreenScaffold>
     );
   }
 
   return (
-    <FlatList
-      style={styles.container}
-      contentContainerStyle={styles.list}
-      data={favorites}
-      keyExtractor={(item) => item.id}
-      ListHeaderComponent={() => (
-        <View style={styles.headerActions}>
-          <BackToMapButton style={styles.backButton} />
-          <Button mode="contained-tonal" onPress={clearFavorites} style={styles.clearButton}>
-            Clear all
-          </Button>
-        </View>
-      )}
-      renderItem={({ item }) => (
-        <Pressable
-          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-        >
-          <View style={styles.cardBody}>
-            <Text variant="titleMedium" style={styles.cardTitle}>
-              {item.title}
-            </Text>
-            <Text variant="bodySmall" style={styles.cardSubtitle}>
-              {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
-            </Text>
+    <ScreenScaffold contentStyle={styles.listContent}>
+      <FlatList
+        style={styles.container}
+        contentContainerStyle={styles.list}
+        data={favorites}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={() => (
+          <View style={styles.headerActions}>
+            <BackToMapButton style={styles.backButton} />
+            <Button mode="contained-tonal" onPress={clearFavorites} style={styles.clearButton}>
+              Clear all
+            </Button>
           </View>
-          <Button mode="text" onPress={() => removeFavorite(item.id)}>
-            Remove
-          </Button>
-        </Pressable>
-      )}
-    />
+        )}
+        renderItem={({ item }) => (
+          <Pressable
+            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          >
+            <View style={styles.cardBody}>
+              <Text variant="titleMedium" style={styles.cardTitle}>
+                {item.title}
+              </Text>
+              <Text variant="bodySmall" style={styles.cardSubtitle}>
+                {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
+              </Text>
+            </View>
+            <Button mode="text" onPress={() => removeFavorite(item.id)}>
+              Remove
+            </Button>
+          </Pressable>
+        )}
+      />
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
+  loadingContent: {
+    flex: 1,
+  },
+  listContent: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Palette.background,
