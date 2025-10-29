@@ -2,12 +2,26 @@ import Constants from "expo-constants";
 
 let cachedApiKey: string | null | undefined;
 
+// Ignore placeholder values that ship in the default config so we can
+// surface the in-app "missing key" guidance instead of loading Google Maps
+// with an obviously invalid key and showing a cryptic error message.
+const PLACEHOLDER_KEYS = new Set(["YOUR_GOOGLE_MAPS_API_KEY"]);
+
 function normalizeKey(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
   }
   const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  const upperCased = trimmed.toUpperCase();
+  if (PLACEHOLDER_KEYS.has(upperCased)) {
+    return null;
+  }
+
+  return trimmed;
 }
 
 export function getGoogleMapsApiKey(): string | null {
