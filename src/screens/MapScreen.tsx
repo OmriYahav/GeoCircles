@@ -15,7 +15,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button } from "react-native-paper";
 import {
   NavigationProp,
   RouteProp,
@@ -29,16 +28,9 @@ import FloatingActionButton from "../components/FloatingActionButton";
 import FilterBottomSheet, {
   FilterState,
 } from "../components/FilterBottomSheet";
-import RoutePlannerModal from "../components/RoutePlannerModal";
-import QRScannerModal from "../components/QRScannerModal";
 import BackToMapButton from "../components/BackToMapButton";
 import useUserLocation from "../hooks/useUserLocation";
-import {
-  fetchRoute,
-  parseGeoUri,
-  RouteResult,
-  SearchResult,
-} from "../services/MapService";
+import { SearchResult } from "../services/MapService";
 import { useFavorites } from "../context/FavoritesContext";
 import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
@@ -57,14 +49,13 @@ import type {
 import useVoiceSearch from "../hooks/useVoiceSearch";
 import usePlaceSearch from "../hooks/usePlaceSearch";
 import SelectedPlaceCard from "../components/map/SelectedPlaceCard";
-import RouteSummaryCard from "../components/map/RouteSummaryCard";
 import LocationErrorBanner from "../components/map/LocationErrorBanner";
 import LayerBadge from "../components/map/LayerBadge";
 import MapOverlayCard from "../components/map/MapOverlayCard";
 
 export type MapScreenParams = {
   trigger?: {
-    type: "focusSearch" | "openRoute";
+    type: "focusSearch";
     timestamp: number;
   };
 };
@@ -177,13 +168,6 @@ export default function MapScreen() {
   });
   const [isFilterSheetVisible, setFilterSheetVisible] = useState(false);
   const [mapLayerIndex, setMapLayerIndex] = useState(0);
-  const [isRouteModalVisible, setRouteModalVisible] = useState(false);
-  const [isQrScannerVisible, setQrScannerVisible] = useState(false);
-  const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
-  const [routeEndpoints, setRouteEndpoints] = useState<{
-    start: SearchResult;
-    destination: SearchResult;
-  } | null>(null);
   const [pendingCoordinate, setPendingCoordinate] = useState<LatLng | null>(null);
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
 
@@ -224,11 +208,6 @@ export default function MapScreen() {
 
   const activeLayer = MAP_LAYERS[mapLayerIndex];
 
-  const mapPadding = useMemo(
-    () => ({ top: insets.top + 120, bottom: insets.bottom + 140, left: 60, right: 60 }),
-    [insets.bottom, insets.top]
-  );
-
   useEffect(() => {
     const trigger = route.params?.trigger;
     if (!trigger) {
@@ -242,23 +221,8 @@ export default function MapScreen() {
       });
     }
 
-    if (trigger.type === "openRoute") {
-      setRouteModalVisible(true);
-    }
-
     navigation.setParams({ trigger: undefined });
   }, [navigation, route.params?.trigger]);
-
-  useEffect(() => {
-    if (!routeResult?.coordinates?.length) {
-      return;
-    }
-
-    mapRef.current?.fitToCoordinates(routeResult.coordinates, {
-      edgePadding: mapPadding,
-      animated: true,
-    });
-  }, [mapPadding, routeResult]);
 
   useEffect(() => {
     const coords = userLocation.coords;
@@ -346,11 +310,6 @@ export default function MapScreen() {
     [filters.hiking, filters.night, filters.traffic, filters.transport]
   );
 
-  const routeCoordinates = useMemo(
-    () => (routeResult?.coordinates?.length ? routeResult.coordinates : null),
-    [routeResult]
-  );
-
   const trafficSegments = useMemo(() => TRAFFIC_SEGMENTS, []);
   const hikingTrails = useMemo(() => HIKING_TRAILS, []);
 
@@ -368,70 +327,14 @@ export default function MapScreen() {
     setShouldShowResults(false);
     setSelectedPlace(null);
     setFilterSheetVisible(false);
-    setRouteModalVisible(false);
-    setQrScannerVisible(false);
   }, []);
 
   const shouldShowBackButton = useMemo(
     () =>
       shouldShowResults ||
       isFilterSheetVisible ||
-      isRouteModalVisible ||
-      isQrScannerVisible ||
       searchQuery.trim().length > 0,
-    [
-      isFilterSheetVisible,
-      isQrScannerVisible,
-      isRouteModalVisible,
-      searchQuery,
-      shouldShowResults,
-    ]
-  );
-
-  const handleQrScanned = useCallback(
-    (data: string) => {
-      setQrScannerVisible(false);
-      const coords = parseGeoUri(data);
-      if (coords) {
-        focusCamera(coords, 15);
-        setSelectedPlace({
-          id: data,
-          displayName: `Pinned location (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`,
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-        });
-        return;
-      }
-      setSearchQuery(data);
-      setShouldShowResults(true);
-      Alert.alert("QR content", data);
-    },
-    [focusCamera]
-  );
-
-  const handlePlanRoute = useCallback(
-    async ({ start, destination }: { start: SearchResult; destination: SearchResult }) => {
-      setRouteModalVisible(false);
-      try {
-        const routeResponse = await fetchRoute(
-          { latitude: start.latitude, longitude: start.longitude },
-          { latitude: destination.latitude, longitude: destination.longitude }
-        );
-        if (!routeResponse) {
-          Alert.alert("Route planner", "No route was returned for those points.");
-          return;
-        }
-        setRouteEndpoints({ start, destination });
-        setRouteResult(routeResponse);
-      } catch (error) {
-        console.error("Failed to fetch route", error);
-        Alert.alert(
-          "Route planner",
-          "We couldn't calculate a route right now. Please try again shortly."
-        );
-      }
-    },
-    []
+    [isFilterSheetVisible, searchQuery, shouldShowResults]
   );
 
   const handleSaveFavorite = useCallback(() => {
@@ -526,14 +429,6 @@ export default function MapScreen() {
     setFilterSheetVisible(true);
   }, []);
 
-  const handleOpenRoutePlanner = useCallback(() => {
-    setRouteModalVisible(true);
-  }, []);
-
-  const handleOpenQrScanner = useCallback(() => {
-    setQrScannerVisible(true);
-  }, []);
-
   return (
     <View style={styles.container}>
       <View style={styles.mapContainer}>
@@ -557,7 +452,7 @@ export default function MapScreen() {
           transportPoints={filters.transport ? transportMarkers : []}
           trafficSegments={trafficSegments}
           hikingTrails={hikingTrails}
-          routeCoordinates={routeCoordinates}
+          routeCoordinates={null}
           userLocation={mapUserLocation}
           filters={mapFilters}
           onMapPress={handleMapPress}
@@ -578,33 +473,15 @@ export default function MapScreen() {
           onMicPress={isVoiceListening ? stopVoiceSearch : handleVoiceSearch}
           isLoading={isSearching || isVoiceListening}
         />
-        <View style={styles.searchActionsRow}>
-          {shouldShowBackButton ? (
+        {shouldShowBackButton ? (
+          <View style={styles.searchActionsRow}>
             <BackToMapButton
               mode="contained-tonal"
               onPress={handleBackToMap}
               style={styles.backToMapButton}
             />
-          ) : null}
-          <Button
-            mode="contained-tonal"
-            compact
-            icon="navigate-outline"
-            onPress={handleOpenRoutePlanner}
-            style={styles.searchActionButton}
-          >
-            Plan route
-          </Button>
-          <Button
-            mode="contained-tonal"
-            compact
-            icon="qr-code-outline"
-            onPress={handleOpenQrScanner}
-            style={styles.searchActionButton}
-          >
-            Scan code
-          </Button>
-        </View>
+          </View>
+        ) : null}
 
         {shouldShowResults && searchResults.length > 0 && (
           <MapOverlayCard style={styles.resultsCard}>
@@ -651,11 +528,6 @@ export default function MapScreen() {
           onPress={handleCycleLayer}
         />
         <FloatingActionButton
-          icon="compass-outline"
-          accessibilityLabel="Open route planner"
-          onPress={handleOpenRoutePlanner}
-        />
-        <FloatingActionButton
           icon="locate-outline"
           accessibilityLabel="Center on my location"
           onPress={handleLocateMe}
@@ -667,17 +539,6 @@ export default function MapScreen() {
       {selectedPlace && (
         <View style={[styles.overlayPosition, { bottom: insets.bottom + 140 }]}>
           <SelectedPlaceCard place={selectedPlace} onSave={handleSaveFavorite} />
-        </View>
-      )}
-
-      {routeResult && routeEndpoints && (
-        <View style={[styles.overlayPosition, { bottom: insets.bottom + 220 }]}>
-          <RouteSummaryCard
-            title="Route overview"
-            subtitle={`${routeEndpoints.start.displayName.split(",")[0]} → ${routeEndpoints.destination.displayName.split(",")[0]}`}
-            distanceKilometers={routeResult.distanceInMeters / 1000}
-            durationMinutes={routeResult.durationInSeconds / 60}
-          />
         </View>
       )}
 
@@ -701,17 +562,6 @@ export default function MapScreen() {
         onChange={setFilters}
       />
 
-      <RoutePlannerModal
-        visible={isRouteModalVisible}
-        onDismiss={() => setRouteModalVisible(false)}
-        onPlan={handlePlanRoute}
-      />
-
-      <QRScannerModal
-        visible={isQrScannerVisible}
-        onDismiss={() => setQrScannerVisible(false)}
-        onScanned={handleQrScanned}
-      />
     </View>
   );
 }
@@ -740,9 +590,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   backToMapButton: {
-    borderRadius: 14,
-  },
-  searchActionButton: {
     borderRadius: 14,
   },
   resultsCard: {

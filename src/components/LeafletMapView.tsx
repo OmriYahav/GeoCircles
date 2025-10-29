@@ -166,7 +166,7 @@ function createLeafletHtml(
       }
 
       .leaflet-control-attribution {
-        font-size: 11px !important;
+        display: none !important;
       }
     </style>
   </head>
