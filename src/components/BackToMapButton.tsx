@@ -15,6 +15,7 @@ const BackToMapButton: React.FC<BackToMapButtonProps> = ({
   style,
   mode = "contained",
   onPress,
+  compact = true,
   ...rest
 }) => {
   const handlePress = () => {
@@ -29,11 +30,13 @@ const BackToMapButton: React.FC<BackToMapButtonProps> = ({
     <Button
       mode={mode}
       icon="arrow-left"
+      compact={compact}
       style={style}
       onPress={handlePress}
+      accessibilityLabel="Back to map"
       {...rest}
     >
-      Back to map
+      {null}
     </Button>
   );
 };

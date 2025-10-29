@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, StyleSheet, View } from "react-native";
-import { Avatar, Button, Text, TextInput } from "react-native-paper";
+import { Avatar, Button, HelperText, Text, TextInput } from "react-native-paper";
+import * as ImagePicker from "expo-image-picker";
 
 import { useUserProfile } from "../context/UserProfileContext";
 import BackToMapButton from "../components/BackToMapButton";
@@ -13,12 +14,14 @@ export default function ProfileSettingsScreen() {
   const [nickname, setNickname] = useState(profile.nickname);
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl ?? "");
   const [isSaving, setIsSaving] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   useEffect(() => {
     setFirstName(profile.firstName);
     setLastName(profile.lastName);
     setNickname(profile.nickname);
     setAvatarUrl(profile.avatarUrl ?? "");
+    setPhotoError(null);
   }, [profile]);
 
   const initials = useMemo(() => {
@@ -55,6 +58,40 @@ export default function ProfileSettingsScreen() {
     await resetProfile();
     setIsSaving(false);
   };
+
+  const handlePickPhoto = useCallback(async () => {
+    setPhotoError(null);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setPhotoError("We need access to your photo library to select a profile picture.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets?.length) {
+        const [asset] = result.assets;
+        if (asset.uri) {
+          setAvatarUrl(asset.uri);
+        } else {
+          setPhotoError("Unable to use the selected photo. Please try another one.");
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to pick profile photo", error);
+      setPhotoError("Something went wrong while selecting a photo. Please try again.");
+    }
+  }, []);
+
+  const handleRemovePhoto = useCallback(() => {
+    setAvatarUrl("");
+    setPhotoError(null);
+  }, []);
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
@@ -95,22 +132,35 @@ export default function ProfileSettingsScreen() {
           placeholder="The name highlighted in chats"
           style={styles.input}
         />
+        <View style={styles.photoActions}>
+          <Button
+            mode="contained-tonal"
+            icon="image-plus"
+            onPress={handlePickPhoto}
+            style={styles.chooseButton}
+          >
+            Choose from device
+          </Button>
+          {avatarUrl ? (
+            <Button mode="text" onPress={handleRemovePhoto} style={styles.removeButton}>
+              Remove photo
+            </Button>
+          ) : null}
+        </View>
+        {photoError ? (
+          <HelperText type="error" visible style={styles.photoHelper}>
+            {photoError}
+          </HelperText>
+        ) : null}
         <TextInput
-          label="Profile photo URL"
+          label="Profile photo link (optional)"
           mode="outlined"
           value={avatarUrl}
           onChangeText={setAvatarUrl}
-          placeholder="Paste a link to your photo"
+          placeholder="Paste a link or pick a photo"
           style={styles.input}
           autoCapitalize="none"
         />
-        <Button
-          mode="outlined"
-          onPress={() => setAvatarUrl("")}
-          style={styles.removeButton}
-        >
-          Remove photo
-        </Button>
       </View>
 
       <View style={styles.actions}>
@@ -188,11 +238,24 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: Palette.textPrimary,
   },
+  photoActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 6,
+  },
+  chooseButton: {
+    alignSelf: "flex-start",
+  },
   input: {
     marginBottom: 14,
   },
   removeButton: {
     alignSelf: "flex-start",
+  },
+  photoHelper: {
+    marginBottom: 8,
+    paddingHorizontal: 0,
   },
   actions: {
     gap: 12,

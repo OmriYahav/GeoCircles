@@ -11,7 +11,8 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Allow OpenSpot to access your location so we can show where you are on the map."
+        "NSLocationWhenInUseUsageDescription": "Allow OpenSpot to access your location so we can show where you are on the map.",
+        "NSPhotoLibraryUsageDescription": "Allow OpenSpot to access your photos so you can choose a profile picture."
       }
     },
 
@@ -27,7 +28,9 @@
       "package": "com.anonymous.openspot",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE"
       ]
     },
 
@@ -42,7 +45,7 @@
       "favicon": "./assets/images/favicon.png"
     },
 
-    "plugins": [],
+    "plugins": ["expo-image-picker"],
 
     "experiments": {
       "typedRoutes": true,
