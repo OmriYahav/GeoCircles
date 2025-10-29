@@ -15,7 +15,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Colors } from "../../constants/theme";
+import { Colors, Palette } from "../../constants/theme";
 
 type MapSearchBarProps = {
   value: string;
@@ -152,14 +152,14 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    backgroundColor: Palette.surface,
     borderRadius: 22,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 14,
-    elevation: 10,
+    shadowColor: "rgba(15, 23, 42, 0.15)",
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    elevation: 9,
   },
   leadingIconContainer: {
     width: 28,
@@ -186,6 +186,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   iconPressed: {
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    backgroundColor: Palette.primaryTint,
   },
 });

@@ -89,7 +89,7 @@ function createHtmlTemplate({
         width: 32px;
         height: 32px;
         border-radius: 50% 50% 40% 40%;
-        background: #1d4ed8;
+        background: #1e3a8a;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -176,11 +176,11 @@ function createHtmlTemplate({
         if (!circle) {
           circle = L.circle(latLng, {
             radius: 100,
-            color: '#1d4ed8',
+            color: '#1e3a8a',
             weight: 2,
             opacity: 0.6,
-            fillColor: '#60a5fa',
-            fillOpacity: 0.2,
+            fillColor: '#c7d2fe',
+            fillOpacity: 0.25,
           }).addTo(map);
         } else {
           circle.setLatLng(latLng);

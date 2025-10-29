@@ -4,6 +4,7 @@ import { Button, Text } from "react-native-paper";
 
 import { useFavorites } from "../context/FavoritesContext";
 import BackToMapButton from "../components/BackToMapButton";
+import { Palette } from "../../constants/theme";
 
 export default function FavoritesScreen() {
   const { favorites, removeFavorite, clearFavorites, isReady } = useFavorites();
@@ -32,6 +33,7 @@ export default function FavoritesScreen() {
 
   return (
     <FlatList
+      style={styles.container}
       contentContainerStyle={styles.list}
       data={favorites}
       keyExtractor={(item) => item.id}
@@ -65,6 +67,10 @@ export default function FavoritesScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Palette.background,
+  },
   list: {
     padding: 24,
     gap: 12,
@@ -80,14 +86,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    padding: 18,
+    borderRadius: 18,
+    backgroundColor: Palette.surface,
+    shadowColor: "rgba(15, 23, 42, 0.14)",
+    shadowOpacity: 1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
     marginBottom: 12,
   },
   cardPressed: {
@@ -99,10 +105,11 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontWeight: "700",
+    color: Palette.textPrimary,
   },
   cardSubtitle: {
     marginTop: 4,
-    color: "rgba(0,0,0,0.6)",
+    color: Palette.textMuted,
   },
   clearButton: {
     borderRadius: 12,
@@ -118,13 +125,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
+    backgroundColor: Palette.background,
   },
   emptyTitle: {
     fontWeight: "700",
     marginBottom: 12,
+    color: Palette.textPrimary,
   },
   emptySubtitle: {
-    color: "rgba(0,0,0,0.6)",
+    color: Palette.textMuted,
     textAlign: "center",
   },
 });

@@ -5,25 +5,51 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+export const Palette = {
+  /** Primary brand color used for buttons and highlights */
+  primary: '#1E3A8A',
+  /** Lighter variant of the primary color used for subtle accents */
+  primarySoft: '#E0E7FF',
+  /** Muted overlay for elevated primary elements */
+  primaryTint: 'rgba(30, 58, 138, 0.12)',
+  /** Accent color for emphasis such as warnings or highlights */
+  accent: '#F97316',
+  /** Base background color for screens */
+  background: '#F4F6FB',
+  /** Default surface color for cards */
+  surface: '#FFFFFF',
+  /** Muted surface for elevated sections */
+  surfaceMuted: '#EEF2FF',
+  /** Subtle border color */
+  border: '#E2E8F0',
+  /** High-emphasis text color */
+  textPrimary: '#0F172A',
+  /** Medium-emphasis text color */
+  textSecondary: '#475569',
+  /** Low-emphasis text color */
+  textMuted: '#64748B',
+  /** Success state color */
+  success: '#16A34A',
+  /** Error state color */
+  danger: '#DC2626',
+};
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: Palette.textPrimary,
+    background: Palette.background,
+    tint: Palette.primary,
+    icon: Palette.textMuted,
+    tabIconDefault: Palette.textMuted,
+    tabIconSelected: Palette.primary,
   },
   dark: {
     text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    background: '#0F172A',
+    tint: '#60A5FA',
+    icon: '#94A3B8',
+    tabIconDefault: '#94A3B8',
+    tabIconSelected: '#60A5FA',
   },
 };
 

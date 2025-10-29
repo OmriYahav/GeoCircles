@@ -24,6 +24,7 @@ import {
 } from "../services/businessTelemetry";
 import { useUserProfile } from "../context/UserProfileContext";
 import BackToMapButton from "../components/BackToMapButton";
+import { Palette } from "../../constants/theme";
 
 export type BusinessOfferScreenParams = {
   businessId: string;
@@ -147,7 +148,7 @@ const BusinessOfferScreen = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <BackToMapButton mode="contained-tonal" style={styles.backButton} />
       {business.logoUrl && (
         <View style={styles.logoWrapper}>
@@ -178,10 +179,15 @@ const BusinessOfferScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+    backgroundColor: Palette.background,
+  },
   container: {
     flexGrow: 1,
     padding: 24,
     gap: 16,
+    paddingBottom: 40,
   },
   backButton: {
     alignSelf: "flex-start",
@@ -193,38 +199,51 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
     gap: 12,
+    backgroundColor: Palette.background,
   },
   loaderText: {
     textAlign: "center",
+    color: Palette.textSecondary,
   },
   errorText: {
     textAlign: "center",
-    color: "#B00020",
+    color: Palette.danger,
   },
   logoWrapper: {
     width: "100%",
     alignItems: "center",
     marginBottom: 16,
+    padding: 16,
+    borderRadius: 24,
+    backgroundColor: Palette.surface,
+    shadowColor: "rgba(15, 23, 42, 0.12)",
+    shadowOpacity: 1,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    elevation: 4,
   },
   logo: {
     width: 160,
     height: 160,
-    borderRadius: 12,
     resizeMode: "contain",
   },
   title: {
     textAlign: "center",
-    fontWeight: "600",
+    fontWeight: "700",
+    color: Palette.textPrimary,
   },
   offerText: {
     textAlign: "center",
+    color: Palette.textSecondary,
   },
   expiry: {
     textAlign: "center",
-    color: "#475569",
+    color: Palette.textMuted,
   },
   actionButton: {
     marginTop: 12,
+    alignSelf: "center",
+    minWidth: "60%",
   },
 });
 

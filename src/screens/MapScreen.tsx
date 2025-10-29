@@ -47,7 +47,7 @@ import { useFavorites } from "../context/FavoritesContext";
 import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
 import { LatLng } from "../types/coordinates";
-import { Colors } from "../../constants/theme";
+import { Colors, Palette } from "../../constants/theme";
 import { DEFAULT_COORDINATES } from "../../constants/map";
 import CreateConversationModal from "../components/CreateConversationModal";
 import LeafletMapView, {
@@ -801,23 +801,23 @@ const styles = StyleSheet.create({
   },
   resultsList: {
     marginTop: 12,
-    backgroundColor: "rgba(255,255,255,0.97)",
+    backgroundColor: Palette.surface,
     borderRadius: 18,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    shadowColor: "rgba(15, 23, 42, 0.16)",
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 9,
     maxHeight: 240,
   },
   resultItem: {
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0,0,0,0.08)",
+    borderBottomColor: Palette.border,
   },
   resultItemPressed: {
-    backgroundColor: "rgba(0,0,0,0.05)",
+    backgroundColor: Palette.primaryTint,
   },
   resultTitle: {
     fontSize: 15,
@@ -843,8 +843,12 @@ const styles = StyleSheet.create({
     right: 16,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: Palette.primary,
     borderRadius: 16,
+    shadowColor: "rgba(15, 23, 42, 0.18)",
+    shadowOpacity: 1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
   },
   layerBadgeText: {
     color: "#fff",
@@ -854,14 +858,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: 20,
+    backgroundColor: Palette.surface,
+    borderRadius: 22,
     padding: 18,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
+    shadowColor: "rgba(15, 23, 42, 0.18)",
+    shadowOpacity: 1,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 11,
   },
   selectedPlaceTitle: {
     fontSize: 17,
@@ -874,15 +878,19 @@ const styles = StyleSheet.create({
   },
   favoriteButton: {
     marginTop: 14,
-    borderRadius: 12,
+    borderRadius: 14,
   },
   routeSummary: {
     position: "absolute",
     left: 16,
     right: 16,
-    backgroundColor: "rgba(24, 24, 27, 0.92)",
-    borderRadius: 18,
-    padding: 18,
+    backgroundColor: Palette.primary,
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "rgba(15, 23, 42, 0.22)",
+    shadowOpacity: 1,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
   },
   routeSummaryTitle: {
     color: "#fff",
@@ -890,7 +898,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   routeSummarySubtitle: {
-    color: "rgba(255,255,255,0.7)",
+    color: "rgba(255,255,255,0.78)",
     marginTop: 6,
   },
   routeSummaryRow: {
@@ -908,13 +916,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    borderRadius: 18,
+    backgroundColor: Palette.surface,
+    borderRadius: 20,
     padding: 18,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: "rgba(15, 23, 42, 0.16)",
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 10,
   },
   locationErrorTitle: {

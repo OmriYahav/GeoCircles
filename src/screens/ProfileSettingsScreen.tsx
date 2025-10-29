@@ -3,8 +3,8 @@ import { Image, ScrollView, StyleSheet, View } from "react-native";
 import { Avatar, Button, Text, TextInput } from "react-native-paper";
 
 import { useUserProfile } from "../context/UserProfileContext";
-import { Colors } from "../../constants/theme";
 import BackToMapButton from "../components/BackToMapButton";
+import { Palette } from "../../constants/theme";
 
 export default function ProfileSettingsScreen() {
   const { profile, updateProfile, resetProfile, isLoading } = useUserProfile();
@@ -57,7 +57,7 @@ export default function ProfileSettingsScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <BackToMapButton mode="contained-tonal" style={styles.backButton} />
       <View style={styles.header}>
         {avatarUrl ? (
@@ -135,10 +135,14 @@ export default function ProfileSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+    backgroundColor: Palette.background,
+  },
   container: {
     padding: 24,
     gap: 24,
-    backgroundColor: Colors.light.background,
+    paddingBottom: 48,
   },
   backButton: {
     alignSelf: "flex-start",
@@ -154,11 +158,11 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize: 24,
     fontWeight: "700",
-    color: Colors.light.text,
+    color: Palette.textPrimary,
   },
   subtitle: {
     marginTop: 6,
-    color: Colors.light.icon,
+    color: Palette.textMuted,
   },
   avatarImage: {
     width: 86,
@@ -166,23 +170,23 @@ const styles = StyleSheet.create({
     borderRadius: 43,
   },
   avatarFallback: {
-    backgroundColor: "#2563eb",
+    backgroundColor: Palette.primary,
   },
   section: {
-    backgroundColor: "#fff",
+    backgroundColor: Palette.surface,
     borderRadius: 20,
     padding: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
+    shadowColor: "rgba(15, 23, 42, 0.12)",
+    shadowOpacity: 1,
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 24,
     elevation: 4,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 12,
-    color: Colors.light.text,
+    color: Palette.textPrimary,
   },
   input: {
     marginBottom: 14,
