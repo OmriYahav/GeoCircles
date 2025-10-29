@@ -49,7 +49,8 @@ import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
 import { LatLng, MapPressEvent } from "../types/coordinates";
 import { Colors } from "../../constants/theme";
-import { DEFAULT_COORDINATES } from "../../constants/map";
+import { DEFAULT_COORDINATES, GOOGLE_DARK_MAP_STYLE } from "../../constants/map";
+import { getGoogleMapsApiKey } from "../utils/googleMaps";
 import CreateConversationModal from "../components/CreateConversationModal";
 import ExpoGoMapView, { ExpoGoMapHandle } from "../components/ExpoGoMapView";
 import {
@@ -78,36 +79,36 @@ type MapScreenNavigation = NativeStackNavigationProp<
 type MapLayer = {
   id: "standard" | "satellite" | "terrain" | "dark";
   label: string;
-  urlTemplate: string;
-  maximumZ?: number;
+  nativeMapType: "standard" | "satellite" | "terrain" | "hybrid" | "mutedStandard";
+  webMapType: "roadmap" | "satellite" | "terrain" | "hybrid";
+  customMapStyle?: typeof GOOGLE_DARK_MAP_STYLE;
 };
 
 const MAP_LAYERS: MapLayer[] = [
   {
     id: "standard",
     label: "Standard",
-    urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    maximumZ: 19,
+    nativeMapType: "standard",
+    webMapType: "roadmap",
   },
   {
     id: "satellite",
     label: "Satellite",
-    urlTemplate:
-      "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    maximumZ: 18,
+    nativeMapType: "satellite",
+    webMapType: "satellite",
   },
   {
     id: "terrain",
     label: "Terrain",
-    urlTemplate: "https://tile.opentopomap.org/{z}/{x}/{y}.png",
-    maximumZ: 17,
+    nativeMapType: "terrain",
+    webMapType: "terrain",
   },
   {
     id: "dark",
-    label: "Dark",
-    urlTemplate:
-      "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png",
-    maximumZ: 19,
+    label: "Night",
+    nativeMapType: "standard",
+    webMapType: "roadmap",
+    customMapStyle: GOOGLE_DARK_MAP_STYLE,
   },
 ];
 
@@ -220,6 +221,7 @@ export default function MapScreen() {
   } | null>(null);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [voiceModule, setVoiceModule] = useState<VoiceModuleType | null>(null);
+  const googleMapsApiKey = getGoogleMapsApiKey();
 
   useEffect(() => {
     if (Platform.OS === "web") {
@@ -603,11 +605,8 @@ export default function MapScreen() {
   const NativeCallout = nativeMapsModule?.Callout ?? null;
   const NativeCircle = nativeMapsModule?.Circle ?? null;
   const NativePolyline = nativeMapsModule?.Polyline ?? null;
-  const NativeUrlTile = nativeMapsModule?.UrlTile ?? null;
-  const nativeProvider = nativeMapsModule?.PROVIDER_DEFAULT;
-  const isNativeMapReady = Boolean(
-    isReactNativeMapsAvailable && NativeMapView && NativeMarker && NativeUrlTile
-  );
+  const nativeProvider = nativeMapsModule?.PROVIDER_GOOGLE ?? nativeMapsModule?.PROVIDER_DEFAULT;
+  const isNativeMapReady = Boolean(isReactNativeMapsAvailable && NativeMapView && NativeMarker);
 
   const fallbackMessage = !isNativeMapReady
     ? reactNativeMapsUnavailableReason === "expo-go"
@@ -648,6 +647,15 @@ export default function MapScreen() {
       }
     : null;
 
+  const expoGoActiveLayer = useMemo(
+    () => ({
+      id: activeLayer.id,
+      mapTypeId: activeLayer.webMapType,
+      customMapStyle: activeLayer.customMapStyle ?? null,
+    }),
+    [activeLayer]
+  );
+
   const renderSearchResult = useCallback(
     ({ item }: { item: SearchResult }) => (
       <Pressable
@@ -666,22 +674,18 @@ export default function MapScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.mapContainer}>
-        {isNativeMapReady && NativeMapView && NativeMarker && NativeUrlTile ? (
+        {isNativeMapReady && NativeMapView && NativeMarker ? (
           <NativeMapView
             ref={setNativeMapRef}
             style={styles.map}
             provider={nativeProvider ?? undefined}
+            mapType={activeLayer.nativeMapType}
+            customMapStyle={activeLayer.customMapStyle as unknown as object[] | undefined}
             initialRegion={INITIAL_REGION}
             onPress={handleNativeMapPress}
             showsCompass
             showsPointsOfInterest={false}
           >
-            <NativeUrlTile
-              key={activeLayer.id}
-              urlTemplate={activeLayer.urlTemplate}
-              zIndex={0}
-              maximumZ={activeLayer.maximumZ ?? 19}
-            />
             {selectedPlace && (
               <NativeMarker
                 coordinate={{
@@ -782,7 +786,8 @@ export default function MapScreen() {
             ref={setExpoMapRef}
             style={styles.map}
             initialRegion={INITIAL_REGION}
-            activeLayer={activeLayer}
+            apiKey={googleMapsApiKey ?? undefined}
+            activeLayer={expoGoActiveLayer}
             selectedPlace={
               selectedPlace
                 ? {
