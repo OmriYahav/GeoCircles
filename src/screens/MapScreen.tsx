@@ -30,6 +30,7 @@ import SelectedPlaceCard from "../components/map/SelectedPlaceCard";
 import LocationErrorBanner from "../components/map/LocationErrorBanner";
 import MapOverlayCard from "../components/map/MapOverlayCard";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
+import MapLayerButton from "../components/MapLayerButton";
 import { TAB_BAR_HEIGHT } from "../../constants/layout";
 
 export type MapScreenParams = {
@@ -76,6 +77,7 @@ const TRANSPORT_POINTS = [
 ];
 
 const DEBOUNCE_DELAY = 380;
+const SEARCH_BAR_HEIGHT = 52;
 export default function MapScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<MapScreenParams>();
@@ -97,6 +99,7 @@ export default function MapScreen() {
   const [pendingCoordinate, setPendingCoordinate] = useState<LatLng | null>(null);
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
   const [pendingSubmitQuery, setPendingSubmitQuery] = useState<string | null>(null);
+  const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
 
   const { addFavorite } = useFavorites();
   const { conversations, createConversation } = useChatConversations();
@@ -302,14 +305,19 @@ export default function MapScreen() {
     }
   }, [isVoiceSupported, startVoiceSearch, voiceError]);
 
-  const mapBottomInset = useMemo(
+  const overlayBottomOffset = useMemo(
+    () => insets.bottom + TAB_BAR_HEIGHT + 48,
+    [insets.bottom]
+  );
+
+  const layerButtonBottomOffset = useMemo(
     () => insets.bottom + TAB_BAR_HEIGHT + 16,
     [insets.bottom]
   );
 
-  const overlayBottomOffset = useMemo(
-    () => insets.bottom + TAB_BAR_HEIGHT + 48,
-    [insets.bottom]
+  const fabTopOffset = useMemo(
+    () => insets.top + spacing.lg + SEARCH_BAR_HEIGHT + spacing.md,
+    [insets.top]
   );
 
   const handleSaveFavorite = useCallback(() => {
@@ -398,11 +406,47 @@ export default function MapScreen() {
     setFilterSheetVisible(true);
   }, []);
 
+  const handleToggleMapType = useCallback(() => {
+    setMapType((current) => (current === "standard" ? "satellite" : "standard"));
+  }, []);
+
   return (
-    <ScreenScaffold contentStyle={styles.screenContent}>
+    <ScreenScaffold contentStyle={styles.screenContent} showTopNavigation={false}>
       <View style={styles.container}>
-        <View style={styles.searchSection}>
-          <View style={styles.searchBarWrapper}>
+        <LeafletMapView
+          ref={(instance) => {
+            mapRef.current = instance;
+          }}
+          style={styles.map}
+          initialCenter={INITIAL_VIEW}
+          selectedPlace={
+            selectedPlace
+              ? {
+                  latitude: selectedPlace.latitude,
+                  longitude: selectedPlace.longitude,
+                  displayName: selectedPlace.displayName,
+                }
+              : null
+          }
+          conversations={conversationMarkers}
+          transportPoints={filters.transport ? transportMarkers : []}
+          trafficSegments={trafficSegments}
+          hikingTrails={hikingTrails}
+          routeCoordinates={null}
+          userLocation={mapUserLocation}
+          filters={mapFilters}
+          onMapPress={handleMapPress}
+          onConversationPress={openConversation}
+          mapType={mapType}
+        />
+
+        <View pointerEvents="box-none" style={styles.searchOverlay}>
+          <View
+            style={[
+              styles.searchBarWrapper,
+              { paddingTop: insets.top + spacing.lg },
+            ]}
+          >
             <SearchBar
               ref={searchBarRef}
               value={searchQuery}
@@ -420,103 +464,85 @@ export default function MapScreen() {
               onMicPress={isVoiceListening ? stopVoiceSearch : handleVoiceSearch}
               isLoading={isSearching || isVoiceListening}
             />
-          </View>
 
-          {shouldShowResults && searchResults.length > 0 && (
-            <MapOverlayCard style={styles.resultsCard}>
-              <FlatList
-                data={searchResults}
-                keyExtractor={(item) => item.id}
-                renderItem={renderSearchResult}
-                keyboardShouldPersistTaps="handled"
-                ItemSeparatorComponent={() => (
-                  <View style={styles.resultSeparator} />
-                )}
-              />
-            </MapOverlayCard>
-          )}
-
-          {shouldShowResults &&
-            !isSearching &&
-            !searchError &&
-            searchQuery.trim().length > 0 &&
-            searchResults.length === 0 && (
+            {shouldShowResults && searchResults.length > 0 && (
               <MapOverlayCard style={styles.resultsCard}>
-                <Text style={styles.resultsErrorTitle}>No places found</Text>
-                <Text style={styles.resultsErrorMessage}>
-                  Try a different address or landmark.
-                </Text>
+                <FlatList
+                  data={searchResults}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderSearchResult}
+                  keyboardShouldPersistTaps="handled"
+                  ItemSeparatorComponent={() => (
+                    <View style={styles.resultSeparator} />
+                  )}
+                />
               </MapOverlayCard>
             )}
 
-          {searchError && (
-            <MapOverlayCard style={styles.resultsCard}>
-              <Text style={styles.resultsErrorTitle}>Search unavailable</Text>
-              <Text style={styles.resultsErrorMessage}>{searchError}</Text>
-            </MapOverlayCard>
-          )}
+            {shouldShowResults &&
+              !isSearching &&
+              !searchError &&
+              searchQuery.trim().length > 0 &&
+              searchResults.length === 0 && (
+                <MapOverlayCard style={styles.resultsCard}>
+                  <Text style={styles.resultsErrorTitle}>No places found</Text>
+                  <Text style={styles.resultsErrorMessage}>
+                    Try a different address or landmark.
+                  </Text>
+                </MapOverlayCard>
+              )}
+
+            {searchError && (
+              <MapOverlayCard style={styles.resultsCard}>
+                <Text style={styles.resultsErrorTitle}>Search unavailable</Text>
+                <Text style={styles.resultsErrorMessage}>{searchError}</Text>
+              </MapOverlayCard>
+            )}
+          </View>
         </View>
 
-        <View style={styles.mapContainer}>
-          <LeafletMapView
-            ref={(instance) => {
-              mapRef.current = instance;
-            }}
-            style={[styles.map, { bottom: mapBottomInset }]}
-            initialCenter={INITIAL_VIEW}
-            selectedPlace={
-              selectedPlace
-                ? {
-                    latitude: selectedPlace.latitude,
-                    longitude: selectedPlace.longitude,
-                    displayName: selectedPlace.displayName,
-                  }
-                : null
-            }
-            conversations={conversationMarkers}
-            transportPoints={filters.transport ? transportMarkers : []}
-            trafficSegments={trafficSegments}
-            hikingTrails={hikingTrails}
-            routeCoordinates={null}
-            userLocation={mapUserLocation}
-            filters={mapFilters}
-            onMapPress={handleMapPress}
-            onConversationPress={openConversation}
+        <View
+          pointerEvents="box-none"
+          style={[styles.fabColumn, { top: fabTopOffset }]}
+        >
+          <FloatingActionButton
+            icon="options-outline"
+            accessibilityLabel="Open filters"
+            onPress={handleOpenFilters}
           />
+          <FloatingActionButton
+            icon="locate-outline"
+            accessibilityLabel="Center on my location"
+            onPress={handleLocateMe}
+          />
+        </View>
 
-          <View style={[styles.fabColumn, { top: 16 }]}>
-            <FloatingActionButton
-              icon="options-outline"
-              accessibilityLabel="Open filters"
-              onPress={handleOpenFilters}
-            />
-            <FloatingActionButton
-              icon="locate-outline"
-              accessibilityLabel="Center on my location"
-              onPress={handleLocateMe}
+        <View
+          pointerEvents="box-none"
+          style={[styles.layerButtonPosition, { bottom: layerButtonBottomOffset }]}
+        >
+          <MapLayerButton mode={mapType} onToggle={handleToggleMapType} />
+        </View>
+
+        {selectedPlace && (
+          <View style={[styles.overlayPosition, { bottom: overlayBottomOffset }]}>
+            <SelectedPlaceCard place={selectedPlace} onSave={handleSaveFavorite} />
+          </View>
+        )}
+
+        {locationError && (
+          <View
+            style={[
+              styles.overlayPosition,
+              { bottom: overlayBottomOffset + 120 },
+            ]}
+          >
+            <LocationErrorBanner
+              message={locationError}
+              onRetry={refreshLocation}
             />
           </View>
-
-          {selectedPlace && (
-            <View style={[styles.overlayPosition, { bottom: overlayBottomOffset }]}>
-              <SelectedPlaceCard place={selectedPlace} onSave={handleSaveFavorite} />
-            </View>
-          )}
-
-          {locationError && (
-            <View
-              style={[
-                styles.overlayPosition,
-                { bottom: overlayBottomOffset + 120 },
-              ]}
-            >
-              <LocationErrorBanner
-                message={locationError}
-                onRetry={refreshLocation}
-              />
-            </View>
-          )}
-        </View>
+        )}
       </View>
 
       <CreateConversationModal
@@ -539,27 +565,27 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   screenContent: {
     flex: 1,
+    paddingHorizontal: 0,
+    paddingBottom: 0,
   },
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  searchSection: {
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
-    paddingHorizontal: spacing.xxl,
-    gap: spacing.md,
-    zIndex: 2,
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  searchOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    paddingHorizontal: spacing.xl,
+    zIndex: 3,
   },
   searchBarWrapper: {
     width: "100%",
-  },
-  mapContainer: {
-    flex: 1,
-    position: "relative",
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
+    gap: spacing.md,
   },
   resultsCard: {
     gap: 0,
@@ -570,7 +596,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   resultItem: {
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
   },
   resultItemPressed: {
@@ -595,11 +621,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.family.semiBold,
     color: colors.text.primary,
     marginBottom: spacing.xs,
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
   },
   resultsErrorMessage: {
     color: colors.text.secondary,
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,
     fontFamily: typography.family.regular,
   },
@@ -608,6 +634,13 @@ const styles = StyleSheet.create({
     right: spacing.xxl,
     alignItems: "center",
     gap: spacing.lg,
+    zIndex: 3,
+  },
+  layerButtonPosition: {
+    position: "absolute",
+    right: spacing.xxl,
+    zIndex: 3,
+    alignItems: "flex-end",
   },
   overlayPosition: {
     position: "absolute",

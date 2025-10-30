@@ -57,7 +57,7 @@ function TabButton({ label, icon, isFocused, onPress }: TabButtonProps) {
         <Animated.View style={[styles.touchable, animatedButtonStyle]}>
           <Ionicons
             name={icon}
-            size={22}
+            size={24}
             color={isFocused ? colors.primary : colors.text.muted}
           />
           <Animated.Text
@@ -75,37 +75,38 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View
-      pointerEvents="box-none"
-      style={[
-        styles.tabBarWrapper,
-        { paddingBottom: Math.max(insets.bottom, 16) + 8 },
-      ]}
-    >
-      <View style={styles.tabBar}>
-        {state.routes
-          .filter((route) => TAB_ICON_MAP[route.name])
-          .map((route) => {
-            const config = TAB_ICON_MAP[route.name];
-            const routeIndex = state.routes.findIndex(
-              (candidate) => candidate.key === route.key
-            );
-            const isFocused = state.index === routeIndex;
+    <View pointerEvents="box-none" style={styles.tabBarWrapper}>
+      <View
+        style={[
+          styles.tabBarBackground,
+          { paddingBottom: Math.max(insets.bottom, spacing.lg) },
+        ]}
+      >
+        <View style={styles.tabBar}>
+          {state.routes
+            .filter((route) => TAB_ICON_MAP[route.name])
+            .map((route) => {
+              const config = TAB_ICON_MAP[route.name];
+              const routeIndex = state.routes.findIndex(
+                (candidate) => candidate.key === route.key
+              );
+              const isFocused = state.index === routeIndex;
 
-            const onPress = () => {
-              navigation.navigate(route.name);
-            };
+              const onPress = () => {
+                navigation.navigate(route.name);
+              };
 
-            return (
-              <TabButton
-                key={route.key}
-                label={config.label}
-                icon={config.icon}
-                isFocused={isFocused}
-                onPress={onPress}
-              />
-            );
-          })}
+              return (
+                <TabButton
+                  key={route.key}
+                  label={config.label}
+                  icon={config.icon}
+                  isFocused={isFocused}
+                  onPress={onPress}
+                />
+              );
+            })}
+        </View>
       </View>
     </View>
   );
@@ -135,24 +136,26 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    alignItems: "center",
+  },
+  tabBarBackground: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    ...shadows.lg,
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.xl,
+    width: "100%",
   },
   sceneContainer: {
     flex: 1,
   },
   tabBar: {
+    flex: 1,
     flexDirection: "row",
-    backgroundColor: colors.surface,
-    paddingVertical: spacing.md,
     paddingHorizontal: spacing.xxl,
-    gap: spacing.md,
     justifyContent: "space-between",
     alignItems: "center",
-    borderRadius: radii.xl,
-    ...shadows.md,
-    alignSelf: "center",
-    width: "92%",
-    maxWidth: 440,
+    paddingVertical: spacing.sm,
     minHeight: TAB_BAR_HEIGHT,
   },
   tabButtonContainer: {
