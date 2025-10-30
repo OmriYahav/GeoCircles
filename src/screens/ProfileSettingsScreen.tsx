@@ -4,7 +4,6 @@ import { Avatar, Button, HelperText, Text, TextInput } from "react-native-paper"
 import * as ImagePicker from "expo-image-picker";
 
 import { useUserProfile } from "../context/UserProfileContext";
-import BackToMapButton from "../components/BackToMapButton";
 import { Palette } from "../../constants/theme";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
 
@@ -97,7 +96,6 @@ export default function ProfileSettingsScreen() {
   return (
     <ScreenScaffold contentStyle={styles.screenContent}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
-        <BackToMapButton mode="contained-tonal" style={styles.backButton} />
         <View style={styles.header}>
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
@@ -199,9 +197,6 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 24,
     paddingBottom: 48,
-  },
-  backButton: {
-    alignSelf: "flex-start",
   },
   header: {
     flexDirection: "row",

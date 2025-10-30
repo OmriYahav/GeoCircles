@@ -143,8 +143,8 @@ export default function RoutePlannerModal({
         >
           {isLoading ? "Searching…" : "Show route"}
         </Button>
-        <Button icon="arrow-left" onPress={handleDismiss} style={styles.cancelButton}>
-          Back to map
+        <Button icon="close" onPress={handleDismiss} style={styles.cancelButton}>
+          Close
         </Button>
       </Modal>
     </Portal>

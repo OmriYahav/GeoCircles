@@ -26,6 +26,8 @@ type MapSearchBarProps = {
   onMicPress?: () => void;
   isLoading?: boolean;
   autoFocus?: boolean;
+  onCancel?: () => void;
+  showCancel?: boolean;
 };
 
 export type MapSearchBarHandle = {
@@ -43,6 +45,8 @@ const MapSearchBar = (
     onMicPress,
     isLoading,
     autoFocus,
+    onCancel,
+    showCancel,
   }: MapSearchBarProps,
   ref: React.Ref<MapSearchBarHandle>
 ) => {
@@ -69,6 +73,16 @@ const MapSearchBar = (
       },
     ],
   }));
+
+  const handleCancel = () => {
+    Keyboard.dismiss();
+    inputRef.current?.blur();
+    onCancel?.();
+  };
+
+  const shouldShowCancel = Boolean(
+    onCancel && (showCancel || isFocused || value.trim().length > 0)
+  );
 
   useImperativeHandle(
     ref,
@@ -108,17 +122,19 @@ const MapSearchBar = (
           <ActivityIndicator size="small" color={Colors.light.tint} />
         ) : (
           <>
-            <Pressable
-              accessibilityLabel="Voice search"
-              onPress={onMicPress}
-              hitSlop={12}
-              style={({ pressed }) => [
-                styles.iconButton,
-                pressed && styles.iconPressed,
-              ]}
-            >
-              <Ionicons name="mic-outline" size={18} color={Colors.light.icon} />
-            </Pressable>
+            {onMicPress ? (
+              <Pressable
+                accessibilityLabel="Voice search"
+                onPress={onMicPress}
+                hitSlop={12}
+                style={({ pressed }) => [
+                  styles.iconButton,
+                  pressed && styles.iconPressed,
+                ]}
+              >
+                <Ionicons name="mic-outline" size={18} color={Colors.light.icon} />
+              </Pressable>
+            ) : null}
             {isFocused && (
               <Pressable
                 accessibilityLabel="Hide keyboard"
@@ -139,6 +155,23 @@ const MapSearchBar = (
                 />
               </Pressable>
             )}
+            {shouldShowCancel ? (
+              <Pressable
+                accessibilityLabel="Clear search"
+                onPress={handleCancel}
+                hitSlop={12}
+                style={({ pressed }) => [
+                  styles.iconButton,
+                  pressed && styles.iconPressed,
+                ]}
+              >
+                <Ionicons
+                  name="close-outline"
+                  size={18}
+                  color={Colors.light.icon}
+                />
+              </Pressable>
+            ) : null}
           </>
         )}
       </View>

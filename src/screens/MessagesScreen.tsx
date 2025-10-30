@@ -7,7 +7,6 @@ import dayjs from "dayjs";
 
 import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
-import BackToMapButton from "../components/BackToMapButton";
 import { Palette } from "../../constants/theme";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
 
@@ -35,11 +34,6 @@ export default function MessagesScreen() {
         style={styles.container}
         data={sortedConversations}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={() => (
-          <View style={styles.headerActions}>
-            <BackToMapButton style={styles.backButton} />
-          </View>
-        )}
         ListEmptyComponent={() => (
           <Card style={styles.emptyCard}>
             <Card.Content>
@@ -112,13 +106,6 @@ const styles = StyleSheet.create({
   list: {
     padding: 20,
     gap: 18,
-  },
-  headerActions: {
-    marginBottom: 12,
-    alignItems: "flex-end",
-  },
-  backButton: {
-    borderRadius: 12,
   },
   emptyCard: {
     borderRadius: 20,

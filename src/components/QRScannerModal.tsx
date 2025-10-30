@@ -121,9 +121,9 @@ export default function QRScannerModal({
           onPress={handleDismiss}
           style={styles.closeButton}
           mode="contained"
-          icon="arrow-left"
+          icon="close"
         >
-          Back to map
+          Close
         </Button>
       </Modal>
     </Portal>

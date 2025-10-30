@@ -72,11 +72,11 @@ export default function FilterBottomSheet({
         </View>
         <Button
           mode="contained"
-          icon="arrow-left"
+          icon="check"
           onPress={handleBackToMap}
           style={styles.closeButton}
         >
-          Back to map
+          Done
         </Button>
       </Modal>
     </Portal>

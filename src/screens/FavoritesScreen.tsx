@@ -3,7 +3,6 @@ import { FlatList, Pressable, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
 
 import { useFavorites } from "../context/FavoritesContext";
-import BackToMapButton from "../components/BackToMapButton";
 import { Palette } from "../../constants/theme";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
 
@@ -30,7 +29,6 @@ export default function FavoritesScreen() {
           <Text variant="bodyMedium" style={styles.emptySubtitle}>
             Save a location from the map search to access it quickly here.
           </Text>
-          <BackToMapButton style={[styles.backButton, styles.emptyBackButton]} />
         </View>
       </ScreenScaffold>
     );
@@ -45,8 +43,11 @@ export default function FavoritesScreen() {
         keyExtractor={(item) => item.id}
         ListHeaderComponent={() => (
           <View style={styles.headerActions}>
-            <BackToMapButton style={styles.backButton} />
-            <Button mode="contained-tonal" onPress={clearFavorites} style={styles.clearButton}>
+            <Button
+              mode="contained-tonal"
+              onPress={clearFavorites}
+              style={styles.clearButton}
+            >
               Clear all
             </Button>
           </View>
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     marginBottom: 12,
     gap: 12,
@@ -126,12 +127,6 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     borderRadius: 12,
-  },
-  backButton: {
-    borderRadius: 12,
-  },
-  emptyBackButton: {
-    marginTop: 20,
   },
   emptyState: {
     flex: 1,
