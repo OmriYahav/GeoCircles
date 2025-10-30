@@ -58,6 +58,7 @@ type LeafletMapViewProps = {
   filters: Pick<FilterState, "traffic" | "hiking" | "transport" | "night">;
   onMapPress?: (coordinate: LatLng) => void;
   onConversationPress?: (conversationId: string) => void;
+  mapType?: "standard" | "satellite";
 };
 
 type LeafletMessage = {
@@ -83,6 +84,13 @@ const DEFAULT_LAYER = {
   attribution: "&copy; OpenStreetMap contributors",
   maxZoom: 19,
   subdomains: ["a", "b", "c"],
+};
+
+const SATELLITE_LAYER = {
+  tileUrlTemplate:
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  attribution: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS",
+  maxZoom: 18,
 };
 
 function createLeafletHtml(initialCenter: LeafletMapViewProps["initialCenter"]) {
@@ -174,8 +182,10 @@ function createLeafletHtml(initialCenter: LeafletMapViewProps["initialCenter"]) 
     <script>
       const INITIAL_CONFIG = ${JSON.stringify(initialConfig)};
       const DEFAULT_LAYER = ${JSON.stringify(DEFAULT_LAYER)};
+      const SATELLITE_LAYER = ${JSON.stringify(SATELLITE_LAYER)};
       const state = {
         baseLayer: null,
+        activeLayerType: 'standard',
         selectedLayer: L.layerGroup(),
         conversationLayer: L.layerGroup(),
         transportLayer: L.layerGroup(),
@@ -195,15 +205,28 @@ function createLeafletHtml(initialCenter: LeafletMapViewProps["initialCenter"]) 
       );
       map.attributionControl.setPrefix('');
 
-      const layerOptions = {
-        attribution: DEFAULT_LAYER.attribution || '',
-        maxZoom: DEFAULT_LAYER.maxZoom || 19,
-      };
-      if (Array.isArray(DEFAULT_LAYER.subdomains)) {
-        layerOptions.subdomains = DEFAULT_LAYER.subdomains;
+      function createTileLayer(config) {
+        const layerOptions = {
+          attribution: config.attribution || '',
+          maxZoom: config.maxZoom || 19,
+        };
+        if (Array.isArray(config.subdomains)) {
+          layerOptions.subdomains = config.subdomains;
+        }
+        return L.tileLayer(config.tileUrlTemplate, layerOptions);
       }
-      state.baseLayer = L.tileLayer(DEFAULT_LAYER.tileUrlTemplate, layerOptions);
-      state.baseLayer.addTo(map);
+
+      function applyBaseLayer(type) {
+        const config = type === 'satellite' ? SATELLITE_LAYER : DEFAULT_LAYER;
+        if (state.baseLayer) {
+          map.removeLayer(state.baseLayer);
+        }
+        state.baseLayer = createTileLayer(config);
+        state.baseLayer.addTo(map);
+        state.activeLayerType = type;
+      }
+
+      applyBaseLayer('standard');
 
       state.selectedLayer.addTo(map);
       state.conversationLayer.addTo(map);
@@ -357,6 +380,16 @@ function createLeafletHtml(initialCenter: LeafletMapViewProps["initialCenter"]) 
         setNightOverlay(Boolean(filters && filters.night));
       }
 
+      function setMapType(type) {
+        if (type !== 'satellite' && type !== 'standard') {
+          return;
+        }
+        if (state.activeLayerType === type) {
+          return;
+        }
+        applyBaseLayer(type);
+      }
+
       function animateCamera(payload) {
         if (!payload || !payload.center) {
           return;
@@ -409,6 +442,9 @@ function createLeafletHtml(initialCenter: LeafletMapViewProps["initialCenter"]) 
           case '${NIGHT_OVERLAY_EVENT}':
             setNightOverlay(Boolean(payload.enabled));
             break;
+          case 'setMapType':
+            setMapType(payload && payload.type);
+            break;
           default:
             break;
         }
@@ -451,6 +487,7 @@ const LeafletMapView = forwardRef(
       filters,
       onMapPress,
       onConversationPress,
+      mapType = "standard",
     }: LeafletMapViewProps,
     ref: ForwardedRef<LeafletMapHandle>
   ) => {
@@ -509,6 +546,10 @@ const LeafletMapView = forwardRef(
     useEffect(() => {
       sendDataUpdate();
     }, [sendDataUpdate]);
+
+    useEffect(() => {
+      postMessage({ type: "setMapType", payload: { type: mapType } });
+    }, [mapType, postMessage]);
 
     useImperativeHandle(
       ref,

@@ -68,7 +68,7 @@ const SearchBar = (
     <View style={styles.container}>
       <Ionicons
         name="search-outline"
-        size={18}
+        size={20}
         color={colors.text.muted}
         style={styles.leadingIcon}
         accessible={false}
@@ -106,7 +106,7 @@ const SearchBar = (
               pressed && styles.iconButtonPressed,
             ]}
           >
-            <Ionicons name="mic-outline" size={18} color={colors.text.muted} />
+            <Ionicons name="mic-outline" size={20} color={colors.text.muted} />
           </Pressable>
         ) : null}
       </View>
@@ -120,11 +120,11 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    height: 48,
+    height: 52,
     borderRadius: radii.xl,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     backgroundColor: colors.surface,
-    ...shadows.sm,
+    ...shadows.md,
     zIndex: 2,
   },
   leadingIcon: {
