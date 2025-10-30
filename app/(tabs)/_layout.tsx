@@ -8,14 +8,12 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Palette } from "../../constants/theme";
 
 const TAB_ITEMS = [
-  { name: "search", label: "Search", icon: "search-outline" as const },
-  { name: "favorites", label: "Favorites", icon: "heart-outline" as const },
-  { name: "messages", label: "Messages", icon: "chatbubbles-outline" as const },
-  { name: "profile", label: "Profile", icon: "person-circle-outline" as const },
+  { name: "messages", label: "Chat", icon: "chatbubbles-outline" as const },
 ];
 
 type TabButtonProps = {
@@ -63,40 +61,39 @@ function TabButton({ label, icon, isFocused, onPress }: TabButtonProps) {
 }
 
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
-  return (
-    <View style={styles.tabBar}>
-      {state.routes.map((route, index) => {
-        const isFocused = state.index === index;
-        const config = TAB_ITEMS.find((item) => item.name === route.name);
-        if (!config) {
-          return null;
-        }
+  const insets = useSafeAreaInsets();
 
-        const onPress = () => {
-          if (route.name === "search") {
-            navigation.navigate(route.name, {
-              params: {
-                triggerType: "focusSearch",
-                triggerTimestamp: Date.now().toString(),
-              },
-              merge: true,
-            });
-            return;
+  return (
+    <View
+      pointerEvents="box-none"
+      style={[styles.tabBarWrapper, { paddingBottom: Math.max(insets.bottom, 16) }]}
+    >
+      <View style={styles.tabBar}>
+        {TAB_ITEMS.map((config) => {
+          const routeIndex = state.routes.findIndex(
+            (route) => route.name === config.name
+          );
+          if (routeIndex === -1) {
+            return null;
           }
 
-          navigation.navigate(route.name);
-        };
+          const isFocused = state.index === routeIndex;
 
-        return (
-          <TabButton
-            key={route.key}
-            label={config.label}
-            icon={config.icon}
-            isFocused={isFocused}
-            onPress={onPress}
-          />
-        );
-      })}
+          const onPress = () => {
+            navigation.navigate(config.name);
+          };
+
+          return (
+            <TabButton
+              key={config.name}
+              label={config.label}
+              icon={config.icon}
+              isFocused={isFocused}
+              onPress={onPress}
+            />
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -108,6 +105,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: { display: "none" },
       }}
+      sceneContainerStyle={styles.sceneContainer}
       tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tabs.Screen name="search" options={{ title: "Search" }} />
@@ -119,13 +117,23 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  tabBarWrapper: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+  },
+  sceneContainer: {
+    paddingBottom: 120,
+  },
   tabBar: {
     flexDirection: "row",
     backgroundColor: Palette.surface,
     paddingVertical: 14,
     paddingHorizontal: 16,
     gap: 10,
-    justifyContent: "space-between",
+    justifyContent: "center",
     borderRadius: 28,
     shadowColor: "rgba(15, 23, 42, 0.12)",
     shadowOpacity: 1,
@@ -137,9 +145,11 @@ const styles = StyleSheet.create({
     maxWidth: 420,
   },
   tabButtonContainer: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 0,
     borderRadius: 18,
     overflow: "hidden",
+    minWidth: 120,
   },
   touchable: {
     flexDirection: "column",
