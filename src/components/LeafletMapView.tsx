@@ -27,14 +27,6 @@ export type LeafletMapHandle = {
   ) => void;
 };
 
-export type LeafletLayerConfig = {
-  id: string;
-  tileUrlTemplate: string;
-  attribution: string;
-  maxZoom?: number;
-  subdomains?: string[];
-};
-
 type ConversationMarker = {
   id: string;
   latitude: number;
@@ -54,7 +46,6 @@ type TransportPoint = {
 type LeafletMapViewProps = {
   style?: StyleProp<ViewStyle>;
   initialCenter: { latitude: number; longitude: number; zoom: number };
-  activeLayer: LeafletLayerConfig;
   selectedPlace: { latitude: number; longitude: number; displayName: string } | null;
   conversations: ConversationMarker[];
   transportPoints: TransportPoint[];
@@ -87,13 +78,16 @@ type LeafletMapDataPayload = {
 
 const NIGHT_OVERLAY_EVENT = "setNightMode";
 
-function createLeafletHtml(
-  initialCenter: LeafletMapViewProps["initialCenter"],
-  initialLayer: LeafletLayerConfig
-) {
+const DEFAULT_LAYER = {
+  tileUrlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  attribution: "&copy; OpenStreetMap contributors",
+  maxZoom: 19,
+  subdomains: ["a", "b", "c"],
+};
+
+function createLeafletHtml(initialCenter: LeafletMapViewProps["initialCenter"]) {
   const initialConfig = {
     center: initialCenter,
-    layer: initialLayer,
   };
 
   return `<!DOCTYPE html>
@@ -179,6 +173,7 @@ function createLeafletHtml(
     ></script>
     <script>
       const INITIAL_CONFIG = ${JSON.stringify(initialConfig)};
+      const DEFAULT_LAYER = ${JSON.stringify(DEFAULT_LAYER)};
       const state = {
         baseLayer: null,
         selectedLayer: L.layerGroup(),
@@ -199,6 +194,16 @@ function createLeafletHtml(
         INITIAL_CONFIG.center.zoom
       );
       map.attributionControl.setPrefix('');
+
+      const layerOptions = {
+        attribution: DEFAULT_LAYER.attribution || '',
+        maxZoom: DEFAULT_LAYER.maxZoom || 19,
+      };
+      if (Array.isArray(DEFAULT_LAYER.subdomains)) {
+        layerOptions.subdomains = DEFAULT_LAYER.subdomains;
+      }
+      state.baseLayer = L.tileLayer(DEFAULT_LAYER.tileUrlTemplate, layerOptions);
+      state.baseLayer.addTo(map);
 
       state.selectedLayer.addTo(map);
       state.conversationLayer.addTo(map);
@@ -234,28 +239,6 @@ function createLeafletHtml(
         if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
           window.ReactNativeWebView.postMessage(JSON.stringify({ type, payload }));
         }
-      }
-
-      function applyBaseLayer(config) {
-        if (!config || !config.tileUrlTemplate) {
-          return;
-        }
-
-        if (state.baseLayer) {
-          map.removeLayer(state.baseLayer);
-          state.baseLayer = null;
-        }
-
-        const options = {
-          attribution: config.attribution || '',
-          maxZoom: config.maxZoom || 19,
-        };
-        if (Array.isArray(config.subdomains)) {
-          options.subdomains = config.subdomains;
-        }
-
-        state.baseLayer = L.tileLayer(config.tileUrlTemplate, options);
-        state.baseLayer.addTo(map);
       }
 
       function toLatLngTuple(point) {
@@ -414,9 +397,6 @@ function createLeafletHtml(
         }
         const { type, payload } = data;
         switch (type) {
-          case 'setBaseLayer':
-            applyBaseLayer(payload.layer);
-            break;
           case 'updateData':
             updateData(payload);
             break;
@@ -433,8 +413,6 @@ function createLeafletHtml(
             break;
         }
       }
-
-      applyBaseLayer(INITIAL_CONFIG.layer);
 
       setTimeout(() => {
         map.invalidateSize();
@@ -463,7 +441,6 @@ const LeafletMapView = forwardRef(
     {
       style,
       initialCenter,
-      activeLayer,
       selectedPlace,
       conversations,
       transportPoints,
@@ -480,12 +457,7 @@ const LeafletMapView = forwardRef(
     const webViewRef = useRef<WebView>(null);
     const isReadyRef = useRef(false);
     const pendingMessagesRef = useRef<string[]>([]);
-    const initialLayerRef = useRef<LeafletLayerConfig>(activeLayer);
-
-    const html = useMemo(
-      () => createLeafletHtml(initialCenter, initialLayerRef.current),
-      [initialCenter]
-    );
+    const html = useMemo(() => createLeafletHtml(initialCenter), [initialCenter]);
 
     const postMessage = useCallback((message: LeafletMessage) => {
       const serialized = JSON.stringify(message);
@@ -530,17 +502,9 @@ const LeafletMapView = forwardRef(
       ]
     );
 
-    const sendLayerUpdate = useCallback(() => {
-      postMessage({ type: "setBaseLayer", payload: { layer: activeLayer } });
-    }, [activeLayer, postMessage]);
-
     const sendDataUpdate = useCallback(() => {
       postMessage({ type: "updateData", payload: mapDataPayload });
     }, [mapDataPayload, postMessage]);
-
-    useEffect(() => {
-      sendLayerUpdate();
-    }, [sendLayerUpdate]);
 
     useEffect(() => {
       sendDataUpdate();
@@ -590,7 +554,6 @@ const LeafletMapView = forwardRef(
           case "ready":
             isReadyRef.current = true;
             flushPendingMessages();
-            sendLayerUpdate();
             sendDataUpdate();
             break;
           case "mapPress":
@@ -616,7 +579,7 @@ const LeafletMapView = forwardRef(
             break;
         }
       },
-      [flushPendingMessages, onConversationPress, onMapPress, sendDataUpdate, sendLayerUpdate]
+      [flushPendingMessages, onConversationPress, onMapPress, sendDataUpdate]
     );
 
     return (

@@ -5,19 +5,11 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  Alert,
-  FlatList,
-  Keyboard,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import MapSearchBar, { MapSearchBarHandle } from "../components/MapSearchBar";
+import SearchBar, { SearchBarHandle } from "../components/SearchBar";
 import FloatingActionButton from "../components/FloatingActionButton";
 import FilterBottomSheet, {
   FilterState,
@@ -31,15 +23,11 @@ import { LatLng } from "../types/coordinates";
 import { Colors, Palette } from "../../constants/theme";
 import { DEFAULT_COORDINATES } from "../../constants/map";
 import CreateConversationModal from "../components/CreateConversationModal";
-import LeafletMapView, {
-  LeafletLayerConfig,
-  LeafletMapHandle,
-} from "../components/LeafletMapView";
+import LeafletMapView, { LeafletMapHandle } from "../components/LeafletMapView";
 import useVoiceSearch from "../hooks/useVoiceSearch";
 import usePlaceSearch from "../hooks/usePlaceSearch";
 import SelectedPlaceCard from "../components/map/SelectedPlaceCard";
 import LocationErrorBanner from "../components/map/LocationErrorBanner";
-import LayerBadge from "../components/map/LayerBadge";
 import MapOverlayCard from "../components/map/MapOverlayCard";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
 import { TAB_BAR_HEIGHT } from "../../constants/layout";
@@ -48,50 +36,6 @@ export type MapScreenParams = {
   triggerType?: string | string[];
   triggerTimestamp?: string | string[];
 };
-
-type MapLayer = LeafletLayerConfig & {
-  id: "standard" | "satellite" | "terrain" | "dark";
-  label: string;
-};
-
-const MAP_LAYERS: MapLayer[] = [
-  {
-    id: "standard",
-    label: "Standard",
-    tileUrlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: "&copy; OpenStreetMap contributors",
-    maxZoom: 19,
-    subdomains: ["a", "b", "c"],
-  },
-  {
-    id: "satellite",
-    label: "Satellite",
-    tileUrlTemplate:
-      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attribution:
-      "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
-    maxZoom: 19,
-  },
-  {
-    id: "terrain",
-    label: "Terrain",
-    tileUrlTemplate: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-    attribution:
-      "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)",
-    maxZoom: 17,
-    subdomains: ["a", "b", "c"],
-  },
-  {
-    id: "dark",
-    label: "Night",
-    tileUrlTemplate:
-      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    attribution:
-      "&copy; OpenStreetMap contributors &copy; CARTO",
-    maxZoom: 19,
-    subdomains: ["a", "b", "c", "d"],
-  },
-];
 
 const INITIAL_VIEW = {
   latitude: DEFAULT_COORDINATES.latitude,
@@ -138,7 +82,7 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const triggerHandledRef = useRef<string | null>(null);
   const mapRef = useRef<LeafletMapHandle | null>(null);
-  const searchBarRef = useRef<MapSearchBarHandle>(null);
+  const searchBarRef = useRef<SearchBarHandle>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [shouldShowResults, setShouldShowResults] = useState(false);
@@ -150,9 +94,9 @@ export default function MapScreen() {
     night: false,
   });
   const [isFilterSheetVisible, setFilterSheetVisible] = useState(false);
-  const [mapLayerIndex, setMapLayerIndex] = useState(0);
   const [pendingCoordinate, setPendingCoordinate] = useState<LatLng | null>(null);
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
+  const [pendingSubmitQuery, setPendingSubmitQuery] = useState<string | null>(null);
 
   const { addFavorite } = useFavorites();
   const { conversations, createConversation } = useChatConversations();
@@ -170,8 +114,10 @@ export default function MapScreen() {
   );
 
   const handleVoiceTranscript = useCallback((transcript: string) => {
+    const trimmed = transcript.trim();
     setSearchQuery(transcript);
-    setShouldShowResults(true);
+    setShouldShowResults(trimmed.length > 0);
+    setPendingSubmitQuery(trimmed.length > 0 ? trimmed : null);
   }, []);
 
   const handleVoiceError = useCallback((message: string) => {
@@ -188,8 +134,6 @@ export default function MapScreen() {
     onResult: handleVoiceTranscript,
     onError: handleVoiceError,
   });
-
-  const activeLayer = MAP_LAYERS[mapLayerIndex];
 
   useEffect(() => {
     if (params?.triggerType !== "focusSearch") {
@@ -244,16 +188,63 @@ export default function MapScreen() {
       setSelectedPlace(result);
       setSearchQuery(result.displayName);
       setShouldShowResults(false);
+      setPendingSubmitQuery(null);
       focusCamera({ latitude: result.latitude, longitude: result.longitude }, 15);
     },
     [focusCamera]
   );
 
-  const handleSubmitSearch = useCallback(() => {
+  const handleSearchSubmit = useCallback(
+    (query: string) => {
+      const trimmed = query.trim();
+      if (trimmed.length === 0) {
+        setShouldShowResults(false);
+        setSelectedPlace(null);
+        setPendingSubmitQuery(null);
+        return;
+      }
+
+      setSearchQuery((current) => (current === query ? current : query));
+      setShouldShowResults(true);
+      setPendingSubmitQuery(trimmed);
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!pendingSubmitQuery) {
+      return;
+    }
+
+    if (isSearching) {
+      return;
+    }
+
+    const normalizedQuery = searchQuery.trim();
+    if (normalizedQuery !== pendingSubmitQuery) {
+      return;
+    }
+
     if (searchResults.length > 0) {
       handleSelectSearchResult(searchResults[0]);
+      setPendingSubmitQuery(null);
+      return;
     }
-  }, [handleSelectSearchResult, searchResults]);
+
+    if (searchError) {
+      setPendingSubmitQuery(null);
+      return;
+    }
+
+    setPendingSubmitQuery(null);
+  }, [
+    handleSelectSearchResult,
+    isSearching,
+    pendingSubmitQuery,
+    searchError,
+    searchQuery,
+    searchResults,
+  ]);
 
   const conversationMarkers = useMemo(
     () =>
@@ -310,23 +301,6 @@ export default function MapScreen() {
       Alert.alert("Voice search", voiceError);
     }
   }, [isVoiceSupported, startVoiceSearch, voiceError]);
-
-  const handleBackToMap = useCallback(() => {
-    Keyboard.dismiss();
-    searchBarRef.current?.blur();
-    setSearchQuery("");
-    setShouldShowResults(false);
-    setSelectedPlace(null);
-    setFilterSheetVisible(false);
-  }, []);
-
-  const shouldShowSearchActions = useMemo(
-    () =>
-      shouldShowResults ||
-      isFilterSheetVisible ||
-      searchQuery.trim().length > 0,
-    [isFilterSheetVisible, searchQuery, shouldShowResults]
-  );
 
   const mapBottomInset = useMemo(
     () => insets.bottom + TAB_BAR_HEIGHT + 16,
@@ -411,10 +385,6 @@ export default function MapScreen() {
     [handleSelectSearchResult]
   );
 
-  const handleCycleLayer = useCallback(() => {
-    setMapLayerIndex((current) => (current + 1) % MAP_LAYERS.length);
-  }, []);
-
   const handleLocateMe = useCallback(() => {
     const coords = userLocation.coords;
     if (coords) {
@@ -433,19 +403,22 @@ export default function MapScreen() {
       <View style={styles.container}>
         <View style={styles.searchSection}>
           <View style={styles.searchBarWrapper}>
-            <MapSearchBar
+            <SearchBar
               ref={searchBarRef}
               value={searchQuery}
               onChangeText={(value) => {
                 setSearchQuery(value);
                 setShouldShowResults(true);
               }}
-              onSubmitEditing={handleSubmitSearch}
+              onSubmit={handleSearchSubmit}
               onFocus={() => setShouldShowResults(true)}
+              onBlur={() => {
+                if (searchQuery.trim().length === 0 && !isFilterSheetVisible) {
+                  setShouldShowResults(false);
+                }
+              }}
               onMicPress={isVoiceListening ? stopVoiceSearch : handleVoiceSearch}
               isLoading={isSearching || isVoiceListening}
-              onCancel={handleBackToMap}
-              showCancel={shouldShowSearchActions}
             />
           </View>
 
@@ -491,7 +464,6 @@ export default function MapScreen() {
             }}
             style={[styles.map, { bottom: mapBottomInset }]}
             initialCenter={INITIAL_VIEW}
-            activeLayer={activeLayer}
             selectedPlace={
               selectedPlace
                 ? {
@@ -519,18 +491,11 @@ export default function MapScreen() {
               onPress={handleOpenFilters}
             />
             <FloatingActionButton
-              icon="layers-outline"
-              accessibilityLabel="Change map layer"
-              onPress={handleCycleLayer}
-            />
-            <FloatingActionButton
               icon="locate-outline"
               accessibilityLabel="Center on my location"
               onPress={handleLocateMe}
             />
           </View>
-
-          <LayerBadge style={[styles.layerBadge, { top: 16 }]} label={activeLayer.label} />
 
           {selectedPlace && (
             <View style={[styles.overlayPosition, { bottom: overlayBottomOffset }]}>
@@ -580,14 +545,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
   },
   searchSection: {
-    paddingTop: 18,
+    paddingTop: 16,
     paddingBottom: 12,
-    alignItems: "center",
+    paddingHorizontal: 16,
     gap: 12,
+    zIndex: 2,
   },
   searchBarWrapper: {
-    width: "92%",
-    maxWidth: 420,
+    width: "100%",
   },
   mapContainer: {
     flex: 1,
@@ -601,8 +566,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 0,
     maxHeight: 260,
-    width: "92%",
-    maxWidth: 420,
+    width: "100%",
+    alignSelf: "center",
   },
   resultItem: {
     paddingHorizontal: 18,
@@ -642,10 +607,6 @@ const styles = StyleSheet.create({
     right: 20,
     alignItems: "center",
     gap: 12,
-  },
-  layerBadge: {
-    position: "absolute",
-    right: 20,
   },
   overlayPosition: {
     position: "absolute",
