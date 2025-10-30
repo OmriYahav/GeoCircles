@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Colors, Palette } from "../../constants/theme";
+import { colors, radii, shadows, spacing, typography } from "../theme";
 
 export type SearchBarHandle = {
   focus: () => void;
@@ -69,7 +69,7 @@ const SearchBar = (
       <Ionicons
         name="search-outline"
         size={18}
-        color={Colors.light.icon}
+        color={colors.text.muted}
         style={styles.leadingIcon}
         accessible={false}
       />
@@ -81,7 +81,7 @@ const SearchBar = (
         onFocus={onFocus}
         onBlur={onBlur}
         placeholder={placeholder}
-        placeholderTextColor="rgba(60, 60, 67, 0.6)"
+        placeholderTextColor={colors.text.muted}
         returnKeyType="search"
         autoCorrect={false}
         autoCapitalize="none"
@@ -93,7 +93,7 @@ const SearchBar = (
       />
       <View style={styles.trailingContainer}>
         {isLoading ? (
-          <ActivityIndicator size="small" color={Colors.light.tint} />
+          <ActivityIndicator size="small" color={colors.primary} />
         ) : null}
         {onMicPress ? (
           <Pressable
@@ -106,7 +106,7 @@ const SearchBar = (
               pressed && styles.iconButtonPressed,
             ]}
           >
-            <Ionicons name="mic-outline" size={18} color={Colors.light.icon} />
+            <Ionicons name="mic-outline" size={18} color={colors.text.muted} />
           </Pressable>
         ) : null}
       </View>
@@ -121,38 +121,35 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     height: 48,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    backgroundColor: Palette.surface,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    borderRadius: radii.xl,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface,
+    ...shadows.sm,
     zIndex: 2,
   },
   leadingIcon: {
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    color: Colors.light.text,
+    fontSize: typography.size.md,
+    color: colors.text.primary,
+    fontFamily: typography.family.medium,
     paddingVertical: 0,
   },
   trailingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: spacing.md,
   },
   iconButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: radii.pill,
     alignItems: "center",
     justifyContent: "center",
   },
   iconButtonPressed: {
-    backgroundColor: Palette.primaryTint,
+    backgroundColor: colors.primaryTint,
   },
 });

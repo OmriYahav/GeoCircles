@@ -4,7 +4,7 @@ import { Button } from "react-native-paper";
 
 import { SearchResult } from "../../services/MapService";
 import MapOverlayCard from "./MapOverlayCard";
-import { Palette } from "../../../constants/theme";
+import { colors, radii, spacing, typography } from "../../theme";
 
 type SelectedPlaceCardProps = {
   place: Pick<SearchResult, "displayName" | "latitude" | "longitude">;
@@ -25,7 +25,13 @@ export default function SelectedPlaceCard({ place, onSave }: SelectedPlaceCardPr
       <Text style={styles.title} numberOfLines={2}>
         {place.displayName}
       </Text>
-      <Button mode="contained" onPress={onSave} style={styles.button} icon="heart-outline">
+      <Button
+        mode="contained"
+        onPress={onSave}
+        style={styles.button}
+        labelStyle={styles.buttonLabel}
+        icon="heart-outline"
+      >
         Save to favorites
       </Button>
     </MapOverlayCard>
@@ -34,7 +40,7 @@ export default function SelectedPlaceCard({ place, onSave }: SelectedPlaceCardPr
 
 const styles = StyleSheet.create({
   container: {
-    gap: 12,
+    gap: spacing.md,
   },
   headerRow: {
     flexDirection: "row",
@@ -42,28 +48,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: Palette.primaryTint,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primaryTint,
   },
   badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: Palette.primary,
+    fontSize: typography.size.xs,
+    fontFamily: typography.family.medium,
+    color: colors.primary,
   },
   coordinates: {
-    fontSize: 12,
-    color: Palette.textMuted,
+    fontSize: typography.size.xs,
+    color: colors.text.muted,
   },
   title: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: Palette.textPrimary,
+    fontSize: typography.size.lg,
+    fontFamily: typography.family.semiBold,
+    color: colors.text.primary,
+    letterSpacing: 0.2,
   },
   button: {
     alignSelf: "flex-start",
-    borderRadius: 14,
-    paddingHorizontal: 4,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+  },
+  buttonLabel: {
+    fontFamily: typography.family.medium,
+    letterSpacing: 0.2,
   },
 });

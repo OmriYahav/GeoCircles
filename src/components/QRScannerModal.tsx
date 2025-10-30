@@ -3,7 +3,7 @@ import { Keyboard, Platform, StyleSheet, View } from "react-native";
 import { Button, Modal, Portal, Text } from "react-native-paper";
 import type { BarCodeEvent } from "expo-barcode-scanner";
 
-import { Colors } from "../../constants/theme";
+import { colors, radii, spacing, typography } from "../theme";
 
 const DEFAULT_PERMISSION_MESSAGE =
   "Camera access is required to scan QR codes. Enable it in your system settings to continue.";
@@ -98,7 +98,11 @@ export default function QRScannerModal({
 
   return (
     <Portal>
-      <Modal visible={visible} onDismiss={handleDismiss} contentContainerStyle={styles.modal}>
+      <Modal
+        visible={visible}
+        onDismiss={handleDismiss}
+        contentContainerStyle={styles.modal}
+      >
         <Text style={styles.title}>Scan QR code</Text>
         {hasPermission === false ? (
           <Text style={styles.permissionText}>{permissionMessage}</Text>
@@ -132,41 +136,42 @@ export default function QRScannerModal({
 
 const styles = StyleSheet.create({
   modal: {
-    marginHorizontal: 16,
-    borderRadius: 24,
-    padding: 24,
-    backgroundColor: "rgba(0, 0, 0, 0.92)",
+    marginHorizontal: spacing.xxl,
+    borderRadius: radii.xl,
+    padding: spacing.xxl,
+    backgroundColor: "#0B1028",
   },
   title: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 16,
+    color: colors.text.inverse,
+    fontSize: typography.size.xl,
+    fontFamily: typography.family.semiBold,
+    marginBottom: spacing.xl,
   },
   permissionText: {
-    color: "#fff",
-    fontSize: 15,
-    lineHeight: 22,
+    color: colors.text.inverse,
+    fontSize: typography.size.sm,
+    lineHeight: typography.lineHeight.relaxed,
+    fontFamily: typography.family.regular,
   },
   scannerContainer: {
     height: 280,
-    borderRadius: 20,
+    borderRadius: radii.lg,
     overflow: "hidden",
-    marginBottom: 16,
+    marginBottom: spacing.xl,
     backgroundColor: "#000",
   },
   overlayBox: {
     position: "absolute",
-    left: 24,
-    right: 24,
-    top: 40,
-    bottom: 40,
-    borderRadius: 16,
+    left: spacing.xxl,
+    right: spacing.xxl,
+    top: spacing.xxl,
+    bottom: spacing.xxl,
+    borderRadius: radii.md,
     borderWidth: 2,
-    borderColor: Colors.light.tint,
+    borderColor: colors.primary,
   },
   closeButton: {
     alignSelf: "flex-end",
-    borderRadius: 12,
+    borderRadius: radii.pill,
   },
 });

@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { Palette } from "../../../constants/theme";
+import { colors, radii, spacing, typography } from "../../theme";
 import MapOverlayCard from "./MapOverlayCard";
 
 type RouteSummaryCardProps = {
@@ -42,8 +42,9 @@ export default function RouteSummaryCard({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 14,
-    backgroundColor: Palette.primary,
+    gap: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: radii.xl,
   },
   header: {
     flexDirection: "row",
@@ -51,43 +52,47 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   title: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
+    fontSize: typography.size.lg,
+    fontFamily: typography.family.semiBold,
+    color: colors.text.inverse,
+    letterSpacing: 0.3,
   },
   pill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
   pillText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
+    color: colors.text.inverse,
+    fontSize: typography.size.xs,
+    fontFamily: typography.family.medium,
   },
   subtitle: {
-    color: "rgba(255,255,255,0.82)",
+    color: "rgba(255,255,255,0.85)",
+    fontFamily: typography.family.regular,
+    fontSize: typography.size.sm,
   },
   row: {
     flexDirection: "row",
-    gap: 12,
+    gap: spacing.md,
   },
   statCard: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: "rgba(15,23,42,0.25)",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
+    backgroundColor: "rgba(15,23,42,0.22)",
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: typography.size.xs,
     color: "rgba(255,255,255,0.72)",
+    fontFamily: typography.family.medium,
   },
   statValue: {
-    marginTop: 4,
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
+    marginTop: spacing.xs,
+    fontSize: typography.size.lg,
+    fontFamily: typography.family.semiBold,
+    color: colors.text.inverse,
   },
 });

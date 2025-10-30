@@ -8,7 +8,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import TopNavigationMenu from "./TopNavigationMenu";
-import { Palette } from "../../../constants/theme";
+import { colors, spacing } from "../../theme";
 
 type ScreenScaffoldProps = {
   children: React.ReactNode;
@@ -24,12 +24,7 @@ export default function ScreenScaffold({
   const insets = useSafeAreaInsets();
 
   return (
-    <View
-      style={[
-        styles.root,
-        { paddingTop: insets.top, backgroundColor: Palette.background },
-      ]}
-    >
+    <View style={[styles.root, { paddingTop: insets.top }]}>
       <TopNavigationMenu variant={variant} />
       <View style={[styles.content, contentStyle]}>{children}</View>
     </View>
@@ -39,8 +34,11 @@ export default function ScreenScaffold({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxl,
   },
 });

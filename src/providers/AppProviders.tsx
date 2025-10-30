@@ -15,23 +15,24 @@ import { ChatConversationsProvider } from "../context/ChatConversationsContext";
 import { BusinessProvider } from "../context/BusinessContext";
 import KeyboardDismissView from "../components/KeyboardDismissView";
 import BusinessProximityManager from "../../components/BusinessProximityManager";
-import { Colors, Palette } from "../../constants/theme";
+import { colors } from "../theme";
 
 const paperTheme: MD3Theme = {
   ...MD3LightTheme,
-  roundness: 14,
+  roundness: 18,
   colors: {
     ...MD3LightTheme.colors,
-    primary: Palette.primary,
-    primaryContainer: Palette.primarySoft,
-    secondary: Palette.accent,
-    background: Palette.background,
-    surface: Palette.surface,
-    surfaceVariant: Palette.surfaceMuted,
-    outline: Palette.border,
-    outlineVariant: Palette.border,
-    onSurface: Palette.textPrimary,
-    onSurfaceVariant: Palette.textMuted,
+    primary: colors.primary,
+    primaryContainer: colors.primarySoft,
+    secondary: colors.secondary,
+    secondaryContainer: colors.secondarySoft,
+    background: colors.background,
+    surface: colors.surface,
+    surfaceVariant: colors.surfaceMuted,
+    outline: colors.border,
+    outlineVariant: colors.divider,
+    onSurface: colors.text.primary,
+    onSurfaceVariant: colors.text.muted,
   },
 };
 
@@ -82,10 +83,12 @@ export default function AppProviders({ children }: AppProvidersProps) {
                 <FavoritesProvider>
                   <StatusBar
                     barStyle="dark-content"
-                    backgroundColor={Colors.light.background}
+                    backgroundColor={colors.background}
                   />
                   <KeyboardDismissView>
-                    <View style={{ flex: 1 }}>{children}</View>
+                    <View style={{ flex: 1, backgroundColor: colors.background }}>
+                      {children}
+                    </View>
                   </KeyboardDismissView>
                   <BusinessProximityManager />
                 </FavoritesProvider>

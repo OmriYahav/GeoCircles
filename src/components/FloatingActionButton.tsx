@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Palette } from "../../constants/theme";
+import { colors, radii, shadows, spacing } from "../theme";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -48,7 +48,7 @@ export default function FloatingActionButton({
       style={[styles.container, style, animatedStyle]}
     >
       <View style={styles.iconContainer}>
-        <Ionicons name={icon} size={24} color={Palette.primary} />
+        <Ionicons name={icon} size={24} color={colors.primary} />
       </View>
     </AnimatedPressable>
   );
@@ -56,24 +56,21 @@ export default function FloatingActionButton({
 
 const styles = StyleSheet.create({
   container: {
-    width: 52,
-    height: 52,
-    borderRadius: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    shadowColor: "rgba(15, 23, 42, 0.15)",
-    shadowOpacity: 1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 9,
+    width: 56,
+    height: 56,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface,
+    ...shadows.md,
     alignItems: "center",
     justifyContent: "center",
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: radii.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Palette.primaryTint,
+    backgroundColor: colors.primaryTint,
+    padding: spacing.xs,
   },
 });

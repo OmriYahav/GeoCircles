@@ -3,8 +3,8 @@ import { FlatList, Pressable, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
 
 import { useFavorites } from "../context/FavoritesContext";
-import { Palette } from "../../constants/theme";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
+import { colors, radii, shadows, spacing, typography } from "../theme";
 
 export default function FavoritesScreen() {
   const { favorites, removeFavorite, clearFavorites, isReady } = useFavorites();
@@ -13,7 +13,9 @@ export default function FavoritesScreen() {
     return (
       <ScreenScaffold contentStyle={styles.loadingContent}>
         <View style={styles.emptyState}>
-          <Text variant="bodyLarge">Loading your saved places…</Text>
+          <Text variant="bodyLarge" style={styles.loadingLabel}>
+            Loading your saved places…
+          </Text>
         </View>
       </ScreenScaffold>
     );
@@ -47,6 +49,7 @@ export default function FavoritesScreen() {
               mode="contained-tonal"
               onPress={clearFavorites}
               style={styles.clearButton}
+              labelStyle={styles.clearLabel}
             >
               Clear all
             </Button>
@@ -64,7 +67,12 @@ export default function FavoritesScreen() {
                 {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
               </Text>
             </View>
-            <Button mode="text" onPress={() => removeFavorite(item.id)}>
+            <Button
+              mode="text"
+              onPress={() => removeFavorite(item.id)}
+              labelStyle={styles.removeLabel}
+              textColor={colors.primary}
+            >
               Remove
             </Button>
           </Pressable>
@@ -77,71 +85,88 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   loadingContent: {
     flex: 1,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xxxl,
   },
   listContent: {
     flex: 1,
+    paddingTop: spacing.xl,
   },
   container: {
     flex: 1,
-    backgroundColor: Palette.background,
+    backgroundColor: colors.background,
   },
   list: {
-    padding: 24,
-    gap: 12,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxl,
+    gap: spacing.lg,
   },
   headerActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    marginBottom: 12,
-    gap: 12,
+    marginBottom: spacing.md,
+    gap: spacing.md,
   },
   card: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 18,
-    borderRadius: 18,
-    backgroundColor: Palette.surface,
-    shadowColor: "rgba(15, 23, 42, 0.14)",
-    shadowOpacity: 1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
-    marginBottom: 12,
+    padding: spacing.lg,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    ...shadows.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.divider,
   },
   cardPressed: {
     opacity: 0.9,
   },
   cardBody: {
     flex: 1,
-    marginRight: 12,
+    marginRight: spacing.lg,
   },
   cardTitle: {
-    fontWeight: "700",
-    color: Palette.textPrimary,
+    fontFamily: typography.family.semiBold,
+    color: colors.text.primary,
+    fontSize: typography.size.md,
   },
   cardSubtitle: {
-    marginTop: 4,
-    color: Palette.textMuted,
+    marginTop: spacing.xs,
+    color: colors.text.muted,
+    fontFamily: typography.family.regular,
   },
   clearButton: {
-    borderRadius: 12,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primaryTint,
+  },
+  clearLabel: {
+    fontFamily: typography.family.medium,
   },
   emptyState: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 32,
-    backgroundColor: Palette.background,
+    padding: spacing.xxxl,
+    backgroundColor: colors.background,
   },
   emptyTitle: {
-    fontWeight: "700",
-    marginBottom: 12,
-    color: Palette.textPrimary,
+    fontFamily: typography.family.semiBold,
+    fontSize: typography.size.xl,
+    marginBottom: spacing.md,
+    color: colors.text.primary,
   },
   emptySubtitle: {
-    color: Palette.textMuted,
+    color: colors.text.secondary,
     textAlign: "center",
+    fontFamily: typography.family.regular,
+    lineHeight: typography.lineHeight.relaxed,
+  },
+  loadingLabel: {
+    fontFamily: typography.family.medium,
+    color: colors.text.secondary,
+  },
+  removeLabel: {
+    fontFamily: typography.family.medium,
   },
 });

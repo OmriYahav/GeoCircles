@@ -7,8 +7,8 @@ import dayjs from "dayjs";
 
 import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
-import { Palette } from "../../constants/theme";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
+import { colors, radii, shadows, spacing, typography } from "../theme";
 
 export default function MessagesScreen() {
   const router = useRouter();
@@ -101,66 +101,62 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: Palette.background,
+    backgroundColor: colors.background,
   },
   list: {
-    padding: 20,
-    gap: 18,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.xxl,
+    gap: spacing.lg,
   },
   emptyCard: {
-    borderRadius: 20,
-    backgroundColor: Palette.surface,
-    shadowColor: "rgba(15, 23, 42, 0.14)",
-    shadowOpacity: 1,
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 24,
-    elevation: 4,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    ...shadows.md,
   },
   emptyTitle: {
-    fontWeight: "700",
-    marginBottom: 6,
-    color: Palette.textPrimary,
+    fontFamily: typography.family.semiBold,
+    marginBottom: spacing.xs,
+    color: colors.text.primary,
+    fontSize: typography.size.lg,
   },
   emptySubtitle: {
-    color: Palette.textMuted,
+    color: colors.text.secondary,
+    lineHeight: typography.lineHeight.relaxed,
   },
   card: {
-    borderRadius: 20,
-    backgroundColor: Palette.surface,
-    shadowColor: "rgba(15, 23, 42, 0.12)",
-    shadowOpacity: 1,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 20,
-    elevation: 4,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    ...shadows.sm,
   },
   cardContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: spacing.lg,
   },
   cardAvatar: {
-    backgroundColor: Palette.primary,
+    backgroundColor: colors.primary,
   },
   cardText: {
     flex: 1,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Palette.textPrimary,
+    fontSize: typography.size.lg,
+    fontFamily: typography.family.semiBold,
+    color: colors.text.primary,
   },
   cardSubtitle: {
-    marginTop: 6,
-    color: Palette.textSecondary,
+    marginTop: spacing.xs,
+    color: colors.text.secondary,
+    fontFamily: typography.family.regular,
   },
   cardMeta: {
-    marginTop: 8,
-    fontSize: 12,
-    color: Palette.textMuted,
+    marginTop: spacing.sm,
+    fontSize: typography.size.xs,
+    color: colors.text.muted,
   },
   pendingBadge: {
-    marginTop: 8,
-    color: Palette.accent,
-    fontWeight: "600",
+    marginTop: spacing.sm,
+    color: colors.secondary,
+    fontFamily: typography.family.medium,
   },
 });

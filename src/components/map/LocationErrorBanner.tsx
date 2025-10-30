@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Button } from "react-native-paper";
 
 import MapOverlayCard from "./MapOverlayCard";
-import { Palette } from "../../../constants/theme";
+import { colors, radii, spacing, typography } from "../../theme";
 
 type LocationErrorBannerProps = {
   message: string;
@@ -34,26 +34,28 @@ export default function LocationErrorBanner({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 12,
+    gap: spacing.md,
   },
   badge: {
     alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: Palette.danger,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+    backgroundColor: colors.danger,
   },
   badgeText: {
-    fontSize: 12,
-    color: "#fff",
-    fontWeight: "700",
+    fontSize: typography.size.xs,
+    color: colors.text.inverse,
+    fontFamily: typography.family.semiBold,
   },
   message: {
-    color: Palette.textSecondary,
-    lineHeight: 20,
+    color: colors.text.secondary,
+    fontFamily: typography.family.regular,
+    lineHeight: typography.lineHeight.relaxed,
   },
   button: {
     alignSelf: "flex-start",
-    borderRadius: 14,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
   },
 });
