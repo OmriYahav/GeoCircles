@@ -1,7 +1,7 @@
 import React, { ReactNode } from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 
-import { Palette } from "../../../constants/theme";
+import { colors, radii, shadows, spacing } from "../../theme";
 
 type MapOverlayCardProps = {
   children: ReactNode;
@@ -14,15 +14,11 @@ export default function MapOverlayCard({ children, style }: MapOverlayCardProps)
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Palette.surface,
-    borderRadius: 22,
-    padding: 18,
-    shadowColor: "rgba(15, 23, 42, 0.2)",
-    shadowOpacity: 1,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 11,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
+    ...shadows.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(148, 163, 184, 0.2)",
+    borderColor: colors.border,
   },
 });

@@ -2,7 +2,8 @@ import React, { useMemo } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { Text, Avatar } from "react-native-paper";
 
-import { Palette } from "../../constants/theme";
+import { colors, radii, shadows, spacing, typography } from "../theme";
+import { globalStyles } from "../styles/global";
 
 const dummyHubItems = [
   {
@@ -32,6 +33,15 @@ export default function HubScreen() {
     <FlatList
       contentContainerStyle={styles.list}
       style={styles.container}
+      ListHeaderComponent={
+        <View style={styles.header}> 
+          <Text style={styles.title}>Curated circles nearby</Text>
+          <Text style={styles.subtitle}>
+            Discover vibrant meetups and creative hubs formed by locals within a
+            short walk from you.
+          </Text>
+        </View>
+      }
       data={items}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
@@ -56,41 +66,59 @@ export default function HubScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Palette.background,
+    ...globalStyles.screen,
   },
   list: {
-    padding: 24,
-    gap: 16,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.xxl,
+    gap: spacing.lg,
+  },
+  header: {
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  title: {
+    fontFamily: typography.family.semiBold,
+    fontSize: typography.size.xxl,
+    color: colors.text.primary,
+    letterSpacing: 0.2,
+  },
+  subtitle: {
+    fontFamily: typography.family.regular,
+    fontSize: typography.size.md,
+    color: colors.text.secondary,
+    lineHeight: typography.lineHeight.relaxed,
   },
   card: {
     flexDirection: "row",
-    backgroundColor: Palette.surface,
-    borderRadius: 18,
-    padding: 18,
-    elevation: 3,
-    shadowColor: "rgba(15, 23, 42, 0.16)",
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
+    ...shadows.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.divider,
   },
   avatar: {
-    marginRight: 16,
-    backgroundColor: Palette.primary,
+    marginRight: spacing.lg,
+    backgroundColor: colors.primaryTint,
   },
   cardBody: {
     flex: 1,
   },
   cardTitle: {
-    fontWeight: "700",
-    color: Palette.textPrimary,
+    fontFamily: typography.family.semiBold,
+    fontSize: typography.size.lg,
+    color: colors.text.primary,
   },
   cardDescription: {
-    marginTop: 4,
-    color: Palette.textSecondary,
+    marginTop: spacing.xs,
+    color: colors.text.secondary,
+    fontFamily: typography.family.regular,
+    lineHeight: typography.lineHeight.relaxed,
   },
   cardMeta: {
-    marginTop: 8,
-    color: Palette.textMuted,
+    marginTop: spacing.sm,
+    color: colors.text.muted,
+    fontFamily: typography.family.medium,
   },
 });

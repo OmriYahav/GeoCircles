@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, Modal, Portal, Text, TextInput } from "react-native-paper";
 import { LatLng } from "../types/coordinates";
-
-import { Colors } from "../../constants/theme";
+import { colors, radii, shadows, spacing, typography } from "../theme";
 
 type CreateConversationModalProps = {
   coordinate: LatLng | null;
@@ -73,27 +72,30 @@ export default function CreateConversationModal({
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 24,
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 24,
+    marginHorizontal: spacing.xxl,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.xxl,
+    ...shadows.lg,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: Colors.light.text,
+    fontSize: typography.size.xl,
+    fontFamily: typography.family.semiBold,
+    color: colors.text.primary,
+    letterSpacing: 0.2,
   },
   subtitle: {
-    marginTop: 6,
-    color: Colors.light.icon,
+    marginTop: spacing.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.family.regular,
   },
   input: {
-    marginTop: 20,
+    marginTop: spacing.xl,
   },
   actions: {
-    marginTop: 24,
+    marginTop: spacing.xxl,
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 12,
+    gap: spacing.lg,
   },
 });

@@ -2,7 +2,7 @@ import React from "react";
 import { Keyboard, StyleSheet, View } from "react-native";
 import { Button, Modal, Portal, Switch, Text } from "react-native-paper";
 
-import { Colors } from "../../constants/theme";
+import { colors, radii, spacing, typography } from "../theme";
 
 type FilterOptionKey = "traffic" | "hiking" | "transport" | "night";
 
@@ -85,44 +85,44 @@ export default function FilterBottomSheet({
 
 const styles = StyleSheet.create({
   modal: {
-    marginHorizontal: 16,
-    borderRadius: 24,
-    padding: 24,
-    backgroundColor: "rgba(255,255,255,0.97)",
+    marginHorizontal: spacing.xxl,
+    borderRadius: radii.xl,
+    padding: spacing.xxl,
+    backgroundColor: colors.surface,
   },
   title: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 6,
-    color: Colors.light.text,
+    fontSize: typography.size.xl,
+    fontFamily: typography.family.semiBold,
+    marginBottom: spacing.sm,
+    color: colors.text.primary,
   },
   subtitle: {
-    fontSize: 15,
-    lineHeight: 20,
-    color: Colors.light.icon,
-    marginBottom: 16,
+    fontSize: typography.size.sm,
+    lineHeight: typography.lineHeight.relaxed,
+    color: colors.text.secondary,
+    marginBottom: spacing.xl,
   },
   optionRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 14,
+    paddingVertical: spacing.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0,0,0,0.08)",
+    borderBottomColor: colors.divider,
   },
   optionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.light.text,
+    fontSize: typography.size.md,
+    fontFamily: typography.family.medium,
+    color: colors.text.primary,
   },
   optionDescription: {
-    fontSize: 13,
-    color: Colors.light.icon,
-    marginTop: 4,
-    maxWidth: 220,
+    fontSize: typography.size.sm,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+    maxWidth: 240,
   },
   closeButton: {
-    marginTop: 16,
-    borderRadius: 14,
+    marginTop: spacing.xl,
+    borderRadius: radii.pill,
   },
 });

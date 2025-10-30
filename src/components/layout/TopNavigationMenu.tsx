@@ -10,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
 
-import { Palette } from "../../../constants/theme";
+import { colors, radii, shadows, spacing, typography } from "../../theme";
 
 type TopNavigationMenuProps = {
   variant?: "default" | "modal";
@@ -55,7 +55,7 @@ export default function TopNavigationMenu({
             <Ionicons
               name="search-outline"
               size={18}
-              color={Palette.primary}
+              color={colors.primary}
             />
             <Text variant="labelSmall" style={styles.searchLabel}>
               Search
@@ -69,32 +69,28 @@ export default function TopNavigationMenu({
 
 const styles = StyleSheet.create({
   surface: {
-    borderRadius: 28,
+    borderRadius: radii.xl,
     alignSelf: "center",
     width: "92%",
-    maxWidth: 420,
+    maxWidth: 440,
     overflow: "hidden",
-    backgroundColor: Palette.surface,
-    shadowColor: "rgba(15, 23, 42, 0.12)",
-    shadowOpacity: 1,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 14,
-    elevation: 6,
+    backgroundColor: colors.surface,
+    ...shadows.sm,
   },
   header: {
     alignItems: "center",
     justifyContent: "flex-start",
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.lg,
     minHeight: 68,
   },
   spacer: {
     flex: 1,
   },
   searchButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: Palette.primaryTint,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primaryTint,
     overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
@@ -102,10 +98,12 @@ const styles = StyleSheet.create({
   searchContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.sm,
   },
   searchLabel: {
-    color: Palette.primary,
-    fontWeight: "600",
+    color: colors.primary,
+    fontFamily: typography.family.medium,
+    fontSize: typography.size.sm,
+    letterSpacing: 0.2,
   },
 });

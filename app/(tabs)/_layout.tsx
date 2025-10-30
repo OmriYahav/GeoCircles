@@ -10,7 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors, Palette } from "../../constants/theme";
+import { colors, radii, shadows, spacing, typography } from "../../src/theme";
 import { TAB_BAR_HEIGHT } from "../../constants/layout";
 
 const TAB_ICON_MAP: Record<
@@ -39,7 +39,7 @@ function TabButton({ label, icon, isFocused, onPress }: TabButtonProps) {
 
   const animatedButtonStyle = useAnimatedStyle(() => ({
     backgroundColor: withTiming(
-      isFocused ? Palette.primaryTint : "transparent"
+      isFocused ? colors.primaryTint : "transparent"
     ),
   }));
 
@@ -58,7 +58,7 @@ function TabButton({ label, icon, isFocused, onPress }: TabButtonProps) {
           <Ionicons
             name={icon}
             size={22}
-            color={isFocused ? Colors.light.tint : Colors.light.icon}
+            color={isFocused ? colors.primary : colors.text.muted}
           />
           <Animated.Text
             style={[styles.tabLabel, isFocused && styles.tabLabelActive]}
@@ -142,43 +142,39 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: "row",
-    backgroundColor: Palette.surface,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    gap: 12,
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xxl,
+    gap: spacing.md,
     justifyContent: "space-between",
     alignItems: "center",
-    borderRadius: 28,
-    shadowColor: "rgba(15, 23, 42, 0.12)",
-    shadowOpacity: 1,
-    shadowOffset: { width: 0, height: -6 },
-    shadowRadius: 18,
-    elevation: 6,
+    borderRadius: radii.xl,
+    ...shadows.md,
     alignSelf: "center",
     width: "92%",
-    maxWidth: 420,
+    maxWidth: 440,
     minHeight: TAB_BAR_HEIGHT,
   },
   tabButtonContainer: {
     flex: 1,
-    borderRadius: 20,
+    borderRadius: radii.lg,
     overflow: "hidden",
   },
   touchable: {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 20,
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+    borderRadius: radii.lg,
   },
   tabLabel: {
-    fontSize: 12,
-    color: Palette.textMuted,
-    fontWeight: "500",
+    fontSize: typography.size.xs,
+    color: colors.text.muted,
+    fontFamily: typography.family.medium,
   },
   tabLabelActive: {
-    color: Palette.primary,
-    fontWeight: "700",
+    color: colors.primary,
+    fontFamily: typography.family.semiBold,
   },
 });

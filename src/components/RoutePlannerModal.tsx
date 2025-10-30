@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FlatList, Keyboard, Pressable, StyleSheet, View } from "react-native";
 import { Button, Modal, Portal, Text, TextInput } from "react-native-paper";
 
-import { Colors } from "../../constants/theme";
+import { colors, radii, spacing, typography } from "../theme";
 import { SearchResult, searchPlaces } from "../services/MapService";
 
 type RoutePlannerModalProps = {
@@ -81,7 +81,11 @@ export default function RoutePlannerModal({
 
   return (
     <Portal>
-      <Modal visible={visible} onDismiss={handleDismiss} contentContainerStyle={styles.modal}>
+      <Modal
+        visible={visible}
+        onDismiss={handleDismiss}
+        contentContainerStyle={styles.modal}
+      >
         <Text style={styles.title}>Plan a route</Text>
         <Text style={styles.subtitle}>Choose where you’d like to start and finish.</Text>
         <TextInput
@@ -153,57 +157,57 @@ export default function RoutePlannerModal({
 
 const styles = StyleSheet.create({
   modal: {
-    marginHorizontal: 16,
-    borderRadius: 24,
-    padding: 24,
-    backgroundColor: "rgba(255,255,255,0.97)",
+    marginHorizontal: spacing.xxl,
+    borderRadius: radii.xl,
+    padding: spacing.xxl,
+    backgroundColor: colors.surface,
   },
   title: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 4,
-    color: Colors.light.text,
+    fontSize: typography.size.xl,
+    fontFamily: typography.family.semiBold,
+    marginBottom: spacing.xs,
+    color: colors.text.primary,
   },
   subtitle: {
-    fontSize: 15,
-    color: Colors.light.icon,
-    marginBottom: 16,
+    fontSize: typography.size.sm,
+    color: colors.text.secondary,
+    marginBottom: spacing.xl,
   },
   input: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   resultsContainer: {
     maxHeight: 200,
-    marginBottom: 12,
-    borderRadius: 12,
-    backgroundColor: "rgba(250,250,250,0.95)",
+    marginBottom: spacing.lg,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surfaceMuted,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: colors.divider,
   },
   resultItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0,0,0,0.06)",
+    borderBottomColor: colors.divider,
   },
   resultItemPressed: {
-    backgroundColor: "rgba(0,0,0,0.05)",
+    backgroundColor: colors.primaryTint,
   },
   resultTitle: {
-    color: Colors.light.text,
-    fontSize: 15,
-    fontWeight: "600",
+    color: colors.text.primary,
+    fontSize: typography.size.md,
+    fontFamily: typography.family.medium,
   },
   resultSubtitle: {
-    color: Colors.light.icon,
-    fontSize: 12,
-    marginTop: 4,
+    color: colors.text.secondary,
+    fontSize: typography.size.xs,
+    marginTop: spacing.xs,
   },
   planButton: {
-    marginTop: 8,
-    borderRadius: 14,
+    marginTop: spacing.md,
+    borderRadius: radii.pill,
   },
   cancelButton: {
-    marginTop: 4,
+    marginTop: spacing.sm,
   },
 });

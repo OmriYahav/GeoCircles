@@ -20,7 +20,7 @@ import { useFavorites } from "../context/FavoritesContext";
 import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
 import { LatLng } from "../types/coordinates";
-import { Colors, Palette } from "../../constants/theme";
+import { colors, spacing, typography } from "../theme";
 import { DEFAULT_COORDINATES } from "../../constants/map";
 import CreateConversationModal from "../components/CreateConversationModal";
 import LeafletMapView, { LeafletMapHandle } from "../components/LeafletMapView";
@@ -542,13 +542,13 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: colors.background,
   },
   searchSection: {
-    paddingTop: 16,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.xxl,
+    gap: spacing.md,
     zIndex: 2,
   },
   searchBarWrapper: {
@@ -570,43 +570,44 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   resultItem: {
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.md,
   },
   resultItemPressed: {
-    backgroundColor: Palette.primaryTint,
+    backgroundColor: colors.primaryTint,
   },
   resultTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: Colors.light.text,
+    fontSize: typography.size.md,
+    fontFamily: typography.family.medium,
+    color: colors.text.primary,
   },
   resultSubtitle: {
-    marginTop: 4,
-    color: Colors.light.icon,
-    fontSize: 12,
+    marginTop: spacing.xs,
+    color: colors.text.secondary,
+    fontSize: typography.size.xs,
   },
   resultSeparator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Palette.border,
+    backgroundColor: colors.divider,
   },
   resultsErrorTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: Palette.textPrimary,
-    marginBottom: 4,
-    paddingHorizontal: 18,
+    fontSize: typography.size.md,
+    fontFamily: typography.family.semiBold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.xxl,
   },
   resultsErrorMessage: {
-    color: Palette.textSecondary,
-    paddingHorizontal: 18,
-    paddingBottom: 12,
+    color: colors.text.secondary,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.md,
+    fontFamily: typography.family.regular,
   },
   fabColumn: {
     position: "absolute",
-    right: 20,
+    right: spacing.xxl,
     alignItems: "center",
-    gap: 12,
+    gap: spacing.lg,
   },
   overlayPosition: {
     position: "absolute",

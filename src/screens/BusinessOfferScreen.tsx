@@ -24,7 +24,7 @@ import {
   recordBusinessVisit,
 } from "../services/businessTelemetry";
 import { useUserProfile } from "../context/UserProfileContext";
-import { Palette } from "../../constants/theme";
+import { colors, radii, shadows, spacing, typography } from "../theme";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
 
 export type BusinessOfferScreenParams = {
@@ -195,45 +195,44 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
-    backgroundColor: Palette.background,
+    backgroundColor: colors.background,
   },
   container: {
     flexGrow: 1,
-    padding: 24,
-    gap: 16,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xxl,
+    gap: spacing.xl,
+    paddingBottom: spacing.xxxl,
   },
   offerCard: {
-    gap: 16,
-    padding: 24,
-    borderRadius: 28,
-    backgroundColor: Palette.surface,
-    shadowColor: "rgba(15, 23, 42, 0.12)",
-    shadowOpacity: 1,
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 24,
-    elevation: 4,
+    gap: spacing.lg,
+    padding: spacing.xxl,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    ...shadows.md,
   },
   loaderContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
-    gap: 12,
-    backgroundColor: Palette.background,
+    padding: spacing.xxl,
+    gap: spacing.md,
+    backgroundColor: colors.background,
   },
   loaderText: {
     textAlign: "center",
-    color: Palette.textSecondary,
+    color: colors.text.secondary,
+    fontFamily: typography.family.regular,
   },
   errorText: {
     textAlign: "center",
-    color: Palette.danger,
+    color: colors.danger,
+    fontFamily: typography.family.medium,
   },
   logoWrapper: {
     width: "100%",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   logo: {
     width: 160,
@@ -242,19 +241,22 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: "center",
-    fontWeight: "700",
-    color: Palette.textPrimary,
+    fontFamily: typography.family.semiBold,
+    color: colors.text.primary,
+    fontSize: typography.size.xl,
   },
   offerText: {
     textAlign: "center",
-    color: Palette.textSecondary,
+    color: colors.text.secondary,
+    fontFamily: typography.family.regular,
+    lineHeight: typography.lineHeight.relaxed,
   },
   expiry: {
     textAlign: "center",
-    color: Palette.textMuted,
+    color: colors.text.muted,
   },
   actionButton: {
-    marginTop: 12,
+    marginTop: spacing.md,
     alignSelf: "center",
     minWidth: "60%",
   },

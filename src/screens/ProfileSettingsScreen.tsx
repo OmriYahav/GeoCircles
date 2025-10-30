@@ -4,7 +4,7 @@ import { Avatar, Button, HelperText, Text, TextInput } from "react-native-paper"
 import * as ImagePicker from "expo-image-picker";
 
 import { useUserProfile } from "../context/UserProfileContext";
-import { Palette } from "../../constants/theme";
+import { colors, radii, shadows, spacing, typography } from "../theme";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
 
 export default function ProfileSettingsScreen() {
@@ -191,29 +191,31 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
-    backgroundColor: Palette.background,
+    backgroundColor: colors.background,
   },
   container: {
-    padding: 24,
-    gap: 24,
-    paddingBottom: 48,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xxl,
+    gap: spacing.xxl,
+    paddingBottom: spacing.xxxl,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 18,
+    gap: spacing.xl,
   },
   headerText: {
     flex: 1,
   },
   displayName: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: Palette.textPrimary,
+    fontSize: typography.size.xxl,
+    fontFamily: typography.family.semiBold,
+    color: colors.text.primary,
   },
   subtitle: {
-    marginTop: 6,
-    color: Palette.textMuted,
+    marginTop: spacing.xs,
+    color: colors.text.secondary,
+    fontFamily: typography.family.regular,
   },
   avatarImage: {
     width: 86,
@@ -221,41 +223,37 @@ const styles = StyleSheet.create({
     borderRadius: 43,
   },
   avatarFallback: {
-    backgroundColor: Palette.primary,
+    backgroundColor: colors.primary,
   },
   section: {
-    backgroundColor: Palette.surface,
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "rgba(15, 23, 42, 0.12)",
-    shadowOpacity: 1,
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 24,
-    elevation: 4,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.xxl,
+    ...shadows.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12,
-    color: Palette.textPrimary,
+    fontSize: typography.size.lg,
+    fontFamily: typography.family.semiBold,
+    marginBottom: spacing.md,
+    color: colors.text.primary,
   },
   photoActions: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 6,
+    gap: spacing.md,
+    marginBottom: spacing.xs,
   },
   chooseButton: {
     alignSelf: "flex-start",
   },
   input: {
-    marginBottom: 14,
+    marginBottom: spacing.lg,
   },
   removeButton: {
     alignSelf: "flex-start",
   },
   photoHelper: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     paddingHorizontal: 0,
   },
   actions: {
