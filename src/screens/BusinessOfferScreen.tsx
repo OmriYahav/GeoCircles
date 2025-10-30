@@ -24,7 +24,6 @@ import {
   recordBusinessVisit,
 } from "../services/businessTelemetry";
 import { useUserProfile } from "../context/UserProfileContext";
-import BackToMapButton from "../components/BackToMapButton";
 import { Palette } from "../../constants/theme";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
 
@@ -156,7 +155,6 @@ const BusinessOfferScreen = () => {
   return (
     <ScreenScaffold contentStyle={styles.screenContent}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
-        <BackToMapButton mode="contained-tonal" style={styles.backButton} />
         <Surface style={styles.offerCard} elevation={3}>
           {business.logoUrl && (
             <View style={styles.logoWrapper}>
@@ -204,10 +202,6 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 16,
     paddingBottom: 40,
-  },
-  backButton: {
-    alignSelf: "flex-start",
-    marginBottom: 8,
   },
   offerCard: {
     gap: 16,
