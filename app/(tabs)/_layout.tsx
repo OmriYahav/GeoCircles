@@ -17,9 +17,9 @@ const TAB_ICON_MAP: Record<
   string,
   { label: string; icon: keyof typeof Ionicons.glyphMap }
 > = {
-  search: { label: "Explore", icon: "navigate-circle-outline" },
+  search: { label: "Map", icon: "navigate-circle-outline" },
   favorites: { label: "Favorites", icon: "heart-outline" },
-  messages: { label: "Chat", icon: "chatbubbles-outline" },
+  messages: { label: "Messages", icon: "chatbubbles-outline" },
   profile: { label: "Profile", icon: "person-circle-outline" },
 };
 
@@ -79,7 +79,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       <View
         style={[
           styles.tabBarBackground,
-          { paddingBottom: Math.max(insets.bottom, spacing.lg) },
+          { paddingBottom: Math.max(insets.bottom, spacing.md) },
         ]}
       >
         <View style={styles.tabBar}>
@@ -119,7 +119,10 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: { display: "none" },
       }}
-      sceneContainerStyle={[styles.sceneContainer, { paddingBottom: TAB_BAR_HEIGHT + 32 }]}
+      sceneContainerStyle={[
+        styles.sceneContainer,
+        { paddingBottom: TAB_BAR_HEIGHT + spacing.lg },
+      ]}
       tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tabs.Screen name="search" options={{ title: "Search" }} />
@@ -142,8 +145,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radii.xl,
     borderTopRightRadius: radii.xl,
     ...shadows.lg,
-    paddingTop: spacing.md,
-    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
     width: "100%",
   },
   sceneContainer: {
@@ -152,10 +155,10 @@ const styles = StyleSheet.create({
   tabBar: {
     flex: 1,
     flexDirection: "row",
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.lg,
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     minHeight: TAB_BAR_HEIGHT,
   },
   tabButtonContainer: {
@@ -168,7 +171,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.xs,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radii.lg,
   },
   tabLabel: {

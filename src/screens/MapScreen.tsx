@@ -310,11 +310,6 @@ export default function MapScreen() {
     [insets.bottom]
   );
 
-  const layerButtonBottomOffset = useMemo(
-    () => insets.bottom + TAB_BAR_HEIGHT + 16,
-    [insets.bottom]
-  );
-
   const fabTopOffset = useMemo(
     () => insets.top + spacing.lg + SEARCH_BAR_HEIGHT + spacing.md,
     [insets.top]
@@ -401,10 +396,6 @@ export default function MapScreen() {
     }
     refreshLocation();
   }, [focusCamera, refreshLocation, userLocation.coords]);
-
-  const handleOpenFilters = useCallback(() => {
-    setFilterSheetVisible(true);
-  }, []);
 
   const handleToggleMapType = useCallback(() => {
     setMapType((current) => (current === "standard" ? "satellite" : "standard"));
@@ -505,23 +496,14 @@ export default function MapScreen() {
           pointerEvents="box-none"
           style={[styles.fabColumn, { top: fabTopOffset }]}
         >
-          <FloatingActionButton
-            icon="options-outline"
-            accessibilityLabel="Open filters"
-            onPress={handleOpenFilters}
-          />
+          <View style={styles.mapLayerButtonWrapper}>
+            <MapLayerButton mode={mapType} onToggle={handleToggleMapType} />
+          </View>
           <FloatingActionButton
             icon="locate-outline"
             accessibilityLabel="Center on my location"
             onPress={handleLocateMe}
           />
-        </View>
-
-        <View
-          pointerEvents="box-none"
-          style={[styles.layerButtonPosition, { bottom: layerButtonBottomOffset }]}
-        >
-          <MapLayerButton mode={mapType} onToggle={handleToggleMapType} />
         </View>
 
         {selectedPlace && (
@@ -632,15 +614,13 @@ const styles = StyleSheet.create({
   fabColumn: {
     position: "absolute",
     right: spacing.xxl,
-    alignItems: "center",
+    alignItems: "flex-end",
     gap: spacing.lg,
     zIndex: 3,
   },
-  layerButtonPosition: {
-    position: "absolute",
-    right: spacing.xxl,
-    zIndex: 3,
+  mapLayerButtonWrapper: {
     alignItems: "flex-end",
+    width: "100%",
   },
   overlayPosition: {
     position: "absolute",
