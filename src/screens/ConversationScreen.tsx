@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import {
@@ -166,144 +168,154 @@ export default function ConversationScreen() {
   );
 
   return (
-    <ScreenScaffold variant="modal" contentStyle={styles.screenContent}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={120}
-      >
-        <Surface style={styles.headerSurface} elevation={2}>
-          <Text style={styles.title}>{conversation.title}</Text>
-          <Text style={styles.subtitle}>
-            Hosted by {conversation.hostName} · {conversation.messages.length} messages
-          </Text>
-        </Surface>
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoider}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <ScreenScaffold variant="modal" contentStyle={styles.screenContent}>
+          <View style={styles.container}>
+            <Surface style={styles.headerSurface} elevation={2}>
+              <Text style={styles.title}>{conversation.title}</Text>
+              <Text style={styles.subtitle}>
+                Hosted by {conversation.hostName} · {conversation.messages.length} messages
+              </Text>
+            </Surface>
 
-        {nearbyBusiness && (
-          <Surface style={styles.businessBanner} elevation={1}>
-            <Text style={styles.businessBannerTitle}>
-              You’re chatting near {nearbyBusiness.name}
-            </Text>
-            <Text style={styles.businessBannerHint}>
-              Check the business chat to connect with other visitors and staff.
-            </Text>
-          </Surface>
-        )}
-
-        <Surface style={styles.metaSection} elevation={1}>
-          <Text style={styles.metaTitle}>Participants</Text>
-          <View style={styles.participantsRow}>
-            <Chip icon="account-circle">{conversation.hostName} (Host)</Chip>
-            {participantsWithoutHost.length === 0 && (
-              <Chip icon="account-plus" mode="outlined">
-                Waiting for friends
-              </Chip>
+            {nearbyBusiness && (
+              <Surface style={styles.businessBanner} elevation={1}>
+                <Text style={styles.businessBannerTitle}>
+                  You’re chatting near {nearbyBusiness.name}
+                </Text>
+                <Text style={styles.businessBannerHint}>
+                  Check the business chat to connect with other visitors and staff.
+                </Text>
+              </Surface>
             )}
-            {participantsWithoutHost.map((participantId) => {
-              const joinRecord = conversation.joinRequests.find(
-                (request) =>
-                  request.userId === participantId && request.status === "approved"
-              );
-              const label = joinRecord?.userName ?? "Member";
-              return (
-                <Chip key={participantId} icon="account-check">
-                  {label}
-                </Chip>
-              );
-            })}
-          </View>
-        </Surface>
 
-        {pendingRequests.length > 0 && (
-          <Surface style={styles.requestsSection} elevation={1}>
-            <Text style={styles.metaTitle}>Join requests</Text>
-            {pendingRequests.map((request) => (
-              <View key={request.id} style={styles.requestRow}>
-                <View>
-                  <Text style={styles.requestName}>{request.userName}</Text>
-                  <Text style={styles.requestTime}>
-                    Requested at {dayjs(request.requestedAt).format("HH:mm")}
-                  </Text>
-                </View>
-                <View style={styles.requestActions}>
-                  <Button
-                    mode="contained"
-                    compact
-                    onPress={() => handleApprove(request.id)}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    mode="text"
-                    compact
-                    onPress={() => handleReject(request.id)}
-                  >
-                    Decline
-                  </Button>
-                </View>
+            <Surface style={styles.metaSection} elevation={1}>
+              <Text style={styles.metaTitle}>Participants</Text>
+              <View style={styles.participantsRow}>
+                <Chip icon="account-circle">{conversation.hostName} (Host)</Chip>
+                {participantsWithoutHost.length === 0 && (
+                  <Chip icon="account-plus" mode="outlined">
+                    Waiting for friends
+                  </Chip>
+                )}
+                {participantsWithoutHost.map((participantId) => {
+                  const joinRecord = conversation.joinRequests.find(
+                    (request) =>
+                      request.userId === participantId && request.status === "approved"
+                  );
+                  const label = joinRecord?.userName ?? "Member";
+                  return (
+                    <Chip key={participantId} icon="account-check">
+                      {label}
+                    </Chip>
+                  );
+                })}
               </View>
-            ))}
-            <Divider style={styles.sectionDivider} />
-          </Surface>
-        )}
+            </Surface>
 
-        {!canSendMessages && !myRequest && (
-          <Surface style={styles.joinBanner} elevation={1}>
-            <Text style={styles.joinTitle}>Ask to join this chat</Text>
-            <Text style={styles.joinSubtitle}>
-              Only the host can approve new participants. Send a request and we will notify the host.
-            </Text>
-            <Button mode="contained" onPress={handleRequestJoin}>
-              Request to join
-            </Button>
-          </Surface>
-        )}
+            {pendingRequests.length > 0 && (
+              <Surface style={styles.requestsSection} elevation={1}>
+                <Text style={styles.metaTitle}>Join requests</Text>
+                {pendingRequests.map((request) => (
+                  <View key={request.id} style={styles.requestRow}>
+                    <View>
+                      <Text style={styles.requestName}>{request.userName}</Text>
+                      <Text style={styles.requestTime}>
+                        Requested at {dayjs(request.requestedAt).format("HH:mm")}
+                      </Text>
+                    </View>
+                    <View style={styles.requestActions}>
+                      <Button
+                        mode="contained"
+                        compact
+                        onPress={() => handleApprove(request.id)}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        mode="text"
+                        compact
+                        onPress={() => handleReject(request.id)}
+                      >
+                        Decline
+                      </Button>
+                    </View>
+                  </View>
+                ))}
+                <Divider style={styles.sectionDivider} />
+              </Surface>
+            )}
 
-        {!canSendMessages && myRequest && (
-          <Surface style={styles.joinBanner} elevation={1}>
-            <Text style={styles.joinTitle}>Waiting for approval</Text>
-            <Text style={styles.joinSubtitle}>
-              {conversation.hostName} has received your request. You will be able to chat once it is approved.
-            </Text>
-          </Surface>
-        )}
+            {!canSendMessages && !myRequest && (
+              <Surface style={styles.joinBanner} elevation={1}>
+                <Text style={styles.joinTitle}>Ask to join this chat</Text>
+                <Text style={styles.joinSubtitle}>
+                  Only the host can approve new participants. Send a request and we will notify the host.
+                </Text>
+                <Button mode="contained" onPress={handleRequestJoin}>
+                  Request to join
+                </Button>
+              </Surface>
+            )}
 
-        <FlatList
-          data={conversation.messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMessage}
-          contentContainerStyle={styles.listContent}
-        />
+            {!canSendMessages && myRequest && (
+              <Surface style={styles.joinBanner} elevation={1}>
+                <Text style={styles.joinTitle}>Waiting for approval</Text>
+                <Text style={styles.joinSubtitle}>
+                  {conversation.hostName} has received your request. You will be able to chat once it is approved.
+                </Text>
+              </Surface>
+            )}
 
-        <Surface style={styles.composer} elevation={5}>
-          <TextInput
-            value={messageDraft}
-            onChangeText={setMessageDraft}
-            mode="outlined"
-            placeholder={
-              canSendMessages
-                ? "Write a message..."
-                : "Join the conversation to send messages"
-            }
-            style={styles.input}
-            multiline
-            numberOfLines={3}
-            editable={canSendMessages}
-          />
-          <Button
-            mode="contained"
-            onPress={handleSendMessage}
-            disabled={!canSendMessages || !messageDraft.trim()}
-          >
-            Send
-          </Button>
-        </Surface>
-      </KeyboardAvoidingView>
-    </ScreenScaffold>
+            <View style={styles.messagesWrapper}>
+              <FlatList
+                data={conversation.messages}
+                keyExtractor={(item) => item.id}
+                renderItem={renderMessage}
+                contentContainerStyle={styles.listContent}
+                keyboardShouldPersistTaps="handled"
+              />
+            </View>
+
+            <Surface style={styles.composer} elevation={5}>
+              <TextInput
+                value={messageDraft}
+                onChangeText={setMessageDraft}
+                mode="outlined"
+                placeholder={
+                  canSendMessages
+                    ? "Write a message..."
+                    : "Join the conversation to send messages"
+                }
+                style={styles.input}
+                multiline
+                numberOfLines={3}
+                editable={canSendMessages}
+              />
+              <Button
+                mode="contained"
+                onPress={handleSendMessage}
+                disabled={!canSendMessages || !messageDraft.trim()}
+              >
+                Send
+              </Button>
+            </Surface>
+          </View>
+        </ScreenScaffold>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoider: {
+    flex: 1,
+  },
   screenContent: {
     flex: 1,
   },
@@ -379,9 +391,13 @@ const styles = StyleSheet.create({
   sectionDivider: {
     marginTop: spacing.sm,
   },
+  messagesWrapper: {
+    flex: 1,
+  },
   listContent: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.lg,
+    paddingBottom: spacing.xxl * 2,
     gap: spacing.lg,
   },
   messageRow: {
