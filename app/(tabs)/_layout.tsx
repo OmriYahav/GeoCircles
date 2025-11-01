@@ -19,7 +19,7 @@ const TAB_ICON_MAP: Record<
 > = {
   search: { label: "Map", icon: "navigate-circle-outline" },
   favorites: { label: "Favorites", icon: "heart-outline" },
-  messages: { label: "Messages", icon: "chatbubbles-outline" },
+  spots: { label: "Spots", icon: "location-outline" },
   profile: { label: "Profile", icon: "person-circle-outline" },
 };
 
@@ -127,7 +127,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="search" options={{ title: "Search" }} />
       <Tabs.Screen name="favorites" options={{ title: "Favorites" }} />
-      <Tabs.Screen name="messages" options={{ title: "Messages" }} />
+      <Tabs.Screen name="spots" options={{ title: "Spots" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
     </Tabs>
   );

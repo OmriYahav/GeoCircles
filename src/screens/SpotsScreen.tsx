@@ -10,7 +10,7 @@ import { useUserProfile } from "../context/UserProfileContext";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
 import { colors, radii, shadows, spacing, typography } from "../theme";
 
-export default function MessagesScreen() {
+export default function SpotsScreen() {
   const router = useRouter();
   const { conversations } = useChatConversations();
   const { profile } = useUserProfile();
@@ -48,47 +48,47 @@ export default function MessagesScreen() {
         )}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => {
-        const lastMessage = item.messages[item.messages.length - 1];
-        const pendingRequests = item.joinRequests.filter(
-          (request) => request.status === "pending"
-        );
-        const isHost = item.hostId === profile.id;
-        const lastMessageText = lastMessage
-          ? `${lastMessage.senderName}: ${lastMessage.text}`
-          : "No messages yet";
+          const lastMessage = item.messages[item.messages.length - 1];
+          const pendingRequests = item.joinRequests.filter(
+            (request) => request.status === "pending"
+          );
+          const isHost = item.hostId === profile.id;
+          const lastMessageText = lastMessage
+            ? `${lastMessage.senderName}: ${lastMessage.text}`
+            : "No messages yet";
 
-        return (
-          <Card
-            style={styles.card}
-            onPress={() =>
-              router.navigate({
-                pathname: "/conversation/[conversationId]",
-                params: { conversationId: item.id },
-              })
-            }
-          >
-            <Card.Content style={styles.cardContent}>
-              <Avatar.Text
-                size={48}
-                label={item.title.slice(0, 2).toUpperCase()}
-                style={styles.cardAvatar}
-              />
-              <View style={styles.cardText}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardSubtitle}>{lastMessageText}</Text>
-                <Text style={styles.cardMeta}>
-                  {dayjs(item.createdAt).format("MMM D, HH:mm")} · Host: {item.hostName}
-                </Text>
-                {isHost && pendingRequests.length > 0 && (
-                  <Text style={styles.pendingBadge}>
-                    {pendingRequests.length} pending join request
-                    {pendingRequests.length > 1 ? "s" : ""}
+          return (
+            <Card
+              style={styles.card}
+              onPress={() =>
+                router.navigate({
+                  pathname: "/conversation/[conversationId]",
+                  params: { conversationId: item.id },
+                })
+              }
+            >
+              <Card.Content style={styles.cardContent}>
+                <Avatar.Text
+                  size={48}
+                  label={item.title.slice(0, 2).toUpperCase()}
+                  style={styles.cardAvatar}
+                />
+                <View style={styles.cardText}>
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <Text style={styles.cardSubtitle}>{lastMessageText}</Text>
+                  <Text style={styles.cardMeta}>
+                    {dayjs(item.createdAt).format("MMM D, HH:mm")} · Host: {item.hostName}
                   </Text>
-                )}
-              </View>
-            </Card.Content>
-          </Card>
-        );
+                  {isHost && pendingRequests.length > 0 && (
+                    <Text style={styles.pendingBadge}>
+                      {pendingRequests.length} pending join request
+                      {pendingRequests.length > 1 ? "s" : ""}
+                    </Text>
+                  )}
+                </View>
+              </Card.Content>
+            </Card>
+          );
         }}
       />
     </ScreenScaffold>
