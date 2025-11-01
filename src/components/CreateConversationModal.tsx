@@ -43,13 +43,13 @@ export default function CreateConversationModal({
         onDismiss={onDismiss}
         contentContainerStyle={styles.container}
       >
-        <Text style={styles.title}>Start a new chat circle</Text>
+        <Text style={styles.title}>Start a new spot chat</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
         <TextInput
           value={title}
           onChangeText={setTitle}
           mode="outlined"
-          label="Conversation name"
+          label="Spot name"
           placeholder="Friends meetup, hiking crew..."
           style={styles.input}
         />
