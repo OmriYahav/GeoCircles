@@ -19,8 +19,8 @@ export type UseUserLocationResult = {
 
 const LOCATION_OPTIONS: Location.LocationOptions = {
   accuracy: Location.Accuracy.Balanced,
-  maximumAge: 15_000,
-  timeInterval: 5_000,
+  maximumAge: 2_000,
+  timeInterval: 2_000,
 };
 
 export default function useUserLocation(): UseUserLocationResult {

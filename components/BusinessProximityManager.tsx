@@ -21,7 +21,7 @@ import {
 import { calculateDistanceMeters, parseBusinessDocument } from "../src/utils/business";
 
 const BUSINESS_GEOFENCE_TASK = "BUSINESS_GEOFENCE";
-const LOCATION_UPDATE_INTERVAL = 60_000;
+const LOCATION_UPDATE_INTERVAL = 2_000;
 const LOCATION_DISTANCE_INTERVAL = 100;
 const CURRENT_USER_ID_KEY = "@openspot:current-user-id";
 
