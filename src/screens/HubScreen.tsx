@@ -35,7 +35,7 @@ export default function HubScreen() {
       style={styles.container}
       ListHeaderComponent={
         <View style={styles.header}> 
-          <Text style={styles.title}>Curated circles nearby</Text>
+          <Text style={styles.title}>Curated spots nearby</Text>
           <Text style={styles.subtitle}>
             Discover vibrant meetups and creative hubs formed by locals within a
             short walk from you.

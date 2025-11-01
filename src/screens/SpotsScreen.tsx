@@ -38,10 +38,10 @@ export default function SpotsScreen() {
           <Card style={styles.emptyCard}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.emptyTitle}>
-                No chats yet
+                No spot chats yet
               </Text>
               <Text variant="bodyMedium" style={styles.emptySubtitle}>
-                Tap anywhere on the map to start a group conversation and invite friends.
+                Tap anywhere on the map to start a spot chat and invite friends.
               </Text>
             </Card.Content>
           </Card>
