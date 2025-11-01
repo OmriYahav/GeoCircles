@@ -78,6 +78,7 @@ const TRANSPORT_POINTS = [
 
 const DEBOUNCE_DELAY = 380;
 const SEARCH_BAR_HEIGHT = 52;
+const zoomLevels = [13, 16, 18];
 export default function MapScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<MapScreenParams>();
@@ -100,6 +101,7 @@ export default function MapScreen() {
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
   const [pendingSubmitQuery, setPendingSubmitQuery] = useState<string | null>(null);
   const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
+  const [zoomIndex, setZoomIndex] = useState(0);
 
   const { addFavorite } = useFavorites();
   const { conversations, createConversation } = useChatConversations();
@@ -391,11 +393,28 @@ export default function MapScreen() {
   const handleLocateMe = useCallback(() => {
     const coords = userLocation.coords;
     if (coords) {
-      focusCamera({ latitude: coords.latitude, longitude: coords.longitude }, 15);
+      const zoomLevel = zoomLevels[zoomIndex] ?? zoomLevels[0];
+      const latLng: [number, number] = [coords.latitude, coords.longitude];
+      const center = { latitude: coords.latitude, longitude: coords.longitude };
+      const mapHandle = mapRef.current as unknown as {
+        setView?: (
+          center: [number, number],
+          zoom: number,
+          options?: { animate?: boolean }
+        ) => void;
+      };
+
+      if (typeof mapHandle?.setView === "function") {
+        mapHandle.setView(latLng, zoomLevel, { animate: true });
+      } else {
+        focusCamera(center, zoomLevel);
+      }
+
+      setZoomIndex((zoomIndex + 1) % zoomLevels.length);
       return;
     }
     refreshLocation();
-  }, [focusCamera, refreshLocation, userLocation.coords]);
+  }, [focusCamera, refreshLocation, userLocation.coords, zoomIndex]);
 
   const handleToggleMapType = useCallback(() => {
     setMapType((current) => (current === "standard" ? "satellite" : "standard"));
