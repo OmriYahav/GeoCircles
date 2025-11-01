@@ -36,6 +36,9 @@ import { TAB_BAR_HEIGHT } from "../../constants/layout";
 export type MapScreenParams = {
   triggerType?: string | string[];
   triggerTimestamp?: string | string[];
+  lat?: string | string[];
+  lng?: string | string[];
+  focusTimestamp?: string | string[];
 };
 
 const INITIAL_VIEW = {
@@ -84,6 +87,7 @@ export default function MapScreen() {
   const params = useLocalSearchParams<MapScreenParams>();
   const insets = useSafeAreaInsets();
   const triggerHandledRef = useRef<string | null>(null);
+  const focusLocationHandledRef = useRef<string | null>(null);
   const mapRef = useRef<LeafletMapHandle | null>(null);
   const searchBarRef = useRef<SearchBarHandle>(null);
 
@@ -187,6 +191,38 @@ export default function MapScreen() {
       { duration: 650 }
     );
   }, []);
+
+  useEffect(() => {
+    const rawLat = params?.lat;
+    const rawLng = params?.lng;
+    const rawFocusTimestamp = params?.focusTimestamp;
+
+    const latParam = Array.isArray(rawLat) ? rawLat[0] : rawLat ?? null;
+    const lngParam = Array.isArray(rawLng) ? rawLng[0] : rawLng ?? null;
+    const timestampParam = Array.isArray(rawFocusTimestamp)
+      ? rawFocusTimestamp[0]
+      : rawFocusTimestamp ?? null;
+
+    if (!latParam || !lngParam) {
+      return;
+    }
+
+    const latitude = Number(latParam);
+    const longitude = Number(lngParam);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return;
+    }
+
+    const key = `${latitude}-${longitude}-${timestampParam ?? ""}`;
+    if (focusLocationHandledRef.current === key) {
+      return;
+    }
+
+    focusLocationHandledRef.current = key;
+
+    focusCamera({ latitude, longitude }, 16);
+  }, [focusCamera, params?.focusTimestamp, params?.lat, params?.lng]);
 
   const handleSelectSearchResult = useCallback(
     (result: SearchResult) => {

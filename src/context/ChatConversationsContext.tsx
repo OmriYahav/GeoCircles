@@ -68,6 +68,7 @@ type ChatConversationsContextValue = {
   sendMessage: (payload: SendMessagePayload) => void;
   requestToJoin: (payload: RequestJoinPayload) => void;
   respondToJoinRequest: (payload: RespondJoinPayload) => void;
+  removeConversation: (conversationId: string) => void;
 };
 
 function resolveDisplayName(profile: Pick<UserProfile, "firstName" | "lastName" | "nickname">) {
@@ -223,15 +224,31 @@ export function ChatConversationsProvider({ children }: { children: ReactNode })
     );
   }, []);
 
-  const value = useMemo(
+  const removeConversation = useCallback<
+    ChatConversationsContextValue["removeConversation"]
+  >((conversationId) => {
+    setConversations((current) =>
+      current.filter((conversation) => conversation.id !== conversationId)
+    );
+  }, []);
+
+  const value = useMemo<ChatConversationsContextValue>(
     () => ({
       conversations,
       createConversation,
       requestToJoin,
       respondToJoinRequest,
       sendMessage,
+      removeConversation,
     }),
-    [conversations, createConversation, requestToJoin, respondToJoinRequest, sendMessage]
+    [
+      conversations,
+      createConversation,
+      removeConversation,
+      requestToJoin,
+      respondToJoinRequest,
+      sendMessage,
+    ]
   );
 
   return (

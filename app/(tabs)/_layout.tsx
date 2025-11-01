@@ -18,6 +18,7 @@ const TAB_ICON_MAP: Record<
   { label: string; icon: keyof typeof Ionicons.glyphMap }
 > = {
   search: { label: "Map", icon: "navigate-circle-outline" },
+  "saved-spots": { label: "Saved", icon: "bookmark-outline" },
   "my-spots": { label: "My Spots", icon: "chatbubble-ellipses-outline" },
   profile: { label: "Profile", icon: "person-circle-outline" },
 };
@@ -125,6 +126,7 @@ export default function TabsLayout() {
       tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tabs.Screen name="search" options={{ title: "Search" }} />
+      <Tabs.Screen name="saved-spots" options={{ title: "Saved Spots" }} />
       <Tabs.Screen name="my-spots" options={{ title: "My Spots" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
     </Tabs>
