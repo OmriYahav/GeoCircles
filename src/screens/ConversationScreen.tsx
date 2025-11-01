@@ -53,7 +53,7 @@ export default function ConversationScreen() {
 
   useEffect(() => {
     if (!conversation) {
-      router.navigate({ pathname: "/(tabs)/messages" });
+      router.navigate({ pathname: "/(tabs)/spots" });
     }
   }, [conversation, router]);
 
