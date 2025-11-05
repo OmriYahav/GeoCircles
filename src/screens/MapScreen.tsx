@@ -652,16 +652,6 @@ export default function MapScreen() {
           </View>
         )}
 
-        {isLoadingSpots && spots.length === 0 && !spotsError && (
-          <View style={[styles.overlayPosition, { bottom: overlayBottomOffset + 280 }]}>
-            <MapOverlayCard style={styles.resultsCard}>
-              <Text style={styles.resultsErrorTitle}>Loading community spots…</Text>
-              <Text style={styles.resultsErrorMessage}>
-                We’re syncing the latest spots shared by everyone.
-              </Text>
-            </MapOverlayCard>
-          </View>
-        )}
 
         {selectedPlace && (
           <View style={[styles.overlayPosition, { bottom: overlayBottomOffset }]}>
