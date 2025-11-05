@@ -13,6 +13,7 @@ import { FavoritesProvider } from "../context/FavoritesContext";
 import { UserProfileProvider } from "../context/UserProfileContext";
 import { ChatConversationsProvider } from "../context/ChatConversationsContext";
 import { BusinessProvider } from "../context/BusinessContext";
+import { AuthProvider } from "../contexts/AuthContext";
 import KeyboardDismissView from "../components/KeyboardDismissView";
 import BusinessProximityManager from "../../components/BusinessProximityManager";
 import { colors } from "../theme";
@@ -77,24 +78,26 @@ export default function AppProviders({ children }: AppProvidersProps) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <PaperProvider theme={paperTheme}>
-          <UserProfileProvider>
-            <BusinessProvider>
-              <ChatConversationsProvider>
-                <FavoritesProvider>
-                  <StatusBar
-                    barStyle="dark-content"
-                    backgroundColor={colors.background}
-                  />
-                  <KeyboardDismissView>
-                    <View style={{ flex: 1, backgroundColor: colors.background }}>
-                      {children}
-                    </View>
-                  </KeyboardDismissView>
-                  <BusinessProximityManager />
-                </FavoritesProvider>
-              </ChatConversationsProvider>
-            </BusinessProvider>
-          </UserProfileProvider>
+          <AuthProvider>
+            <UserProfileProvider>
+              <BusinessProvider>
+                <ChatConversationsProvider>
+                  <FavoritesProvider>
+                    <StatusBar
+                      barStyle="dark-content"
+                      backgroundColor={colors.background}
+                    />
+                    <KeyboardDismissView>
+                      <View style={{ flex: 1, backgroundColor: colors.background }}>
+                        {children}
+                      </View>
+                    </KeyboardDismissView>
+                    <BusinessProximityManager />
+                  </FavoritesProvider>
+                </ChatConversationsProvider>
+              </BusinessProvider>
+            </UserProfileProvider>
+          </AuthProvider>
         </PaperProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
