@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Snackbar } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
@@ -20,7 +21,7 @@ import { useFavorites } from "../context/FavoritesContext";
 import { useChatConversations } from "../context/ChatConversationsContext";
 import { useUserProfile } from "../context/UserProfileContext";
 import { LatLng } from "../types/coordinates";
-import { colors, spacing, typography } from "../theme";
+import { colors, radii, spacing, typography } from "../theme";
 import { DEFAULT_COORDINATES } from "../../constants/map";
 import CreateConversationModal from "../components/CreateConversationModal";
 import LeafletMapView, { LeafletMapHandle } from "../components/LeafletMapView";
@@ -110,6 +111,7 @@ export default function MapScreen() {
   const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const [zoomIndex, setZoomIndex] = useState(0);
   const [recentSpot, setRecentSpot] = useState<SpotRecord | null>(null);
+  const [spotSyncErrorMessage, setSpotSyncErrorMessage] = useState<string | null>(null);
 
   const { addFavorite } = useFavorites();
   const { conversations, createConversation } = useChatConversations();
@@ -455,6 +457,7 @@ export default function MapScreen() {
       const trimmedTitle = title.trim();
       const normalizedTitle = trimmedTitle.length > 0 ? trimmedTitle : "Untitled spot";
 
+      setSpotSyncErrorMessage(null);
       const conversationId = createConversation({
         title: normalizedTitle,
         coordinate,
@@ -463,23 +466,44 @@ export default function MapScreen() {
 
       setCreateModalVisible(false);
       setPendingCoordinate(null);
-      openConversation(conversationId);
 
-      const savedSpot = await persistSpot({
-        title: normalizedTitle,
-        description: "",
-        latitude: coordinate.latitude,
-        longitude: coordinate.longitude,
-      });
+      let savedSpot: SpotRecord | null = null;
+      let attempt = 0;
+      const maxAttempts = 3;
+
+      while (attempt < maxAttempts) {
+        try {
+          savedSpot = await persistSpot({
+            title: normalizedTitle,
+            description: "",
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+          });
+        } catch (error) {
+          console.warn("Failed to persist spot", error);
+          savedSpot = null;
+        }
+
+        if (savedSpot) {
+          break;
+        }
+
+        attempt += 1;
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+        }
+      }
 
       if (savedSpot) {
         setRecentSpot(savedSpot);
-      } else {
-        Alert.alert(
-          "Spot sync unavailable",
-          "Your spot chat was created, but we couldn't sync the shared map spot yet."
-        );
+        openConversation(conversationId);
+        return;
       }
+
+      setSpotSyncErrorMessage(
+        "We couldn't sync the spot yet. Your chat is ready and we'll keep trying in the background."
+      );
+      openConversation(conversationId);
     },
     [
       createConversation,
@@ -694,6 +718,15 @@ export default function MapScreen() {
         filters={filters}
         onChange={setFilters}
       />
+
+      <Snackbar
+        visible={!!spotSyncErrorMessage}
+        onDismiss={() => setSpotSyncErrorMessage(null)}
+        duration={4000}
+        style={styles.snackbar}
+      >
+        {spotSyncErrorMessage}
+      </Snackbar>
     </ScreenScaffold>
   );
 }
@@ -787,5 +820,10 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "92%",
     maxWidth: 420,
+  },
+  snackbar: {
+    marginHorizontal: spacing.xxl,
+    marginBottom: spacing.xxl,
+    borderRadius: radii.md,
   },
 });
