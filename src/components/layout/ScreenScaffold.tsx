@@ -16,6 +16,7 @@ type ScreenScaffoldProps = {
   contentStyle?: StyleProp<ViewStyle>;
   showTopNavigation?: boolean;
   showSearchAction?: boolean;
+  topContent?: React.ReactNode;
 };
 
 export default function ScreenScaffold({
@@ -24,6 +25,7 @@ export default function ScreenScaffold({
   contentStyle,
   showTopNavigation = true,
   showSearchAction = false,
+  topContent,
 }: ScreenScaffoldProps) {
   const insets = useSafeAreaInsets();
 
@@ -33,6 +35,7 @@ export default function ScreenScaffold({
         <TopNavigationMenu
           variant={variant}
           showSearchAction={showSearchAction}
+          content={topContent}
         />
       ) : null}
       <View style={[styles.content, contentStyle]}>{children}</View>
