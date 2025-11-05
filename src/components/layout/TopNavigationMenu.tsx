@@ -14,10 +14,12 @@ import { colors, radii, shadows, spacing, typography } from "../../theme";
 
 type TopNavigationMenuProps = {
   variant?: "default" | "modal";
+  showSearchAction?: boolean;
 };
 
 export default function TopNavigationMenu({
   variant: _variant = "default",
+  showSearchAction = false,
 }: TopNavigationMenuProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -32,6 +34,10 @@ export default function TopNavigationMenu({
   };
 
   const handleSearch = () => {
+    if (!showSearchAction) {
+      return;
+    }
+
     router.navigate({
       pathname: "/(tabs)/search",
       params: {
@@ -50,18 +56,20 @@ export default function TopNavigationMenu({
       >
         <Appbar.Action icon="chevron-left" onPress={handleBack} />
         <View style={styles.spacer} />
-        <TouchableRipple style={styles.searchButton} onPress={handleSearch}>
-          <View style={styles.searchContent}>
-            <Ionicons
-              name="search-outline"
-              size={18}
-              color={colors.primary}
-            />
-            <Text variant="labelSmall" style={styles.searchLabel}>
-              Search
-            </Text>
-          </View>
-        </TouchableRipple>
+        {showSearchAction ? (
+          <TouchableRipple style={styles.searchButton} onPress={handleSearch}>
+            <View style={styles.searchContent}>
+              <Ionicons
+                name="search-outline"
+                size={18}
+                color={colors.primary}
+              />
+              <Text variant="labelSmall" style={styles.searchLabel}>
+                Search
+              </Text>
+            </View>
+          </TouchableRipple>
+        ) : null}
       </Appbar.Header>
     </Surface>
   );
