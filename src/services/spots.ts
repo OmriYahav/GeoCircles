@@ -133,15 +133,33 @@ export function subscribeToSpots(
 
 // Persists a spot in Firestore and returns the normalized record for local use.
 export async function createSpot(input: CreateSpotInput): Promise<SpotRecord> {
-  const firestore = resolveFirestore();
   const { userId, title, description, latitude, longitude } = input;
   const createdAt = Date.now();
+  const normalizedDescription = description ?? "";
+
+  const firestore = getFirestoreClient();
+  if (!firestore) {
+    console.warn(
+      "Firestore is not configured. Returning an unsynced spot so the UI can continue working."
+    );
+
+    return {
+      id: `local-${createdAt.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      userId,
+      title,
+      description: normalizedDescription,
+      latitude,
+      longitude,
+      createdAt,
+    };
+  }
+
   const spotsCollection = collection(firestore, "spots");
 
   const docRef = await addDoc(spotsCollection, {
     userId,
     title,
-    description: description ?? "",
+    description: normalizedDescription,
     latitude,
     longitude,
     createdAt,
@@ -152,7 +170,7 @@ export async function createSpot(input: CreateSpotInput): Promise<SpotRecord> {
     id: docRef.id,
     userId,
     title,
-    description: description ?? "",
+    description: normalizedDescription,
     latitude,
     longitude,
     createdAt,
