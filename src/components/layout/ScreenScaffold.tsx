@@ -15,7 +15,6 @@ type ScreenScaffoldProps = {
   variant?: "default" | "modal";
   contentStyle?: StyleProp<ViewStyle>;
   showTopNavigation?: boolean;
-  showSearchAction?: boolean;
   topContent?: React.ReactNode;
 };
 
@@ -24,7 +23,6 @@ export default function ScreenScaffold({
   variant = "default",
   contentStyle,
   showTopNavigation = true,
-  showSearchAction = false,
   topContent,
 }: ScreenScaffoldProps) {
   const insets = useSafeAreaInsets();
@@ -34,7 +32,6 @@ export default function ScreenScaffold({
       {showTopNavigation ? (
         <TopNavigationMenu
           variant={variant}
-          showSearchAction={showSearchAction}
           content={topContent}
         />
       ) : null}
