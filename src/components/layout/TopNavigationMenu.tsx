@@ -15,11 +15,13 @@ import { colors, radii, shadows, spacing, typography } from "../../theme";
 type TopNavigationMenuProps = {
   variant?: "default" | "modal";
   showSearchAction?: boolean;
+  content?: React.ReactNode;
 };
 
 export default function TopNavigationMenu({
   variant: _variant = "default",
   showSearchAction = false,
+  content,
 }: TopNavigationMenuProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -30,7 +32,7 @@ export default function TopNavigationMenu({
       router.back();
       return;
     }
-    router.navigate({ pathname: "/(tabs)/search" });
+    router.navigate({ pathname: "/(tabs)/map" });
   };
 
   const handleSearch = () => {
@@ -39,7 +41,7 @@ export default function TopNavigationMenu({
     }
 
     router.navigate({
-      pathname: "/(tabs)/search",
+      pathname: "/(tabs)/map",
       params: {
         triggerType: "focusSearch",
         triggerTimestamp: Date.now().toString(),
@@ -55,7 +57,14 @@ export default function TopNavigationMenu({
         style={[styles.header, { backgroundColor: theme.colors.surface }]}
       >
         <Appbar.Action icon="chevron-left" onPress={handleBack} />
-        <View style={styles.spacer} />
+        <View
+          style={[
+            styles.contentContainer,
+            { marginRight: showSearchAction ? spacing.lg : 0 },
+          ]}
+        >
+          {content ?? <View style={styles.spacer} />}
+        </View>
         {showSearchAction ? (
           <TouchableRipple style={styles.searchButton} onPress={handleSearch}>
             <View style={styles.searchContent}>
@@ -90,6 +99,11 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     paddingHorizontal: spacing.lg,
     minHeight: 68,
+  },
+  contentContainer: {
+    flex: 1,
+    marginLeft: spacing.lg,
+    justifyContent: "center",
   },
   spacer: {
     flex: 1,

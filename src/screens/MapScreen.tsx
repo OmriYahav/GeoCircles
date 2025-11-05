@@ -83,7 +83,7 @@ const TRANSPORT_POINTS = [
 ];
 
 const DEBOUNCE_DELAY = 380;
-const SEARCH_BAR_HEIGHT = 52;
+const TOP_NAV_HEIGHT = 68;
 const zoomLevels = [13, 16, 18];
 export default function MapScreen() {
   const router = useRouter();
@@ -117,7 +117,6 @@ export default function MapScreen() {
 
   const {
     spots,
-    isLoading: isLoadingSpots,
     error: spotsError,
     isSaving: isSavingSpot,
     createSpot: persistSpot,
@@ -395,8 +394,13 @@ export default function MapScreen() {
     [insets.bottom]
   );
 
+  const overlayTopOffset = useMemo(
+    () => insets.top + TOP_NAV_HEIGHT + spacing.md,
+    [insets.top]
+  );
+
   const fabTopOffset = useMemo(
-    () => insets.top + spacing.lg + SEARCH_BAR_HEIGHT + spacing.md,
+    () => insets.top + TOP_NAV_HEIGHT + spacing.lg,
     [insets.top]
   );
 
@@ -533,7 +537,30 @@ export default function MapScreen() {
   }, []);
 
   return (
-    <ScreenScaffold contentStyle={styles.screenContent} showTopNavigation={false}>
+    <ScreenScaffold
+      contentStyle={styles.screenContent}
+      topContent={
+        <View style={styles.topSearchBarContainer}>
+          <SearchBar
+            ref={searchBarRef}
+            value={searchQuery}
+            onChangeText={(value) => {
+              setSearchQuery(value);
+              setShouldShowResults(true);
+            }}
+            onSubmit={handleSearchSubmit}
+            onFocus={() => setShouldShowResults(true)}
+            onBlur={() => {
+              if (searchQuery.trim().length === 0 && !isFilterSheetVisible) {
+                setShouldShowResults(false);
+              }
+            }}
+            onMicPress={isVoiceListening ? stopVoiceSearch : handleVoiceSearch}
+            isLoading={isSearching || isVoiceListening}
+          />
+        </View>
+      }
+    >
       <View style={styles.container}>
         <LeafletMapView
           ref={(instance) => {
@@ -562,31 +589,11 @@ export default function MapScreen() {
           mapType={mapType}
         />
 
-        <View pointerEvents="box-none" style={styles.searchOverlay}>
-          <View
-            style={[
-              styles.searchBarWrapper,
-              { paddingTop: insets.top + spacing.lg },
-            ]}
-          >
-            <SearchBar
-              ref={searchBarRef}
-              value={searchQuery}
-              onChangeText={(value) => {
-                setSearchQuery(value);
-                setShouldShowResults(true);
-              }}
-              onSubmit={handleSearchSubmit}
-              onFocus={() => setShouldShowResults(true)}
-              onBlur={() => {
-                if (searchQuery.trim().length === 0 && !isFilterSheetVisible) {
-                  setShouldShowResults(false);
-                }
-              }}
-              onMicPress={isVoiceListening ? stopVoiceSearch : handleVoiceSearch}
-              isLoading={isSearching || isVoiceListening}
-            />
-
+        <View
+          pointerEvents="box-none"
+          style={[styles.searchOverlay, { paddingTop: overlayTopOffset }]}
+        >
+          <View style={styles.resultsWrapper}>
             {shouldShowResults && searchResults.length > 0 && (
               <MapOverlayCard style={styles.resultsCard}>
                 <FlatList
@@ -712,7 +719,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     zIndex: 3,
   },
-  searchBarWrapper: {
+  topSearchBarContainer: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "stretch",
+  },
+  resultsWrapper: {
     width: "100%",
     gap: spacing.md,
   },

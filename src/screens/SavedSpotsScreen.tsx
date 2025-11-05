@@ -344,13 +344,13 @@ export default function SavedSpotsScreen() {
 
   const handleViewOnMap = useCallback(
     (spot: EnrichedSavedSpot) => {
-      router.navigate({
-        pathname: "/(tabs)/search",
-        params: {
-          lat: spot.latitude.toString(),
-          lng: spot.longitude.toString(),
-          focusTimestamp: Date.now().toString(),
-        },
+        router.navigate({
+          pathname: "/(tabs)/map",
+          params: {
+            lat: spot.latitude.toString(),
+            lng: spot.longitude.toString(),
+            focusTimestamp: Date.now().toString(),
+          },
       });
     },
     [router]
@@ -467,9 +467,9 @@ export default function SavedSpotsScreen() {
               Save a spot from the map to see it here.
             </Text>
             <Pressable
-              onPress={() =>
-                router.navigate({ pathname: "/(tabs)/search" })
-              }
+                onPress={() =>
+                  router.navigate({ pathname: "/(tabs)/map" })
+                }
               style={({ pressed }) => [
                 styles.emptyCta,
                 pressed && styles.emptyCtaPressed,
