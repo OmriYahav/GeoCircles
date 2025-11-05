@@ -31,7 +31,10 @@ import LocationErrorBanner from "../components/map/LocationErrorBanner";
 import MapOverlayCard from "../components/map/MapOverlayCard";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
 import MapLayerButton from "../components/MapLayerButton";
+import SpotMarker from "../components/SpotMarker";
 import { TAB_BAR_HEIGHT } from "../../constants/layout";
+import useSpots from "../hooks/useSpots";
+import type { SpotRecord } from "../services/spots";
 
 export type MapScreenParams = {
   triggerType?: string | string[];
@@ -106,10 +109,19 @@ export default function MapScreen() {
   const [pendingSubmitQuery, setPendingSubmitQuery] = useState<string | null>(null);
   const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const [zoomIndex, setZoomIndex] = useState(0);
+  const [recentSpot, setRecentSpot] = useState<SpotRecord | null>(null);
 
   const { addFavorite } = useFavorites();
   const { conversations, createConversation } = useChatConversations();
   const { profile } = useUserProfile();
+
+  const {
+    spots,
+    isLoading: isLoadingSpots,
+    error: spotsError,
+    isSaving: isSavingSpot,
+    createSpot: persistSpot,
+  } = useSpots();
 
   const {
     location: userLocation,
@@ -287,6 +299,20 @@ export default function MapScreen() {
     searchResults,
   ]);
 
+  useEffect(() => {
+    if (!recentSpot) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setRecentSpot(null);
+    }, 6000);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [recentSpot]);
+
   const conversationMarkers = useMemo(
     () =>
       conversations.map((conversation) => ({
@@ -300,7 +326,7 @@ export default function MapScreen() {
     [conversations, profile.id]
   );
 
-  const transportMarkers = useMemo(
+  const baseTransportPoints = useMemo(
     () =>
       TRANSPORT_POINTS.map((point) => ({
         id: point.id,
@@ -309,6 +335,27 @@ export default function MapScreen() {
         label: point.label,
       })),
     []
+  );
+
+  // Reuse the Leaflet transport layer to render shared spots without
+  // restructuring the WebView bridge.
+  const spotTransportPoints = useMemo(
+    () =>
+      spots.map((spot) => ({
+        id: `spot-${spot.id}`,
+        latitude: spot.latitude,
+        longitude: spot.longitude,
+        label: spot.title || "Community spot",
+      })),
+    [spots]
+  );
+
+  const transportPoints = useMemo(
+    () => [
+      ...(filters.transport ? baseTransportPoints : []),
+      ...spotTransportPoints,
+    ],
+    [baseTransportPoints, filters.transport, spotTransportPoints]
   );
 
   const mapUserLocation = useMemo(
@@ -395,20 +442,49 @@ export default function MapScreen() {
   }, []);
 
   const handleConfirmCreateConversation = useCallback(
-    (title: string) => {
-      if (!pendingCoordinate) {
+    async (title: string) => {
+      if (!pendingCoordinate || isSavingSpot) {
         return;
       }
+
+      const coordinate = pendingCoordinate;
+      const trimmedTitle = title.trim();
+      const normalizedTitle = trimmedTitle.length > 0 ? trimmedTitle : "Untitled spot";
+
       const conversationId = createConversation({
-        title,
-        coordinate: pendingCoordinate,
+        title: normalizedTitle,
+        coordinate,
         host: profile,
       });
+
       setCreateModalVisible(false);
       setPendingCoordinate(null);
       openConversation(conversationId);
+
+      const savedSpot = await persistSpot({
+        title: normalizedTitle,
+        description: "",
+        latitude: coordinate.latitude,
+        longitude: coordinate.longitude,
+      });
+
+      if (savedSpot) {
+        setRecentSpot(savedSpot);
+      } else {
+        Alert.alert(
+          "Spot sync unavailable",
+          "Your spot chat was created, but we couldn't sync the shared map spot yet."
+        );
+      }
     },
-    [createConversation, openConversation, pendingCoordinate, profile]
+    [
+      createConversation,
+      isSavingSpot,
+      openConversation,
+      pendingCoordinate,
+      persistSpot,
+      profile,
+    ]
   );
 
   const renderSearchResult = useCallback(
@@ -475,7 +551,7 @@ export default function MapScreen() {
               : null
           }
           conversations={conversationMarkers}
-          transportPoints={filters.transport ? transportMarkers : []}
+          transportPoints={transportPoints}
           trafficSegments={trafficSegments}
           hikingTrails={hikingTrails}
           routeCoordinates={null}
@@ -560,6 +636,32 @@ export default function MapScreen() {
             onPress={handleLocateMe}
           />
         </View>
+
+        {recentSpot && (
+          <View style={[styles.overlayPosition, { bottom: overlayBottomOffset + 200 }]}>
+            <SpotMarker spot={recentSpot} />
+          </View>
+        )}
+
+        {spotsError && (
+          <View style={[styles.overlayPosition, { bottom: overlayBottomOffset + 280 }]}>
+            <MapOverlayCard style={styles.resultsCard}>
+              <Text style={styles.resultsErrorTitle}>Spots unavailable</Text>
+              <Text style={styles.resultsErrorMessage}>{spotsError}</Text>
+            </MapOverlayCard>
+          </View>
+        )}
+
+        {isLoadingSpots && spots.length === 0 && !spotsError && (
+          <View style={[styles.overlayPosition, { bottom: overlayBottomOffset + 280 }]}>
+            <MapOverlayCard style={styles.resultsCard}>
+              <Text style={styles.resultsErrorTitle}>Loading community spots…</Text>
+              <Text style={styles.resultsErrorMessage}>
+                We’re syncing the latest spots shared by everyone.
+              </Text>
+            </MapOverlayCard>
+          </View>
+        )}
 
         {selectedPlace && (
           <View style={[styles.overlayPosition, { bottom: overlayBottomOffset }]}>
