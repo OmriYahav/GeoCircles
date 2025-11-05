@@ -7,6 +7,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -63,6 +64,7 @@ type AuthContextValue = {
 };
 
 const STORAGE_KEY = "@openspot:auth-session";
+const DISABLED_GOOGLE_AUTH_CLIENT_ID = "google-auth-disabled";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -85,7 +87,44 @@ function resolveGoogleConfig(): GoogleAuthConfig | null {
   if (!googleConfig) {
     return null;
   }
-  return googleConfig;
+  const resolved: GoogleAuthConfig = { ...googleConfig };
+
+  if (!resolved.clientId && resolved.webClientId) {
+    resolved.clientId = resolved.webClientId;
+  }
+
+  if (!resolved.webClientId && resolved.clientId) {
+    resolved.webClientId = resolved.clientId;
+  }
+
+  const fallbackClientId =
+    resolved.expoClientId ??
+    resolved.clientId ??
+    resolved.webClientId ??
+    resolved.androidClientId ??
+    null;
+
+  if (!resolved.expoClientId && fallbackClientId) {
+    resolved.expoClientId = fallbackClientId;
+  }
+
+  if (!resolved.androidClientId && fallbackClientId) {
+    resolved.androidClientId = fallbackClientId;
+  }
+
+  if (Platform.OS === "ios" && !resolved.iosClientId && fallbackClientId) {
+    resolved.iosClientId = fallbackClientId;
+  }
+
+  const hasAnyClientId = Boolean(
+    resolved.clientId ||
+      resolved.iosClientId ||
+      resolved.androidClientId ||
+      resolved.expoClientId ||
+      resolved.webClientId
+  );
+
+  return hasAnyClientId ? resolved : null;
 }
 
 function mapFirebaseProviderId(providerId: string | null | undefined): AuthProviderName {
@@ -173,14 +212,55 @@ export function AuthProvider({ children }: AuthProviderProps) {
     useState<AuthProviderName | null>(null);
 
   const googleConfig = useMemo(resolveGoogleConfig, []);
-  const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    expoClientId: googleConfig?.expoClientId,
-    clientId: googleConfig?.clientId,
-    iosClientId: googleConfig?.iosClientId,
-    androidClientId: googleConfig?.androidClientId,
-    webClientId: googleConfig?.webClientId,
-    scopes: ["profile", "email"],
-  });
+
+  useEffect(() => {
+    if (!googleConfig) {
+      console.warn(
+        "Google sign-in is not configured. Provide expoConfig.extra.googleAuth client IDs to enable it."
+      );
+    }
+  }, [googleConfig]);
+
+  const googleAuthRequestConfig = useMemo<Google.GoogleAuthRequestConfig>(() => {
+    if (!googleConfig) {
+      return {
+        expoClientId: DISABLED_GOOGLE_AUTH_CLIENT_ID,
+        clientId: DISABLED_GOOGLE_AUTH_CLIENT_ID,
+        iosClientId: DISABLED_GOOGLE_AUTH_CLIENT_ID,
+        androidClientId: DISABLED_GOOGLE_AUTH_CLIENT_ID,
+        webClientId: DISABLED_GOOGLE_AUTH_CLIENT_ID,
+        scopes: ["profile", "email"],
+      };
+    }
+
+    const fallbackClientId =
+      googleConfig.clientId ??
+      googleConfig.webClientId ??
+      googleConfig.expoClientId ??
+      googleConfig.androidClientId ??
+      googleConfig.iosClientId ??
+      DISABLED_GOOGLE_AUTH_CLIENT_ID;
+
+    return {
+      expoClientId: googleConfig.expoClientId ?? fallbackClientId,
+      clientId: googleConfig.clientId ?? fallbackClientId,
+      iosClientId:
+        googleConfig.iosClientId ??
+        (Platform.OS === "ios" ? fallbackClientId : googleConfig.iosClientId ?? fallbackClientId),
+      androidClientId: googleConfig.androidClientId ?? fallbackClientId,
+      webClientId: googleConfig.webClientId ?? fallbackClientId,
+      scopes: ["profile", "email"],
+    } satisfies Google.GoogleAuthRequestConfig;
+  }, [googleConfig]);
+
+  const [, googleResponse, promptGoogleAsyncInternal] = Google.useAuthRequest(googleAuthRequestConfig);
+
+  const promptGoogleAsync = useMemo(() => {
+    if (!googleConfig) {
+      return null;
+    }
+    return promptGoogleAsyncInternal;
+  }, [googleConfig, promptGoogleAsyncInternal]);
 
   useEffect(() => {
     (async () => {
@@ -276,7 +356,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const handleGoogleSignIn = useCallback(async () => {
     if (!promptGoogleAsync) {
-      throw new Error("Google sign-in is not configured");
+      throw new Error(
+        "Google sign-in is not configured yet. Add Google client IDs to the Expo config to enable it."
+      );
     }
     setAuthenticatingProvider("google");
     try {
