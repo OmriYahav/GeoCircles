@@ -1,8 +1,16 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import { DrawerLayout } from "react-native-gesture-handler";
-import { BlurView } from "expo-blur";
+import {
+  Animated,
+  Easing,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Slot, usePathname, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   type NavigationDrawerContextValue,
@@ -28,14 +36,34 @@ export default function DrawerNavigationLayout() {
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const drawerWidth = Math.min(width * 0.8, 340);
-  const drawerRef = useRef<DrawerLayout | null>(null);
+  const drawerVisibility = useRef<Animated.Value>(new Animated.Value(0)).current;
   const pendingRouteRef = useRef<string | null>(null);
-  const [isDrawerOpen, setDrawerOpen] = useState(false);
+  const [isDrawerVisible, setDrawerVisible] = useState(false);
+
+  const animateDrawer = useCallback(
+    (toValue: 0 | 1, onFinished?: () => void) => {
+      Animated.timing(drawerVisibility, {
+        toValue,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished && onFinished) {
+          onFinished();
+        }
+      });
+    },
+    [drawerVisibility]
+  );
 
   const openDrawer = useCallback(() => {
-    drawerRef.current?.openDrawer();
-  }, []);
+    drawerVisibility.stopAnimation(() => {
+      setDrawerVisible(true);
+      animateDrawer(1);
+    });
+  }, [animateDrawer, drawerVisibility]);
 
   const closeDrawer = useCallback(
     (nextRoute?: string) => {
@@ -43,7 +71,7 @@ export default function DrawerNavigationLayout() {
         pendingRouteRef.current = nextRoute;
       }
 
-      if (!isDrawerOpen) {
+      if (!isDrawerVisible) {
         const routeToOpen = pendingRouteRef.current;
         pendingRouteRef.current = null;
         if (routeToOpen && routeToOpen !== pathname) {
@@ -52,18 +80,27 @@ export default function DrawerNavigationLayout() {
         return;
       }
 
-      drawerRef.current?.closeDrawer();
+      drawerVisibility.stopAnimation(() => {
+        animateDrawer(0, () => {
+          setDrawerVisible(false);
+          const routeToOpen = pendingRouteRef.current;
+          pendingRouteRef.current = null;
+          if (routeToOpen && routeToOpen !== pathname) {
+            router.navigate(routeToOpen as never);
+          }
+        });
+      });
     },
-    [isDrawerOpen, pathname, router]
+    [animateDrawer, drawerVisibility, isDrawerVisible, pathname, router]
   );
 
   const toggleDrawer = useCallback(() => {
-    if (isDrawerOpen) {
+    if (isDrawerVisible) {
       closeDrawer();
       return;
     }
     openDrawer();
-  }, [closeDrawer, isDrawerOpen, openDrawer]);
+  }, [closeDrawer, isDrawerVisible, openDrawer]);
 
   const handleNavigate = useCallback(
     (path: string) => {
@@ -76,95 +113,97 @@ export default function DrawerNavigationLayout() {
     [closeDrawer, pathname]
   );
 
-  const handleDrawerClose = useCallback(() => {
-    setDrawerOpen(false);
-    const routeToOpen = pendingRouteRef.current;
-    pendingRouteRef.current = null;
-    if (routeToOpen && routeToOpen !== pathname) {
-      router.navigate(routeToOpen as never);
-    }
-  }, [pathname, router]);
-
-  const handleDrawerOpen = useCallback(() => {
-    setDrawerOpen(true);
-  }, []);
-
   const providerValue = useMemo<NavigationDrawerContextValue>(
     () => ({
       openDrawer,
       closeDrawer,
       toggleDrawer,
-      isOpen: isDrawerOpen,
+      isOpen: isDrawerVisible,
     }),
-    [closeDrawer, isDrawerOpen, openDrawer, toggleDrawer]
-  );
-
-  const renderNavigation = useCallback(
-    () => (
-      <View style={[styles.drawerContainer, { width: drawerWidth }]}> 
-        <View style={styles.drawerHeader}>
-          <Text style={styles.drawerTitle}>Sweet Balance</Text>
-          <Text style={styles.drawerSubtitle}>ניווט רך אל כל העולמות</Text>
-        </View>
-        <View style={styles.drawerMenu}>
-          {MENU_ITEMS.map((item, index) => {
-            const isActive = pathname === item.path;
-            return (
-              <React.Fragment key={item.path}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={item.label}
-                  onPress={() => handleNavigate(item.path)}
-                  style={({ pressed }) => [
-                    styles.drawerItem,
-                    isActive && styles.drawerItemActive,
-                    pressed && styles.drawerItemPressed,
-                  ]}
-                >
-                  <Text style={styles.drawerItemIcon}>{item.icon}</Text>
-                  <Text style={[styles.drawerItemLabel, isActive && styles.drawerItemLabelActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-                {index < MENU_ITEMS.length - 1 ? <View style={styles.drawerDivider} /> : null}
-              </React.Fragment>
-            );
-          })}
-        </View>
-      </View>
-    ),
-    [drawerWidth, handleNavigate, pathname]
+    [closeDrawer, isDrawerVisible, openDrawer, toggleDrawer]
   );
 
   useSyncNavigationDrawerValue(providerValue);
 
+  const translateX = drawerVisibility.interpolate({
+    inputRange: [0, 1],
+    outputRange: [drawerWidth + 32, 0],
+  });
+
+  const backdropOpacity = drawerVisibility.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
   return (
-    <DrawerLayout
-      ref={drawerRef}
-      drawerWidth={drawerWidth}
-      drawerPosition="right"
-      drawerType="front"
-      drawerBackgroundColor="transparent"
-      overlayColor="transparent"
-      renderNavigationView={renderNavigation}
-      onDrawerClose={handleDrawerClose}
-      onDrawerOpen={handleDrawerOpen}
-      edgeWidth={0}
-    >
-      <View style={styles.container}>
-        <Slot />
-        {isDrawerOpen ? (
-          <Pressable
-            accessibilityLabel="סגירת תפריט"
-            accessibilityRole="button"
-            onPress={() => closeDrawer()}
-            style={styles.backdrop}
-          >
-            <BlurView intensity={18} tint="light" style={StyleSheet.absoluteFill} />
-          </Pressable>
-        ) : null}
-      </View>
-    </DrawerLayout>
+    <View style={styles.container}>
+      <Slot />
+      {isDrawerVisible ? (
+        <Pressable
+          accessibilityLabel="סגירת תפריט"
+          accessibilityRole="button"
+          onPress={() => closeDrawer()}
+          style={styles.backdropContainer}
+        >
+          <Animated.View
+            style={[styles.backdrop, { opacity: backdropOpacity }]}
+          />
+        </Pressable>
+      ) : null}
+      <Animated.View
+        pointerEvents={isDrawerVisible ? "auto" : "none"}
+        style={[styles.drawerWrapper, { width: drawerWidth, transform: [{ translateX }] }]}
+      >
+        <View
+          style={[
+            styles.drawerContainer,
+            {
+              paddingTop: insets.top + spacing.xxxl,
+              paddingBottom: insets.bottom + spacing.xxxl,
+            },
+          ]}
+        >
+          <View style={styles.drawerHeader}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="סגירת תפריט"
+              onPress={() => closeDrawer()}
+              hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
+              style={styles.closeButton}
+            >
+              <Text style={styles.closeButtonLabel}>←</Text>
+            </Pressable>
+            <Text style={styles.drawerTitle}>Sweet Balance</Text>
+            <Text style={styles.drawerSubtitle}>ניווט רך אל כל העולמות</Text>
+          </View>
+          <View style={styles.drawerMenu}>
+            {MENU_ITEMS.map((item, index) => {
+              const isActive = pathname === item.path;
+              return (
+                <React.Fragment key={item.path}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={item.label}
+                    onPress={() => handleNavigate(item.path)}
+                    style={({ pressed }) => [
+                      styles.drawerItem,
+                      isActive && styles.drawerItemActive,
+                      pressed && styles.drawerItemPressed,
+                    ]}
+                  >
+                    <Text style={styles.drawerItemIcon}>{item.icon}</Text>
+                    <Text style={[styles.drawerItemLabel, isActive && styles.drawerItemLabelActive]}>
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                  {index < MENU_ITEMS.length - 1 ? <View style={styles.drawerDivider} /> : null}
+                </React.Fragment>
+              );
+            })}
+          </View>
+        </View>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -173,15 +212,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  backdrop: {
+  backdropContainer: {
     ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(59, 101, 69, 0.2)",
+  },
+  drawerWrapper: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    right: 0,
+    zIndex: 20,
   },
   drawerContainer: {
     flex: 1,
     backgroundColor: DRAWER_BACKGROUND,
     borderTopLeftRadius: radii.xl,
     borderBottomLeftRadius: radii.xl,
-    paddingVertical: spacing.xxxl,
     paddingHorizontal: spacing.xxl,
     justifyContent: "space-between",
     shadowColor: Platform.select({ ios: DRAWER_TEXT, android: DRAWER_TEXT, default: DRAWER_TEXT }),
@@ -193,6 +243,7 @@ const styles = StyleSheet.create({
   },
   drawerHeader: {
     gap: spacing.sm,
+    alignItems: "flex-end",
   },
   drawerTitle: {
     fontFamily: typography.family.heading,
@@ -211,6 +262,19 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: spacing.xxxl,
     gap: spacing.md,
+  },
+  closeButton: {
+    alignSelf: "flex-end",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(59, 101, 69, 0.12)",
+  },
+  closeButtonLabel: {
+    fontSize: typography.size.xl,
+    color: DRAWER_TEXT,
   },
   drawerItem: {
     flexDirection: "row-reverse",

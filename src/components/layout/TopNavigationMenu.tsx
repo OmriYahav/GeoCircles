@@ -97,6 +97,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
     writingDirection: "ltr",
+    zIndex: 30,
   },
   title: {
     fontFamily: typography.family.heading,
