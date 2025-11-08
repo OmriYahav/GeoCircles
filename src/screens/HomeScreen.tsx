@@ -62,10 +62,7 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <Text style={styles.brand}>Sweet Balance</Text>
-          <AnimatedMenuIcon
-            open={menuOpen}
-            onPress={handleMenuPress}
-          />
+          <AnimatedMenuIcon open={menuOpen} onPress={handleMenuPress} />
         </View>
 
         <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}>
@@ -86,6 +83,11 @@ export default function HomeScreen() {
             <CTAButton
               title="🍃 גלי את הסדנאות"
               onPress={() => navigateTo("/(drawer)/workshops")}
+            />
+
+            <CTAButton
+              title="🌱 איזון אישי"
+              onPress={() => navigateTo("/personal-balance")}
             />
 
             <View style={styles.cardsSection}>
@@ -148,12 +150,13 @@ const styles = StyleSheet.create({
   },
   safe: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   header: {
     paddingHorizontal: spacing(2),
     paddingTop: spacing(1),
     paddingBottom: spacing(1),
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
@@ -162,6 +165,8 @@ const styles = StyleSheet.create({
     fontSize: typography.subtitle,
     fontWeight: "700",
     fontFamily: typography.fontFamily,
+    flex: 1,
+    textAlign: "left",
   },
   animatedContent: {
     flex: 1,

@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useRef } from "react";
+import { Animated, StyleSheet, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
-import { colors } from "../theme";
+import { colors, radius, spacing } from "../theme";
 
 type AnimatedMenuIconProps = {
   open: boolean;
@@ -9,66 +10,73 @@ type AnimatedMenuIconProps = {
   size?: number;
 };
 
+const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
+
 export default function AnimatedMenuIcon({
   open,
   onPress,
-  size = 28,
+  size = 26,
 }: AnimatedMenuIconProps) {
-  const progress = useRef(new Animated.Value(0)).current;
+  const swayAnim = useRef(new Animated.Value(0)).current;
+  const openProgress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.spring(progress, {
+    Animated.spring(openProgress, {
       toValue: open ? 1 : 0,
       useNativeDriver: true,
       friction: 7,
     }).start();
-  }, [open, progress]);
+  }, [open, openProgress]);
 
-  const rotateTop = progress.interpolate({
+  const rotate = swayAnim.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: ["-8deg", "0deg", "8deg"],
+  });
+
+  const scale = openProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: ["0deg", "45deg"],
+    outputRange: [1, 1.05],
   });
-  const rotateBottom = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "-45deg"],
-  });
-  const translate = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -6],
-  });
-  const middleOpacity = progress.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [1, 0, 0],
-  });
+
+  const handlePress = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(swayAnim, {
+        toValue: 1,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+      Animated.timing(swayAnim, {
+        toValue: -1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(swayAnim, {
+        toValue: 0,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        onPress();
+      }
+    });
+  }, [onPress, swayAnim]);
 
   return (
     <TouchableOpacity
       accessibilityRole="button"
-      onPress={onPress}
-      style={[styles.touchable, { width: size + 16, height: size + 16 }]}
+      onPress={handlePress}
+      style={[styles.touchable, { width: size + spacing(1), height: size + spacing(1) }]}
       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
     >
-      <View style={styles.circle}>
-        <Animated.View
-          style={[
-            styles.line,
-            { transform: [{ translateY: -8 }, { rotate: rotateTop }] },
-          ]}
+      <Animated.View style={[styles.circle, { transform: [{ scale }] }]}>
+        <AnimatedIcon
+          name="leaf"
+          size={size}
+          color={colors.primary}
+          style={{ transform: [{ rotate }] }}
         />
-        <Animated.View style={[styles.line, { opacity: middleOpacity }]} />
-        <Animated.View
-          style={[
-            styles.line,
-            {
-              transform: [
-                { translateY: 8 },
-                { translateX: translate },
-                { rotate: rotateBottom },
-              ],
-            },
-          ]}
-        />
-      </View>
+      </Animated.View>
     </TouchableOpacity>
   );
 }
@@ -78,23 +86,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
-    elevation: 10,
   },
   circle: {
-    backgroundColor: "#fff",
-    borderRadius: 30,
-    padding: 10,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  line: {
-    width: 26,
-    height: 3,
-    backgroundColor: colors.primary,
-    borderRadius: 2,
-    marginVertical: 2,
+    backgroundColor: colors.buttonBg,
+    borderRadius: radius.lg,
+    padding: spacing(0.75),
+    elevation: 3,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
 });

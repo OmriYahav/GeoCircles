@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 
-import { colors, radius, spacing } from "../theme";
+import { colors, radius, spacing, typography } from "../theme";
 
 type CTAButtonProps = {
   title: string;
@@ -18,20 +18,21 @@ export default function CTAButton({ title, onPress }: CTAButtonProps) {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.buttonBg,
     borderRadius: radius.pill,
     paddingVertical: spacing(1.5),
     paddingHorizontal: spacing(3),
     alignSelf: "flex-end",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
   label: {
-    color: "#fff",
+    color: colors.buttonText,
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: typography.size.lg,
+    fontFamily: typography.fontFamily,
   },
 });

@@ -1,30 +1,34 @@
 import { Platform } from "react-native";
 
 const baseColors = {
-  bgFrom: "#F7F0E8",
-  bgTo: "#EAF2EA",
-  primary: "#2F6E44",
-  primarySoft: "#3C7F51",
-  text: "#2D4636",
-  subtitle: "#6b7d72",
+  bgFrom: "#F8F4ED",
+  bgTo: "#E9F2E3",
+  primary: "#2F6D3A",
+  primarySoft: "#A9C9A4",
+  text: "#2F6D3A",
+  subtitle: "#6D8571",
   cardBg: "#FFFFFF",
-  shadow: "rgba(0,0,0,0.08)",
+  shadow: "rgba(47, 109, 58, 0.12)",
+  buttonBg: "#E9F2E3",
+  buttonText: "#2F6D3A",
 };
 
 export const colors = {
   ...baseColors,
   background: baseColors.bgFrom,
   surface: baseColors.cardBg,
-  surfaceMuted: "#F5F6F5",
+  surfaceMuted: "#F4F1E9",
   surfaceElevated: baseColors.cardBg,
-  secondary: "#3C7F51",
-  secondarySoft: "#D9E7D9",
-  accent: "#3C7F51",
+  secondary: baseColors.primarySoft,
+  secondarySoft: "#DDEAD7",
+  accent: baseColors.primary,
   border: "#E3E8E3",
-  divider: "#E5ECE5",
-  primaryTint: "rgba(47, 110, 68, 0.18)",
+  divider: "#E4E8E1",
+  primaryTint: "rgba(47, 109, 58, 0.18)",
   textMuted: baseColors.subtitle,
   textInverse: "#FFFFFF",
+  buttonBg: baseColors.buttonBg,
+  buttonText: baseColors.buttonText,
 };
 
 const defaultFontFamily = Platform.select({
