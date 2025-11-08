@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import { colors, radii, shadows, spacing, typography } from "../theme";
@@ -170,7 +171,7 @@ export default function HomeScreen() {
           onPress={openDrawer}
           style={styles.menuButton}
         >
-          <Text style={styles.menuButtonLabel}>⋮</Text>
+          <Ionicons name="ellipsis-vertical" size={22} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -266,21 +267,17 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: "row",
-    justifyContent: "flex-start",
+    justifyContent: "flex-end",
   },
   menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.md,
+    width: 44,
+    height: 44,
+    borderRadius: radii.xl,
     backgroundColor: colors.surfaceMuted,
     alignItems: "center",
     justifyContent: "center",
+    alignSelf: "flex-end",
     ...shadows.sm,
-  },
-  menuButtonLabel: {
-    fontSize: typography.size.xl,
-    color: colors.text.primary,
-    marginTop: -spacing.xs / 2,
   },
   headerContent: {
     alignItems: "center",

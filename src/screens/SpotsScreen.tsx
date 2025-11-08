@@ -29,7 +29,7 @@ export default function SpotsScreen() {
   );
 
   return (
-    <ScreenScaffold contentStyle={styles.screenContent}>
+    <ScreenScaffold contentStyle={styles.screenContent} flatTopNavigation>
       <FlatList
         style={styles.container}
         data={sortedConversations}

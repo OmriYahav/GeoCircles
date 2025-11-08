@@ -16,6 +16,7 @@ type ScreenScaffoldProps = {
   contentStyle?: StyleProp<ViewStyle>;
   showTopNavigation?: boolean;
   topContent?: React.ReactNode;
+  flatTopNavigation?: boolean;
 };
 
 export default function ScreenScaffold({
@@ -24,15 +25,17 @@ export default function ScreenScaffold({
   contentStyle,
   showTopNavigation = true,
   topContent,
+  flatTopNavigation = false,
 }: ScreenScaffoldProps) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.root, { paddingTop: showTopNavigation ? insets.top : 0 }]}> 
+    <View style={[styles.root, { paddingTop: showTopNavigation ? insets.top : 0 }]}>
       {showTopNavigation ? (
         <TopNavigationMenu
           variant={variant}
           content={topContent}
+          flat={flatTopNavigation}
         />
       ) : null}
       <View style={[styles.content, contentStyle]}>{children}</View>
