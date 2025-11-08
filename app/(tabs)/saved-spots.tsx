@@ -1,7 +1,7 @@
 import React from "react";
 
-import SavedSpotsScreen from "../../src/screens/SavedSpotsScreen";
+import WorkshopsScreen from "../../src/screens/WorkshopsScreen";
 
-export default function SavedSpotsRoute() {
-  return <SavedSpotsScreen />;
+export default function WorkshopsRoute() {
+  return <WorkshopsScreen />;
 }
