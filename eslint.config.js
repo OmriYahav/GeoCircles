@@ -10,6 +10,7 @@ module.exports = defineConfig([
       'import/parsers': {
         '@typescript-eslint/parser': ['.ts', '.tsx', '.d.ts'],
       },
+      'import/core-modules': ['expo-blur', 'expo-linear-gradient'],
       'import/resolver': {
         typescript: {},
       },

@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
 import {
+  Animated,
   I18nManager,
   Pressable,
   StyleSheet,
@@ -7,6 +8,8 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 
 import { radii, spacing, typography } from "../../theme";
 
@@ -28,12 +31,14 @@ export type SideMenuContentProps = {
   onClose: () => void;
   topInset: number;
   bottomInset: number;
+  animationValue: Animated.Value;
 };
 
 export default function SideMenuContent({
   onClose,
   topInset,
   bottomInset,
+  animationValue,
 }: SideMenuContentProps) {
   const router = useRouter();
 
@@ -65,29 +70,70 @@ export default function SideMenuContent({
             pressed && styles.closeButtonPressed,
           ]}
         >
-          <Text style={styles.closeButtonLabel}>←</Text>
+          <Ionicons name="close" size={24} color="#355E3B" />
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>Sweet Balance</Text>
+          <Animated.View
+            style={[
+              styles.titleUnderline,
+              {
+                opacity: animationValue,
+                transform: [
+                  {
+                    scaleX: animationValue.interpolate({
+                      inputRange: [0, 0.4, 1],
+                      outputRange: [0.4, 0.85, 1],
+                    }),
+                  },
+                  {
+                    translateX: animationValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [20, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
           <Text style={styles.subtitle}>ניווט נינוח אל התוכן המתוק</Text>
         </View>
       </View>
       <View style={styles.menuItems}>
-        {MENU_ITEMS.map((item) => (
-          <Pressable
-            key={item.label}
-            accessibilityRole="button"
-            accessibilityLabel={item.label}
-            onPress={() => handlePress(item)}
-            style={({ pressed }) => [
-              styles.menuItem,
-              pressed && styles.menuItemPressed,
-            ]}
-          >
-            <Text style={styles.menuItemIcon}>{item.icon}</Text>
-            <Text style={styles.menuItemLabel}>{item.label}</Text>
-          </Pressable>
-        ))}
+        {MENU_ITEMS.map((item, index) => {
+          const isLastItem = index === MENU_ITEMS.length - 1;
+
+          return (
+            <View key={item.label} style={styles.menuItemWrapper}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+                onPress={() => handlePress(item)}
+                style={({ pressed }) => [
+                  styles.menuItem,
+                  pressed && styles.menuItemPressed,
+                ]}
+              >
+                {({ pressed }) => (
+                  <LinearGradient
+                    colors={
+                      pressed
+                        ? ["#F7F3E9", "#FFFDF6"]
+                        : ["#FFFDF6", "#F7F3E9"]
+                    }
+                    start={{ x: I18nManager.isRTL ? 1 : 0, y: 0 }}
+                    end={{ x: I18nManager.isRTL ? 0 : 1, y: 1 }}
+                    style={styles.menuItemGradient}
+                  >
+                    <Text style={styles.menuItemIcon}>{item.icon}</Text>
+                    <Text style={styles.menuItemLabel}>{item.label}</Text>
+                  </LinearGradient>
+                )}
+              </Pressable>
+              {!isLastItem ? <View style={styles.menuDivider} /> : null}
+            </View>
+          );
+        })}
       </View>
     </View>
   );
@@ -115,13 +161,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(53, 94, 59, 0.12)",
+    shadowColor: "#355E3B",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 6,
   },
   closeButtonPressed: {
     backgroundColor: "rgba(53, 94, 59, 0.18)",
-  },
-  closeButtonLabel: {
-    fontSize: typography.size.xl,
-    color: "#355E3B",
+    transform: [{ scale: 0.94 }],
   },
   headerText: {
     gap: spacing.xs,
@@ -133,6 +181,13 @@ const styles = StyleSheet.create({
     color: "#355E3B",
     textAlign: "right",
   },
+  titleUnderline: {
+    alignSelf: "flex-end",
+    height: 3,
+    borderRadius: 3,
+    backgroundColor: "rgba(53, 94, 59, 0.4)",
+    width: "40%",
+  },
   subtitle: {
     fontFamily: typography.family.regular,
     fontSize: typography.size.sm,
@@ -143,28 +198,32 @@ const styles = StyleSheet.create({
   menuItems: {
     flex: 1,
     marginTop: spacing.xxxl,
-    gap: spacing.lg,
+  },
+  menuItemWrapper: {
+    marginBottom: spacing.lg,
   },
   menuItem: {
-    flexDirection: "row-reverse",
+    borderRadius: radii.xxl,
+    shadowColor: "#2e4c36",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 14,
+    elevation: 5,
+    overflow: "hidden",
+  },
+  menuItemPressed: {
+    transform: [{ scale: 0.98 }],
+  },
+  menuItemGradient: {
+    borderRadius: radii.xxl,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    flexDirection: I18nManager.isRTL ? "row-reverse" : "row",
     alignItems: "center",
     justifyContent: "flex-start",
     gap: spacing.lg,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    borderRadius: radii.xxl,
-    backgroundColor: "#fffdf8",
-    shadowColor: "#355E3B",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 4,
     borderWidth: 1,
     borderColor: "rgba(53, 94, 59, 0.08)",
-  },
-  menuItemPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.97 }],
   },
   menuItemIcon: {
     fontSize: typography.size.xl,
@@ -176,5 +235,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.family.medium,
     fontSize: typography.size.lg,
     color: "#355E3B",
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: "rgba(53, 94, 59, 0.12)",
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.md,
   },
 });
