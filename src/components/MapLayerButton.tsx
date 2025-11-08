@@ -21,7 +21,7 @@ export default function MapLayerButton({ mode, onToggle }: MapLayerButtonProps) 
       hitSlop={8}
     >
       <View style={styles.content}>
-        <Ionicons name="layers-outline" size={20} color={colors.text.primary} />
+        <Ionicons name="layers-outline" size={20} color={colors.text} />
         <Text style={styles.label}>{label}</Text>
       </View>
     </Pressable>
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: typography.size.sm,
-    color: colors.text.primary,
+    color: colors.text,
     fontFamily: typography.family.medium,
   },
 });

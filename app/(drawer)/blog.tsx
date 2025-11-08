@@ -1,12 +1,7 @@
-import { createMenuScreen } from "../../src/screens/MenuScreenFactory";
+import React from "react";
 
-export default createMenuScreen({
-  icon: "📖",
-  title: "בלוג",
-  subtitle: "מחשבות מתוקות על איזון בחיים",
-  paragraphs: [
-    "בבלוג אנחנו משתפות סיפורים מהקליניקה, שיחות עם נשים אמיצות ועולמות תוכן שמחברים בין רגש לתזונה.",
-    "תמצאי בו רעיונות עונתיים, המלצות על מוצרים מקומיים ומסלולי קריאה שמעמיקים בכל נושא שמעניין אותך.",
-    "כל פוסט מלווה בהורדות, רשימות להדפסה ומשימות קטנות שמאפשרות להרגיש שינוי כבר ביום הראשון.",
-  ],
-});
+import BlogScreen from "../../src/screens/BlogScreen";
+
+export default function BlogRoute() {
+  return <BlogScreen />;
+}

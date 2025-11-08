@@ -24,6 +24,7 @@ import { BusinessProvider } from "../context/BusinessContext";
 import { AuthProvider } from "../contexts/AuthContext";
 import KeyboardDismissView from "../components/KeyboardDismissView";
 import { colors } from "../theme";
+import { MenuProvider } from "../context/MenuContext";
 
 const paperTheme: MD3Theme = {
   ...MD3LightTheme,
@@ -39,8 +40,8 @@ const paperTheme: MD3Theme = {
     surfaceVariant: colors.surfaceMuted,
     outline: colors.border,
     outlineVariant: colors.divider,
-    onSurface: colors.text.primary,
-    onSurfaceVariant: colors.text.muted,
+    onSurface: colors.text,
+    onSurfaceVariant: colors.textMuted,
   },
 };
 
@@ -114,9 +115,11 @@ export default function AppProviders({ children }: AppProvidersProps) {
                       backgroundColor={colors.background}
                     />
                     <KeyboardDismissView>
-                      <View style={{ flex: 1, backgroundColor: colors.background }}>
-                        {children}
-                      </View>
+                      <MenuProvider>
+                        <View style={{ flex: 1, backgroundColor: colors.background }}>
+                          {children}
+                        </View>
+                      </MenuProvider>
                     </KeyboardDismissView>
                   </FavoritesProvider>
                 </ChatConversationsProvider>

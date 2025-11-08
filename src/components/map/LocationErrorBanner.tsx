@@ -45,11 +45,11 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: typography.size.xs,
-    color: colors.text.inverse,
+    color: colors.textInverse,
     fontFamily: typography.family.semiBold,
   },
   message: {
-    color: colors.text.secondary,
+    color: colors.subtitle,
     fontFamily: typography.family.regular,
     lineHeight: typography.lineHeight.relaxed,
   },

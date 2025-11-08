@@ -34,7 +34,7 @@ export default function ChatInput({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={colors.text.muted}
+          placeholderTextColor={colors.textMuted}
           style={styles.input}
           multiline
           textAlignVertical="top"
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     flex: 1,
     maxHeight: 120,
     fontSize: 16,
-    color: colors.text.primary,
+    color: colors.text,
     paddingRight: spacing.sm,
   },
   sendButton: {

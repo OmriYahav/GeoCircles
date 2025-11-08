@@ -142,13 +142,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#0B1028",
   },
   title: {
-    color: colors.text.inverse,
+    color: colors.textInverse,
     fontSize: typography.size.xl,
     fontFamily: typography.family.semiBold,
     marginBottom: spacing.xl,
   },
   permissionText: {
-    color: colors.text.inverse,
+    color: colors.textInverse,
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.relaxed,
     fontFamily: typography.family.regular,

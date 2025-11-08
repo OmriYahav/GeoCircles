@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   quote: {
-    color: colors.text.primary,
+    color: colors.text,
     fontSize: 16,
     lineHeight: 24,
   },

@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.lg,
-    color: colors.text.primary,
+    color: colors.text,
   },
   backButton: {
     paddingHorizontal: spacing.lg,
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   backButtonLabel: {
     fontFamily: typography.family.medium,
     fontSize: typography.size.sm,
-    color: colors.text.primary,
+    color: colors.text,
   },
   emptyState: {
     flex: 1,
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontFamily: typography.family.medium,
     fontSize: typography.size.md,
-    color: colors.text.secondary,
+    color: colors.subtitle,
   },
   listContent: {
     gap: spacing.lg,
@@ -189,13 +189,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.md,
-    color: colors.text.primary,
+    color: colors.text,
     textAlign: "right",
   },
   cardSubtitle: {
     fontFamily: typography.family.regular,
     fontSize: typography.size.sm,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     textAlign: "right",
   },
   deleteButton: {

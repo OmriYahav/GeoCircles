@@ -779,11 +779,11 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: typography.size.md,
     fontFamily: typography.family.medium,
-    color: colors.text.primary,
+    color: colors.text,
   },
   resultSubtitle: {
     marginTop: spacing.xs,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     fontSize: typography.size.xs,
   },
   resultSeparator: {
@@ -793,12 +793,12 @@ const styles = StyleSheet.create({
   resultsErrorTitle: {
     fontSize: typography.size.md,
     fontFamily: typography.family.semiBold,
-    color: colors.text.primary,
+    color: colors.text,
     marginBottom: spacing.xs,
     paddingHorizontal: spacing.xl,
   },
   resultsErrorMessage: {
-    color: colors.text.secondary,
+    color: colors.subtitle,
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,
     fontFamily: typography.family.regular,

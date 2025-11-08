@@ -60,12 +60,12 @@ const styles = StyleSheet.create({
   },
   coordinates: {
     fontSize: typography.size.xs,
-    color: colors.text.muted,
+    color: colors.textMuted,
   },
   title: {
     fontSize: typography.size.lg,
     fontFamily: typography.family.semiBold,
-    color: colors.text.primary,
+    color: colors.text,
     letterSpacing: 0.2,
   },
   button: {

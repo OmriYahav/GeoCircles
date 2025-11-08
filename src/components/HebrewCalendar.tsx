@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   monthLabel: {
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.lg,
-    color: colors.text.primary,
+    color: colors.text,
   },
   navButton: {
     paddingVertical: spacing.xs,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   weekdayLabel: {
     fontFamily: typography.family.medium,
     fontSize: typography.size.sm,
-    color: colors.text.secondary,
+    color: colors.subtitle,
   },
   weeksWrapper: {
     gap: spacing.xs,
@@ -282,14 +282,14 @@ const styles = StyleSheet.create({
   dayLabel: {
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.lg,
-    color: colors.text.primary,
+    color: colors.text,
   },
   dayLabelDisabled: {
-    color: colors.text.muted,
+    color: colors.textMuted,
     opacity: 0.6,
   },
   dayLabelSelected: {
-    color: colors.text.inverse,
+    color: colors.textInverse,
   },
   bookingDot: {
     width: 8,

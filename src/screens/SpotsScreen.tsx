@@ -116,11 +116,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontFamily: typography.family.semiBold,
     marginBottom: spacing.xs,
-    color: colors.text.primary,
+    color: colors.text,
     fontSize: typography.size.lg,
   },
   emptySubtitle: {
-    color: colors.text.secondary,
+    color: colors.subtitle,
     lineHeight: typography.lineHeight.relaxed,
   },
   card: {
@@ -142,17 +142,17 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: typography.size.lg,
     fontFamily: typography.family.semiBold,
-    color: colors.text.primary,
+    color: colors.text,
   },
   cardSubtitle: {
     marginTop: spacing.xs,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     fontFamily: typography.family.regular,
   },
   cardMeta: {
     marginTop: spacing.sm,
     fontSize: typography.size.xs,
-    color: colors.text.muted,
+    color: colors.textMuted,
   },
   pendingBadge: {
     marginTop: spacing.sm,

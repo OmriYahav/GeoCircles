@@ -128,12 +128,12 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontFamily: typography.family.semiBold,
-    color: colors.text.primary,
+    color: colors.text,
     fontSize: typography.size.md,
   },
   cardSubtitle: {
     marginTop: spacing.xs,
-    color: colors.text.muted,
+    color: colors.textMuted,
     fontFamily: typography.family.regular,
   },
   clearButton: {
@@ -154,17 +154,17 @@ const styles = StyleSheet.create({
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.xl,
     marginBottom: spacing.md,
-    color: colors.text.primary,
+    color: colors.text,
   },
   emptySubtitle: {
-    color: colors.text.secondary,
+    color: colors.subtitle,
     textAlign: "center",
     fontFamily: typography.family.regular,
     lineHeight: typography.lineHeight.relaxed,
   },
   loadingLabel: {
     fontFamily: typography.family.medium,
-    color: colors.text.secondary,
+    color: colors.subtitle,
   },
   removeLabel: {
     fontFamily: typography.family.medium,

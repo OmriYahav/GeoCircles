@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   },
   loaderText: {
     textAlign: "center",
-    color: colors.text.secondary,
+    color: colors.subtitle,
     fontFamily: typography.family.regular,
   },
   errorText: {
@@ -242,18 +242,18 @@ const styles = StyleSheet.create({
   title: {
     textAlign: "center",
     fontFamily: typography.family.semiBold,
-    color: colors.text.primary,
+    color: colors.text,
     fontSize: typography.size.xl,
   },
   offerText: {
     textAlign: "center",
-    color: colors.text.secondary,
+    color: colors.subtitle,
     fontFamily: typography.family.regular,
     lineHeight: typography.lineHeight.relaxed,
   },
   expiry: {
     textAlign: "center",
-    color: colors.text.muted,
+    color: colors.textMuted,
   },
   actionButton: {
     marginTop: spacing.md,
