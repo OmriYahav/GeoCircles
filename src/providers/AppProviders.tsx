@@ -8,6 +8,14 @@ import {
   type MD3Theme,
 } from "react-native-paper";
 import * as SplashScreen from "expo-splash-screen";
+import { useFonts } from "expo-font";
+import { Courgette_400Regular } from "@expo-google-fonts/courgette";
+import {
+  Heebo_400Regular,
+  Heebo_500Medium,
+  Heebo_600SemiBold,
+  Heebo_700Bold,
+} from "@expo-google-fonts/heebo";
 
 import { FavoritesProvider } from "../context/FavoritesContext";
 import { UserProfileProvider } from "../context/UserProfileContext";
@@ -15,12 +23,11 @@ import { ChatConversationsProvider } from "../context/ChatConversationsContext";
 import { BusinessProvider } from "../context/BusinessContext";
 import { AuthProvider } from "../contexts/AuthContext";
 import KeyboardDismissView from "../components/KeyboardDismissView";
-import BusinessProximityManager from "../../components/BusinessProximityManager";
 import { colors } from "../theme";
 
 const paperTheme: MD3Theme = {
   ...MD3LightTheme,
-  roundness: 18,
+  roundness: 22,
   colors: {
     ...MD3LightTheme.colors,
     primary: colors.primary,
@@ -42,29 +49,37 @@ export type AppProvidersProps = {
 };
 
 export default function AppProviders({ children }: AppProvidersProps) {
+  const [fontsLoaded] = useFonts({
+    Courgette_400Regular,
+    Heebo_400Regular,
+    Heebo_500Medium,
+    Heebo_600SemiBold,
+    Heebo_700Bold,
+  });
+
   useEffect(() => {
+    SplashScreen.preventAutoHideAsync().catch((error) => {
+      console.warn("Failed to prevent auto-hiding the splash screen", error);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!fontsLoaded) {
+      return;
+    }
+
     let isMounted = true;
     let timeout: ReturnType<typeof setTimeout> | null = null;
 
-    const manageSplashScreen = async () => {
-      try {
-        await SplashScreen.preventAutoHideAsync();
-      } catch (error) {
-        console.warn("Failed to prevent auto-hiding the splash screen", error);
+    timeout = setTimeout(() => {
+      if (!isMounted) {
+        return;
       }
 
-      timeout = setTimeout(() => {
-        if (!isMounted) {
-          return;
-        }
-
-        SplashScreen.hideAsync().catch((hideError) => {
-          console.warn("Failed to hide splash screen", hideError);
-        });
-      }, 500);
-    };
-
-    manageSplashScreen();
+      SplashScreen.hideAsync().catch((hideError) => {
+        console.warn("Failed to hide splash screen", hideError);
+      });
+    }, 350);
 
     return () => {
       isMounted = false;
@@ -72,7 +87,11 @@ export default function AppProviders({ children }: AppProvidersProps) {
         clearTimeout(timeout);
       }
     };
-  }, []);
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -92,7 +111,6 @@ export default function AppProviders({ children }: AppProvidersProps) {
                         {children}
                       </View>
                     </KeyboardDismissView>
-                    <BusinessProximityManager />
                   </FavoritesProvider>
                 </ChatConversationsProvider>
               </BusinessProvider>
