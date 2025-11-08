@@ -16,6 +16,8 @@ import TopNavigationMenu from "./TopNavigationMenu";
 import { colors, spacing } from "../../theme";
 import SideMenuContent from "./SideMenuContent";
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 type ScreenScaffoldProps = {
   children: React.ReactNode;
   variant?: "default" | "modal";
@@ -38,22 +40,16 @@ export default function ScreenScaffold({
   const { width } = useWindowDimensions();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMenuVisible, setMenuVisible] = useState(false);
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const menuAnim = useRef(new Animated.Value(0)).current;
 
   const menuWidth = useMemo(() => Math.min(width * 0.8, 320), [width]);
 
   useEffect(() => {
-    if (!isMenuOpen) {
-      slideAnim.setValue(menuWidth);
-    }
-  }, [isMenuOpen, menuWidth, slideAnim]);
-
-  useEffect(() => {
     if (isMenuOpen) {
       setMenuVisible(true);
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 300,
+      Animated.timing(menuAnim, {
+        toValue: 1,
+        duration: 320,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start();
@@ -64,9 +60,9 @@ export default function ScreenScaffold({
       return;
     }
 
-    Animated.timing(slideAnim, {
-      toValue: menuWidth,
-      duration: 300,
+    Animated.timing(menuAnim, {
+      toValue: 0,
+      duration: 260,
       easing: Easing.inOut(Easing.cubic),
       useNativeDriver: true,
     }).start(({ finished }) => {
@@ -74,7 +70,7 @@ export default function ScreenScaffold({
         setMenuVisible(false);
       }
     });
-  }, [isMenuOpen, isMenuVisible, menuWidth, slideAnim]);
+  }, [isMenuOpen, isMenuVisible, menuAnim]);
 
   const handleCloseMenu = useCallback(() => {
     setIsMenuOpen(false);
@@ -102,18 +98,34 @@ export default function ScreenScaffold({
       <View style={[styles.content, contentStyle]}>{children}</View>
       {isMenuVisible ? (
         <>
-          <Pressable
+          <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel="סגירת תפריט"
-            style={styles.overlay}
             onPress={handleCloseMenu}
+            style={[
+              styles.overlay,
+              {
+                opacity: menuAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 0.45],
+                }),
+              },
+            ]}
           />
           <Animated.View
             style={[
               styles.sideMenu,
               {
                 width: menuWidth,
-                transform: [{ translateX: slideAnim }],
+                opacity: menuAnim,
+                transform: [
+                  {
+                    translateX: menuAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [menuWidth, 0],
+                    }),
+                  },
+                ],
               },
             ]}
           >
