@@ -15,17 +15,19 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import dayjs from "dayjs";
 import "dayjs/locale/he";
 
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
-import AnimatedLeafMenuIcon from "../components/AnimatedLeafMenuIcon";
+import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
 import Card from "../components/Card";
 import CTAButton from "../components/CTAButton";
+import SideMenuNew from "../components/SideMenuNew";
 import { colors, radius, spacing, typography } from "../theme";
 import { useMenu } from "../context/MenuContext";
+import { menuRouteMap } from "../constants/menuRoutes";
 import type { SavedWorkshop } from "./MyWorkshopsScreen";
 
 const STORAGE_KEY = "sweet-balance.workshops";
@@ -75,9 +77,8 @@ dayjs.locale("he");
 
 export default function WorkshopsScreen() {
   const router = useRouter();
-  const navigation = useNavigation<any>();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { menuOpen, toggleMenu, closeMenu } = useMenu();
+  const { isOpen, open, close } = useMenu();
   const [bookings, setBookings] = useState<SavedWorkshop[]>([]);
   const [activeView, setActiveView] = useState<ActiveView>("options");
 
@@ -190,25 +191,20 @@ export default function WorkshopsScreen() {
   }, [bookings]);
 
   const handleMenuPress = useCallback(() => {
-    if (typeof navigation?.toggleDrawer === "function") {
-      navigation.toggleDrawer();
-      return;
-    }
-
-    toggleMenu();
-  }, [navigation, toggleMenu]);
+    open();
+  }, [open]);
 
   const handleHomePress = useCallback(() => {
-    closeMenu();
+    close();
     router.navigate("/");
-  }, [closeMenu, router]);
+  }, [close, router]);
 
   const handleNavigateOption = useCallback(
     (route: string) => {
-      closeMenu();
+      close();
       router.push(route);
     },
-    [closeMenu, router],
+    [close, router],
   );
 
   return (
@@ -217,7 +213,7 @@ export default function WorkshopsScreen() {
         <View style={styles.header}>
           <AnimatedHomeButton onPress={handleHomePress} />
           <Text style={styles.brand}>Sweet Balance</Text>
-          <AnimatedLeafMenuIcon open={menuOpen} onPress={handleMenuPress} />
+          <HeaderRightMenuButton onPress={handleMenuPress} expanded={isOpen} />
         </View>
 
         <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}>
@@ -321,9 +317,42 @@ export default function WorkshopsScreen() {
                 )}
               </View>
             )}
+
+            <View style={styles.moreSection}>
+              <Text style={styles.moreTitle}>עוד השראה מחכה לך</Text>
+              <Text style={styles.moreSubtitle}>
+                קפצי לבלוג או למתכונים לקבלת רעיונות מרעננים בין הסדנאות.
+              </Text>
+              <View style={styles.moreLinks}>
+                <CTAButton
+                  title="לבלוג"
+                  onPress={() => {
+                    close();
+                    router.navigate(menuRouteMap.Blog);
+                  }}
+                />
+                <CTAButton
+                  title="למתכונים"
+                  onPress={() => {
+                    close();
+                    router.navigate(menuRouteMap.Recipes);
+                  }}
+                />
+              </View>
+            </View>
           </ScrollView>
         </Animated.View>
       </SafeAreaView>
+
+      <SideMenuNew
+        visible={isOpen}
+        onClose={close}
+        navigate={(route, params) => {
+          const target = menuRouteMap[route] ?? route;
+          close();
+          router.navigate({ pathname: target, params: params ?? {} });
+        }}
+      />
     </LinearGradient>
   );
 }
@@ -356,8 +385,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing(2),
-    paddingBottom: spacing(6),
-    gap: spacing(2),
+    paddingBottom: spacing(4),
+    gap: spacing(1.5),
   },
   screenTitle: {
     color: colors.primary,
@@ -371,126 +400,141 @@ const styles = StyleSheet.create({
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamily,
     textAlign: "right",
-    lineHeight: typography.subtitle * 1.4,
   },
   tabRow: {
-    marginTop: spacing(2),
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     gap: spacing(1),
+    marginTop: spacing(1.5),
   },
   tabButton: {
     flex: 1,
-    borderRadius: radius.pill,
-    paddingVertical: spacing(1),
-    backgroundColor: "rgba(47, 110, 68, 0.12)",
+    borderRadius: radius.lg,
+    backgroundColor: "rgba(255,255,255,0.7)",
+    paddingVertical: spacing(0.75),
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "rgba(0,0,0,0.05)",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
   tabButtonActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.surfaceElevated,
   },
   tabLabel: {
-    textAlign: "center",
-    color: colors.primary,
-    fontSize: typography.small,
+    color: colors.text,
+    fontSize: typography.body,
     fontFamily: typography.fontFamily,
-    fontWeight: "600",
   },
   tabLabelActive: {
-    color: "#fff",
+    color: colors.primary,
+    fontWeight: "700",
   },
   optionsList: {
-    marginTop: spacing(3),
-    gap: spacing(2),
+    gap: spacing(1.5),
+    marginTop: spacing(2),
   },
   optionCard: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
-    gap: spacing(2),
+    gap: spacing(1),
   },
   optionEmoji: {
-    fontSize: typography.title,
-    marginTop: spacing(1),
+    fontSize: 30,
   },
   savedList: {
-    marginTop: spacing(3),
-    gap: spacing(2),
+    gap: spacing(1),
+    marginTop: spacing(2),
   },
   emptyState: {
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.lg,
-    padding: spacing(3),
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: radius.xl,
+    padding: spacing(2),
     alignItems: "center",
-    gap: spacing(1.5),
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    gap: spacing(1),
   },
   emptyStateTitle: {
     color: colors.primary,
     fontSize: typography.subtitle,
     fontWeight: "700",
     fontFamily: typography.fontFamily,
-    textAlign: "center",
   },
   emptyStateSubtitle: {
-    color: colors.subtitle,
+    color: colors.text,
     fontSize: typography.body,
-    fontFamily: typography.fontFamily,
     textAlign: "center",
     lineHeight: typography.body * 1.5,
   },
   bookingCard: {
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.lg,
-    padding: spacing(2),
-    flexDirection: "row-reverse",
-    alignItems: "center",
+    flexDirection: "row",
     justifyContent: "space-between",
-    gap: spacing(2),
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.12,
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing(1.5),
+    shadowColor: "rgba(0,0,0,0.08)",
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
   },
   bookingDetails: {
     flex: 1,
-    alignItems: "flex-end",
-    gap: spacing(0.5),
+    marginLeft: spacing(1),
   },
   bookingTitle: {
     color: colors.primary,
     fontSize: typography.subtitle,
-    fontWeight: "600",
+    fontWeight: "700",
     fontFamily: typography.fontFamily,
     textAlign: "right",
   },
   bookingSubtitle: {
-    color: colors.subtitle,
+    color: colors.text,
     fontSize: typography.body,
-    fontFamily: typography.fontFamily,
     textAlign: "right",
+    marginTop: 4,
   },
   bookingMeta: {
-    color: colors.subtitle,
+    color: colors.text,
     fontSize: typography.small,
-    fontFamily: typography.fontFamily,
+    marginTop: 2,
     textAlign: "right",
   },
   deleteButton: {
-    borderRadius: radius.pill,
-    paddingVertical: spacing(0.5),
+    paddingVertical: spacing(0.75),
     paddingHorizontal: spacing(1.5),
-    backgroundColor: "rgba(47, 110, 68, 0.12)",
+    borderRadius: radius.lg,
+    backgroundColor: "rgba(209, 67, 67, 0.1)",
   },
   deleteButtonPressed: {
-    transform: [{ scale: 0.97 }],
-    backgroundColor: "rgba(47, 110, 68, 0.2)",
+    backgroundColor: "rgba(209, 67, 67, 0.18)",
   },
   deleteLabel: {
+    color: "#B44747",
+    fontWeight: "600",
+  },
+  moreSection: {
+    marginTop: spacing(2.5),
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: radius.xl,
+    padding: spacing(2),
+    gap: spacing(1),
+  },
+  moreTitle: {
     color: colors.primary,
-    fontSize: typography.small,
+    fontSize: typography.subtitle,
+    fontWeight: "700",
     fontFamily: typography.fontFamily,
+    textAlign: "right",
+  },
+  moreSubtitle: {
+    color: colors.text,
+    fontSize: typography.body,
+    textAlign: "right",
+    lineHeight: typography.body * 1.4,
+  },
+  moreLinks: {
+    flexDirection: "row",
+    gap: spacing(1),
   },
 });

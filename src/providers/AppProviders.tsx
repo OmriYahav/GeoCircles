@@ -23,7 +23,6 @@ import { ChatConversationsProvider } from "../context/ChatConversationsContext";
 import { BusinessProvider } from "../context/BusinessContext";
 import { AuthProvider } from "../contexts/AuthContext";
 import KeyboardDismissView from "../components/KeyboardDismissView";
-import SideMenu from "../components/SideMenu";
 import { colors } from "../theme";
 import { MenuProvider } from "../context/MenuContext";
 
@@ -119,7 +118,6 @@ export default function AppProviders({ children }: AppProvidersProps) {
                       <MenuProvider>
                         <View style={{ flex: 1, backgroundColor: colors.background }}>
                           {children}
-                          <SideMenu />
                         </View>
                       </MenuProvider>
                     </KeyboardDismissView>

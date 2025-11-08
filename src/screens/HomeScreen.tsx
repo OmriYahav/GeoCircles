@@ -11,25 +11,26 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
-import AnimatedLeafMenuIcon from "../components/AnimatedLeafMenuIcon";
+import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
 import Card from "../components/Card";
 import CTAButton from "../components/CTAButton";
 import ScrollToTopButton from "../components/ScrollToTopButton";
 import TestimonialsCarousel from "../components/TestimonialsCarousel";
 import ThisMonthSection from "../components/ThisMonthSection";
+import SideMenuNew from "../components/SideMenuNew";
 import { colors, spacing, typography } from "../theme";
 import { useMenu } from "../context/MenuContext";
+import { menuRouteMap } from "../constants/menuRoutes";
 
 export default function HomeScreen() {
-  const navigation = useNavigation<any>();
   const router = useRouter();
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { menuOpen, toggleMenu, closeMenu } = useMenu();
+  const { isOpen, open, close } = useMenu();
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     setShowScrollTop(event.nativeEvent.contentOffset.y > 240);
@@ -44,23 +45,21 @@ export default function HomeScreen() {
   }, [fadeAnim]);
 
   const handleMenuPress = useCallback(() => {
-    if (typeof navigation?.toggleDrawer === "function") {
-      navigation.toggleDrawer();
-      return;
-    }
-
-    toggleMenu();
-  }, [navigation, toggleMenu]);
+    open();
+  }, [open]);
 
   const handleHomePress = useCallback(() => {
-    closeMenu();
+    close();
     router.navigate("/");
-  }, [closeMenu, router]);
+  }, [close, router]);
 
-  const navigateTo = (path: string) => {
-    closeMenu();
-    router.push(path);
-  };
+  const navigateTo = useCallback(
+    (path: string) => {
+      close();
+      router.navigate(path);
+    },
+    [close, router],
+  );
 
   return (
     <LinearGradient colors={[colors.bgFrom, colors.bgTo]} style={styles.gradient}>
@@ -69,7 +68,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <AnimatedHomeButton onPress={handleHomePress} />
           <Text style={styles.brand}>Sweet Balance</Text>
-          <AnimatedLeafMenuIcon open={menuOpen} onPress={handleMenuPress} />
+          <HeaderRightMenuButton onPress={handleMenuPress} expanded={isOpen} />
         </View>
 
         <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}>
@@ -89,7 +88,7 @@ export default function HomeScreen() {
 
             <CTAButton
               title="🍃 גלי את הסדנאות"
-              onPress={() => navigateTo("/(drawer)/workshops")}
+              onPress={() => navigateTo(menuRouteMap.Workshops)}
             />
 
             <CTAButton
@@ -101,32 +100,32 @@ export default function HomeScreen() {
               <Card
                 title="מתכונים בריאים"
                 subtitle="קינוחים מאזנים, ארוחות קלילות ומשביעות"
-                onPress={() => navigateTo("/(drawer)/recipes")}
+                onPress={() => navigateTo(menuRouteMap.Recipes)}
               />
               <Card
                 title="סדנאות"
                 subtitle="לוח סדנאות קרובות + שריון מקום"
-                onPress={() => navigateTo("/(drawer)/workshops")}
+                onPress={() => navigateTo(menuRouteMap.Workshops)}
               />
               <Card
                 title="טיפולים"
                 subtitle="מפגשים אישיים וקבוצתיים"
-                onPress={() => navigateTo("/(drawer)/treatments")}
+                onPress={() => navigateTo(menuRouteMap.Treatments)}
               />
               <Card
                 title="עצות תזונה"
                 subtitle="מדריכים קצרים ופרקטיים"
-                onPress={() => navigateTo("/(drawer)/nutrition-tips")}
+                onPress={() => navigateTo(menuRouteMap.Tips)}
               />
               <Card
                 title="בלוג"
                 subtitle="מאמרים, תובנות והשראה"
-                onPress={() => navigateTo("/(drawer)/blog")}
+                onPress={() => navigateTo(menuRouteMap.Blog)}
               />
             </View>
 
             <View style={styles.sectionSpacing}>
-              <ThisMonthSection onReserve={() => navigateTo("/(drawer)/workshops")} />
+              <ThisMonthSection onReserve={() => navigateTo(menuRouteMap.Workshops)} />
             </View>
 
             <View style={styles.sectionSpacing}>
@@ -147,6 +146,16 @@ export default function HomeScreen() {
           onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
         />
       </SafeAreaView>
+
+      <SideMenuNew
+        visible={isOpen}
+        onClose={close}
+        navigate={(route, params) => {
+          const target = menuRouteMap[route] ?? route;
+          close();
+          router.navigate({ pathname: target, params: params ?? {} });
+        }}
+      />
     </LinearGradient>
   );
 }
@@ -160,12 +169,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingHorizontal: spacing(2),
-    paddingTop: spacing(1),
-    paddingBottom: spacing(1),
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: spacing(2),
+    paddingVertical: spacing(1),
+    zIndex: 20,
   },
   brand: {
     color: colors.primary,
@@ -180,21 +189,20 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing(2),
-    paddingBottom: spacing(6),
-    gap: spacing(2),
+    paddingBottom: spacing(4),
+    gap: spacing(1.5),
   },
   heroTitle: {
     color: colors.primary,
-    fontSize: typography.title,
+    fontSize: typography.hero,
     fontWeight: "700",
     fontFamily: typography.fontFamily,
-    marginBottom: spacing(0.5),
     textAlign: "right",
   },
   heroSubtitle: {
     color: colors.subtitle,
     fontSize: typography.subtitle,
-    marginBottom: spacing(1),
+    fontFamily: typography.fontFamily,
     textAlign: "right",
   },
   heroBody: {
@@ -202,21 +210,20 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     lineHeight: typography.body * 1.6,
     fontFamily: typography.fontFamily,
-    marginBottom: spacing(2),
     textAlign: "right",
   },
   cardsSection: {
-    marginTop: spacing(3),
+    gap: spacing(1.5),
   },
   sectionSpacing: {
-    marginTop: spacing(3),
+    marginTop: spacing(2),
   },
   sectionTitle: {
     color: colors.primary,
-    fontSize: typography.subtitle,
+    fontSize: typography.title,
     fontWeight: "700",
     fontFamily: typography.fontFamily,
-    marginBottom: spacing(1),
     textAlign: "right",
+    marginBottom: spacing(1),
   },
 });

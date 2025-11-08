@@ -2,34 +2,27 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import AnimatedHomeButton from "../AnimatedHomeButton";
-import AnimatedLeafMenuIcon from "../AnimatedLeafMenuIcon";
+import HeaderRightMenuButton from "../HeaderRightMenuButton";
 import { colors, typography } from "../../theme";
+import { useMenu } from "../../context/MenuContext";
 
 const HEADER_HEIGHT = 60;
 const HEADER_PADDING = 16;
 
 type TopNavigationMenuProps = {
-  isMenuOpen: boolean;
   onPressHome: () => void;
-  onPressMenu: () => void;
 };
 
-export default function TopNavigationMenu({
-  isMenuOpen,
-  onPressHome,
-  onPressMenu,
-}: TopNavigationMenuProps) {
+export default function TopNavigationMenu({ onPressHome }: TopNavigationMenuProps) {
+  const { isOpen, open } = useMenu();
+
   return (
     <View style={styles.container}>
       <AnimatedHomeButton onPress={onPressHome} />
       <Text accessibilityRole="header" style={styles.title}>
         Sweet Balance
       </Text>
-      <AnimatedLeafMenuIcon
-        open={isMenuOpen}
-        onPress={onPressMenu}
-        accessibilityState={{ expanded: isMenuOpen }}
-      />
+      <HeaderRightMenuButton onPress={open} expanded={isOpen} />
     </View>
   );
 }
