@@ -167,11 +167,14 @@ export default function AnimatedHomeIcon({
     return {
       left: leafOpen.interpolate({
         inputRange: [0, 1],
-        outputRange: [-(baseTilt), -(baseTilt + openExtra)],
+        outputRange: [
+          `-${baseTilt}deg`,
+          `-${baseTilt + openExtra}deg`,
+        ],
       }),
       right: leafOpen.interpolate({
         inputRange: [0, 1],
-        outputRange: [baseTilt, baseTilt + openExtra],
+        outputRange: [`${baseTilt}deg`, `${baseTilt + openExtra}deg`],
       }),
     };
   }, [leafOpen]);
