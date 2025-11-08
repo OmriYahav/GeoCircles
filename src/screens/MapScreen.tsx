@@ -33,7 +33,6 @@ import MapOverlayCard from "../components/map/MapOverlayCard";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
 import MapLayerButton from "../components/MapLayerButton";
 import SpotMarker from "../components/SpotMarker";
-import { TAB_BAR_HEIGHT } from "../../constants/layout";
 import useSpots from "../hooks/useSpots";
 import type { SpotRecord } from "../services/spots";
 
@@ -84,7 +83,7 @@ const TRANSPORT_POINTS = [
 ];
 
 const DEBOUNCE_DELAY = 380;
-const TOP_NAV_HEIGHT = 68;
+const TOP_NAV_HEIGHT = 60;
 const zoomLevels = [13, 16, 18];
 export default function MapScreen() {
   const router = useRouter();
@@ -392,7 +391,7 @@ export default function MapScreen() {
   }, [isVoiceSupported, startVoiceSearch, voiceError]);
 
   const overlayBottomOffset = useMemo(
-    () => insets.bottom + TAB_BAR_HEIGHT + 48,
+    () => insets.bottom + spacing.xxxl,
     [insets.bottom]
   );
 

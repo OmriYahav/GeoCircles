@@ -1,4 +1,4 @@
-import { createMenuScreen } from "../src/screens/MenuScreenFactory";
+import { createMenuScreen } from "../../src/screens/MenuScreenFactory";
 
 export default createMenuScreen({
   icon: "🍰",

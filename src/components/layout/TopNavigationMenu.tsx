@@ -1,9 +1,51 @@
-import React from "react";
-import { StyleSheet, View } from "react-native";
-import { Appbar, Surface, useTheme } from "react-native-paper";
-import { useNavigation, useRouter } from "expo-router";
+import React, { useCallback, useRef } from "react";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { useNavigationDrawer } from "../../contexts/NavigationDrawerContext";
+import { colors, spacing, typography } from "../../theme";
 
-import { colors, radii, shadows, spacing } from "../../theme";
+const HEADER_HEIGHT = 60;
+const HEADER_PADDING = 16;
+const ICON_COLOR = "#3B6545";
+
+function NavigationIconButton({
+  icon,
+  accessibilityLabel,
+  onPress,
+}: {
+  icon: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const animateTo = useCallback(
+    (value: number) => {
+      Animated.spring(scale, {
+        toValue: value,
+        useNativeDriver: true,
+        speed: 18,
+        bounciness: 8,
+      }).start();
+    },
+    [scale]
+  );
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPressIn={() => animateTo(0.94)}
+      onPressOut={() => animateTo(1)}
+      onPress={onPress}
+      hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
+      style={styles.iconPressable}
+    >
+      <Animated.View style={[styles.iconButton, { transform: [{ scale }] }]}>
+        <Text style={styles.iconLabel}>{icon}</Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 type TopNavigationMenuProps = {
   variant?: "default" | "modal";
@@ -11,91 +53,74 @@ type TopNavigationMenuProps = {
   flat?: boolean;
 };
 
-export default function TopNavigationMenu({
-  variant: _variant = "default",
-  content,
-  flat = false,
-}: TopNavigationMenuProps) {
-  const theme = useTheme();
-  const router = useRouter();
-  const navigation = useNavigation();
+export default function TopNavigationMenu(_props: TopNavigationMenuProps) {
+  const { closeDrawer, toggleDrawer } = useNavigationDrawer();
 
-  const handleBack = () => {
-    if (navigation.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.navigate({ pathname: "/(tabs)/map" });
-  };
+  const handleHomePress = useCallback(() => {
+    closeDrawer("/");
+  }, [closeDrawer]);
 
-  if (flat) {
-    return (
-      <View style={styles.flatSurface}>
-        <Appbar.Header
-          mode="small"
-          statusBarHeight={0}
-          style={[styles.header, styles.flatHeader, { backgroundColor: theme.colors.background }]}
-        >
-          <Appbar.Action icon="chevron-left" onPress={handleBack} />
-          <View style={[styles.contentContainer, styles.flatContentContainer]}>
-            {content ?? <View style={styles.spacer} />}
-          </View>
-        </Appbar.Header>
-      </View>
-    );
-  }
+  const handleMenuPress = useCallback(() => {
+    toggleDrawer();
+  }, [toggleDrawer]);
 
   return (
-    <Surface elevation={2} style={styles.surface}>
-      <Appbar.Header
-        mode="small"
-        statusBarHeight={0}
-        style={[styles.header, { backgroundColor: theme.colors.surface }]}
-      >
-        <Appbar.Action icon="chevron-left" onPress={handleBack} />
-        <View style={styles.contentContainer}>
-          {content ?? <View style={styles.spacer} />}
-        </View>
-      </Appbar.Header>
-    </Surface>
+    <View style={styles.container}>
+      <NavigationIconButton
+        accessibilityLabel="חזרה למסך הבית"
+        icon="🏠"
+        onPress={handleHomePress}
+      />
+      <Text accessibilityRole="header" style={styles.title}>
+        Sweet Balance
+      </Text>
+      <NavigationIconButton
+        accessibilityLabel="פתיחת תפריט"
+        icon="☰"
+        onPress={handleMenuPress}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  surface: {
-    borderRadius: radii.xl,
-    alignSelf: "center",
-    width: "92%",
-    maxWidth: 440,
-    overflow: "hidden",
-    backgroundColor: colors.surface,
-    ...shadows.sm,
-  },
-  flatSurface: {
-    width: "100%",
-    paddingHorizontal: spacing.xxl,
-    backgroundColor: colors.background,
-  },
-  header: {
+  container: {
+    height: HEADER_HEIGHT,
+    paddingHorizontal: HEADER_PADDING,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-start",
-    paddingHorizontal: spacing.lg,
-    minHeight: 68,
+    justifyContent: "space-between",
+    backgroundColor: colors.background,
+    shadowColor: "rgba(59, 101, 69, 0.14)",
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+    writingDirection: "ltr",
   },
-  flatHeader: {
-    elevation: 0,
-    shadowOpacity: 0,
-    paddingHorizontal: 0,
+  title: {
+    fontFamily: typography.family.heading,
+    fontSize: typography.size.xl,
+    color: ICON_COLOR,
+    textAlign: "center",
   },
-  contentContainer: {
-    flex: 1,
-    marginLeft: spacing.lg,
+  iconPressable: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
     justifyContent: "center",
   },
-  flatContentContainer: {
-    marginLeft: spacing.xl,
+  iconButton: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 20,
+    backgroundColor: "rgba(59, 101, 69, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  spacer: {
-    flex: 1,
+  iconLabel: {
+    fontSize: typography.size.lg,
+    color: ICON_COLOR,
   },
 });

@@ -1,13 +1,7 @@
 import React from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useRouter } from "expo-router";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
+import ScreenScaffold from "../components/layout/ScreenScaffold";
 import { colors, spacing, typography } from "../theme";
 
 export type MenuScreenConfig = {
@@ -19,41 +13,28 @@ export type MenuScreenConfig = {
 
 export function createMenuScreen(config: MenuScreenConfig) {
   function MenuScreen() {
-    const router = useRouter();
-
     return (
-      <ScrollView
-        bounces={false}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        style={styles.container}
-      >
-        <View style={styles.headerRow}>
-          <TouchableOpacity
-            accessibilityLabel="חזרה"
-            accessibilityRole="button"
-            hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
-            onPress={() => router.back()}
-            style={styles.closeButton}
-          >
-            <Text style={styles.closeButtonLabel}>✕</Text>
-          </TouchableOpacity>
-        </View>
+      <ScreenScaffold contentStyle={styles.screenContent}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.hero}>
+            <Text style={styles.icon}>{config.icon}</Text>
+            <Text style={styles.title}>{config.title}</Text>
+            <Text style={styles.subtitle}>{config.subtitle}</Text>
+          </View>
 
-        <View style={styles.hero}>
-          <Text style={styles.icon}>{config.icon}</Text>
-          <Text style={styles.title}>{config.title}</Text>
-          <Text style={styles.subtitle}>{config.subtitle}</Text>
-        </View>
-
-        <View style={styles.body}>
-          {config.paragraphs.map((paragraph, index) => (
-            <Text key={index} style={styles.paragraph}>
-              {paragraph}
-            </Text>
-          ))}
-        </View>
-      </ScrollView>
+          <View style={styles.body}>
+            {config.paragraphs.map((paragraph, index) => (
+              <Text key={index} style={styles.paragraph}>
+                {paragraph}
+              </Text>
+            ))}
+          </View>
+        </ScrollView>
+      </ScreenScaffold>
     );
   }
 
@@ -61,7 +42,11 @@ export function createMenuScreen(config: MenuScreenConfig) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screenContent: {
+    flex: 1,
+    paddingHorizontal: 0,
+  },
+  scroll: {
     flex: 1,
     backgroundColor: colors.background,
   },
@@ -71,34 +56,19 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     gap: spacing.xxxl,
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-  },
-  closeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surfaceMuted,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  closeButtonLabel: {
-    fontSize: typography.size.xl,
-    color: colors.text.primary,
-  },
   hero: {
     alignItems: "flex-end",
     gap: spacing.md,
+    writingDirection: "rtl",
   },
   icon: {
     fontSize: 52,
     textAlign: "right",
   },
   title: {
-    fontFamily: typography.family.medium,
+    fontFamily: typography.family.heading,
     fontSize: typography.size.xxl,
-    color: colors.primary,
+    color: colors.text.primary,
     textAlign: "right",
   },
   subtitle: {
@@ -109,6 +79,7 @@ const styles = StyleSheet.create({
   },
   body: {
     gap: spacing.lg,
+    writingDirection: "rtl",
   },
   paragraph: {
     fontFamily: typography.family.regular,

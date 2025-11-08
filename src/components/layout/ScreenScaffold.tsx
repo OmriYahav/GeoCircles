@@ -21,23 +21,18 @@ type ScreenScaffoldProps = {
 
 export default function ScreenScaffold({
   children,
-  variant = "default",
+  variant: _variant = "default",
   contentStyle,
   showTopNavigation = true,
   topContent,
-  flatTopNavigation = false,
+  flatTopNavigation: _flatTopNavigation = false,
 }: ScreenScaffoldProps) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.root, { paddingTop: showTopNavigation ? insets.top : 0 }]}>
-      {showTopNavigation ? (
-        <TopNavigationMenu
-          variant={variant}
-          content={topContent}
-          flat={flatTopNavigation}
-        />
-      ) : null}
+    <View style={[styles.root, { paddingTop: insets.top }]}> 
+      {showTopNavigation ? <TopNavigationMenu /> : null}
+      {topContent ? <View style={styles.topContent}>{topContent}</View> : null}
       <View style={[styles.content, contentStyle]}>{children}</View>
     </View>
   );
@@ -48,9 +43,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  topContent: {
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.lg,
+  },
   content: {
     flex: 1,
     paddingHorizontal: spacing.xxl,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xxxl,
   },
 });
