@@ -1,393 +1,153 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Animated,
-  PanResponder,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import React, { useMemo } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
+import ScreenScaffold from "../components/layout/ScreenScaffold";
 import { colors, radii, shadows, spacing, typography } from "../theme";
 
-type MenuItem = {
+type PreviewItem = {
   id: string;
   icon: string;
   label: string;
-  route: string;
   description: string;
 };
 
-const MENU_ITEMS: MenuItem[] = [
+const PREVIEW_ITEMS: PreviewItem[] = [
   {
     id: "recipes",
-    icon: "🍰",
+    icon: "🧁",
     label: "מתכונים בריאים",
-    route: "/recipes",
-    description: "מתוקים ומלוחים מאוזנים היטב לכל ימות השבוע.",
+    description:
+      "קינוחים מאוזנים ומאפים מזינים שנבנו בקפידה לשגרה מתוקה ובריאה.",
   },
   {
     id: "workshops",
     icon: "🥄",
     label: "סדנאות",
-    route: "/workshops",
-    description: "חוויות קולינריות אינטימיות להעמקת הידע התזונתי.",
+    description:
+      "מפגשים אינטימיים ללמידה חווייתית עם מדריכות מתמחות וקהילה מחבקת.",
   },
   {
     id: "treatments",
-    icon: "🙌",
+    icon: "🌿",
     label: "טיפולים",
-    route: "/treatments",
-    description: "מפגשי ליווי אישיים להתאמה מדויקת לצרכים שלך.",
+    description:
+      "ליווי אישי ומדויק שמאזן בין הגוף לנפש ומעניק אנרגיה מחודשת.",
   },
   {
     id: "nutrition",
-    icon: "🌿",
+    icon: "🍃",
     label: "עצות תזונה",
-    route: "/nutrition-tips",
-    description: "כלים קטנים לשינויים גדולים בשגרה היומיומית.",
+    description:
+      "טיפים קטנים לשינויים גדולים בשגרת היומיום שלך וברווחה הכללית.",
   },
   {
     id: "blog",
-    icon: "📖",
+    icon: "📝",
     label: "בלוג",
-    route: "/blog",
-    description: "סיפורים, השראה ומחקרי עומק מעולמות הבריאות.",
+    description:
+      "השראה, ידע מקצועי וסיפורים מתוקים מהקהילה שלנו ברחבי הארץ.",
   },
 ];
 
 export default function HomeScreen() {
-  const router = useRouter();
-  const { width } = useWindowDimensions();
-  const drawerWidth = Math.min(width * 0.78, 360);
-  const drawerTranslation = useRef(new Animated.Value(drawerWidth)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const isAnimatingRef = useRef(false);
-  const pendingRouteRef = useRef<string | null>(null);
-  const gestureStartRef = useRef(0);
-
-  useEffect(() => {
-    if (!drawerVisible) {
-      drawerTranslation.setValue(drawerWidth);
-    }
-  }, [drawerVisible, drawerTranslation, drawerWidth]);
-
-  const openDrawer = useCallback(() => {
-    if (drawerVisible || isAnimatingRef.current) {
-      return;
-    }
-
-    isAnimatingRef.current = true;
-    pendingRouteRef.current = null;
-    setDrawerVisible(true);
-    drawerTranslation.setValue(drawerWidth);
-    overlayOpacity.setValue(0);
-
-    Animated.parallel([
-      Animated.spring(drawerTranslation, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 220,
-      }),
-      Animated.timing(overlayOpacity, {
-        toValue: 1,
-        duration: 220,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      isAnimatingRef.current = false;
-    });
-  }, [drawerTranslation, drawerVisible, drawerWidth, overlayOpacity]);
-
-  const closeDrawer = useCallback(
-    (nextRoute?: string) => {
-      if (nextRoute) {
-        pendingRouteRef.current = nextRoute;
-      }
-
-      if (!drawerVisible) {
-        const routeToOpen = pendingRouteRef.current;
-        pendingRouteRef.current = null;
-        if (routeToOpen) {
-          router.push(routeToOpen as never);
-        }
-        return;
-      }
-
-      if (isAnimatingRef.current) {
-        return;
-      }
-
-      isAnimatingRef.current = true;
-
-      Animated.parallel([
-        Animated.spring(drawerTranslation, {
-          toValue: drawerWidth,
-          useNativeDriver: true,
-          damping: 20,
-          stiffness: 220,
-        }),
-        Animated.timing(overlayOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start(({ finished }) => {
-        isAnimatingRef.current = false;
-        if (finished) {
-          setDrawerVisible(false);
-          const routeToOpen = pendingRouteRef.current;
-          pendingRouteRef.current = null;
-          if (routeToOpen) {
-            router.push(routeToOpen as never);
-          }
-        }
-      });
-    },
-    [drawerTranslation, drawerVisible, drawerWidth, overlayOpacity, router]
-  );
-
-  const handleMenuItemPress = useCallback(
-    (item: MenuItem) => {
-      closeDrawer(item.route);
-    },
-    [closeDrawer]
-  );
-
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-          drawerVisible && (gestureState.dx > 6 || Math.abs(gestureState.vx) > 0.2),
-        onPanResponderGrant: () => {
-          drawerTranslation.stopAnimation((value) => {
-            gestureStartRef.current = value;
-          });
-        },
-        onPanResponderMove: (_, gestureState) => {
-          const dragDistance = Math.max(0, gestureState.dx);
-          const nextTranslation = Math.min(drawerWidth, gestureStartRef.current + dragDistance);
-          drawerTranslation.setValue(nextTranslation);
-          const normalizedOpacity = 1 - nextTranslation / drawerWidth;
-          overlayOpacity.setValue(Math.max(0, Math.min(1, normalizedOpacity)));
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          const dragDistance = Math.max(0, gestureState.dx);
-          const closingThreshold = drawerWidth * 0.35;
-          if (dragDistance > closingThreshold || gestureState.vx > 0.6) {
-            closeDrawer();
-          } else {
-            isAnimatingRef.current = true;
-            Animated.parallel([
-              Animated.spring(drawerTranslation, {
-                toValue: 0,
-                useNativeDriver: true,
-                damping: 20,
-                stiffness: 220,
-              }),
-              Animated.timing(overlayOpacity, {
-                toValue: 1,
-                duration: 180,
-                useNativeDriver: true,
-              }),
-            ]).start(() => {
-              gestureStartRef.current = 0;
-              isAnimatingRef.current = false;
-            });
-          }
-        },
-      }),
-    [closeDrawer, drawerTranslation, drawerVisible, drawerWidth, overlayOpacity]
-  );
-
-  const previewItems = useMemo(() => MENU_ITEMS.slice(0, 3), []);
+  const previewItems = useMemo(() => PREVIEW_ITEMS.slice(0, 4), []);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <TouchableOpacity
-          accessibilityHint="פתחי את תפריט הניווט"
-          accessibilityLabel="פתיחת תפריט"
-          accessibilityRole="button"
-          hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
-          onPress={openDrawer}
-          style={[styles.menuButton, drawerVisible && styles.menuButtonHidden]}
-        >
-          <Ionicons name="ellipsis-vertical" size={22} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
+    <ScreenScaffold contentStyle={styles.screenContent}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.hero}>
+          <Text style={styles.heroTitle}>Sweet Balance</Text>
+          <Text style={styles.heroSubtitle}>איזון רך לחיים מלאים</Text>
+        </View>
 
-      <View style={styles.headerContent}>
-        <Text style={styles.title}>Sweet Balance</Text>
-        <Text style={styles.subtitle}>איזון רך לחיים מלאים</Text>
-      </View>
+        <View style={styles.introSection}>
+          <Text style={styles.introParagraph}>
+            ברוכה הבאה ל-Sweet Balance – מקום שבו טעם, תזונה ורגעים של רוגע נפגשים.
+            בתפריט שלנו מחכה לך אוסף עשיר של מתכונים, סדנאות, טיפולים ותכנים מעוררי
+            השראה שיעזרו לך לבנות שגרה בריאה ונעימה.
+          </Text>
+          <Text style={styles.introParagraph}>
+            תוכלי לנווט לכל חלקי האפליקציה באמצעות תפריט ההמבורגר שבחלק העליון.
+            אספנו עבורך טעימה קטנה מתוך התכנים שחיכו לך בסל הקניות הרגוע שלנו:
+          </Text>
+        </View>
 
-      <View style={styles.introSection}>
-        <Text style={styles.introParagraph}>
-          נבחרת התכנים של Sweet Balance מחכה לך בצד שמאל. לחצי על תפריט האפשרויות
-          כדי לגלות מתכונים נעימים, סדנאות יוצרות חוויה ומפגשים אישיים מותאמים אלייך.
-        </Text>
-        <Text style={styles.introParagraph}>
-          לכל קטגוריה ריכזנו עבורך נקודות השראה ותוכן מקצועי, והכול מונגש בהיר ובשפה
-          רכה. התחלנו עבורך עם טעימה קטנה ממה שממתין במגירה:
-        </Text>
-      </View>
-
-      <View style={styles.previewList}>
-        {previewItems.map((item) => (
-          <View key={item.id} style={styles.previewCard}>
-            <View style={styles.previewTextWrapper}>
-              <Text style={styles.previewTitle}>{item.label}</Text>
-              <Text style={styles.previewDescription}>{item.description}</Text>
+        <View style={styles.previewList}>
+          {previewItems.map((item) => (
+            <View key={item.id} style={styles.previewCard}>
+              <View style={styles.previewTextWrapper}>
+                <Text style={styles.previewTitle}>{item.label}</Text>
+                <Text style={styles.previewDescription}>{item.description}</Text>
+              </View>
+              <View style={styles.previewIconWrapper}>
+                <Text style={styles.previewIcon}>{item.icon}</Text>
+              </View>
             </View>
-            <View style={styles.previewIconWrapper}>
-              <Text style={styles.previewIcon}>{item.icon}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
+          ))}
+        </View>
 
-      {drawerVisible && (
-        <Pressable
-          onPress={() => closeDrawer()}
-          style={[StyleSheet.absoluteFillObject, styles.overlayContainer]}
-        >
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              StyleSheet.absoluteFillObject,
-              styles.overlay,
-              { opacity: overlayOpacity },
-            ]}
-          />
-        </Pressable>
-      )}
-
-      {drawerVisible && (
-        <Animated.View
-          style={[
-            styles.drawer,
-            {
-              width: drawerWidth,
-              transform: [{ translateX: drawerTranslation }],
-            },
-          ]}
-          {...panResponder.panHandlers}
-        >
-          <View style={styles.drawerHeader}>
-            <View style={styles.drawerHeaderTextWrapper}>
-              <Text style={styles.drawerTitle}>Sweet Balance</Text>
-              <Text style={styles.drawerSubtitle}>ניווט רך וממוקד עבורך</Text>
-            </View>
-            <TouchableOpacity
-              accessibilityLabel="סגירת תפריט"
-              accessibilityRole="button"
-              activeOpacity={0.8}
-              hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
-              onPress={() => closeDrawer()}
-              style={styles.drawerCloseButton}
-            >
-              <Ionicons name="arrow-forward" size={20} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.drawerMenu}
-            contentContainerStyle={styles.drawerMenuContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {MENU_ITEMS.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                activeOpacity={0.8}
-                onPress={() => handleMenuItemPress(item)}
-                style={styles.drawerItem}
-              >
-                <Text style={styles.drawerItemIcon}>{item.icon}</Text>
-                <View style={styles.drawerItemTextWrapper}>
-                  <Text style={styles.drawerItemLabel}>{item.label}</Text>
-                  <Text style={styles.drawerItemDescription}>{item.description}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </Animated.View>
-      )}
-    </View>
+        <View style={styles.callout}>
+          <Text style={styles.calloutTitle}>הכול נמצא בהישג יד</Text>
+          <Text style={styles.calloutBody}>
+            פתחי את התפריט בכל רגע, בחרי את התחום שמסקרן אותך ותני לעצמך מקום של
+            הקשבה, איזון והשראה. אנחנו כאן כדי ללוות אותך בצעדים קטנים ומתוקים לכל
+            אורך הדרך.
+          </Text>
+        </View>
+      </ScrollView>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screenContent: {
     flex: 1,
-    backgroundColor: colors.background,
-    paddingTop: spacing.xxxl,
+    paddingHorizontal: 0,
+  },
+  scroll: {
+    flex: 1,
+  },
+  content: {
     paddingHorizontal: spacing.xxl,
-    position: "relative",
+    paddingTop: spacing.xxxl,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.xxl,
   },
-  headerRow: {
-    height: 44,
-  },
-  menuButton: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.xl,
-    backgroundColor: colors.surfaceMuted,
+  hero: {
     alignItems: "center",
-    justifyContent: "center",
-    position: "absolute",
-    top: spacing.xxxl,
-    right: spacing.xxl,
-    zIndex: 10,
-    ...shadows.sm,
-    elevation: 6,
+    gap: spacing.xs,
   },
-  menuButtonHidden: {
-    zIndex: 0,
-  },
-  headerContent: {
-    alignItems: "center",
-    marginTop: spacing.xl,
-    marginBottom: spacing.xxl,
-  },
-  title: {
-    fontSize: typography.size.xxl,
-    color: colors.primary,
+  heroTitle: {
     fontFamily: typography.family.heading,
-    textAlign: "center",
+    fontSize: typography.size.xxl,
+    color: colors.text.primary,
   },
-  subtitle: {
-    marginTop: spacing.xs,
-    color: colors.text.secondary,
-    fontSize: typography.size.md,
+  heroSubtitle: {
     fontFamily: typography.family.regular,
-    textAlign: "center",
+    fontSize: typography.size.md,
+    color: colors.text.secondary,
   },
   introSection: {
     gap: spacing.md,
     writingDirection: "rtl",
   },
   introParagraph: {
-    color: colors.text.primary,
     fontFamily: typography.family.regular,
     fontSize: typography.size.md,
     lineHeight: typography.lineHeight.relaxed,
+    color: colors.text.primary,
     textAlign: "right",
   },
   previewList: {
-    marginTop: spacing.xxl,
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   previewCard: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
     alignItems: "center",
     gap: spacing.lg,
     backgroundColor: colors.surface,
@@ -397,22 +157,10 @@ const styles = StyleSheet.create({
     ...shadows.sm,
     writingDirection: "rtl",
   },
-  previewIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.lg,
-    backgroundColor: colors.surfaceMuted,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  previewIcon: {
-    fontSize: typography.size.xl,
-  },
   previewTextWrapper: {
     flex: 1,
     alignItems: "flex-end",
     gap: spacing.xs,
-    writingDirection: "rtl",
   },
   previewTitle: {
     fontFamily: typography.family.medium,
@@ -427,97 +175,37 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeight.comfy,
     textAlign: "right",
   },
-  overlayContainer: {
-    zIndex: 12,
-  },
-  overlay: {
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-  },
-  drawer: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    right: 0,
-    paddingTop: spacing.xxxl,
-    paddingBottom: spacing.xxxl,
-    paddingHorizontal: spacing.xxl,
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 25,
-    borderBottomLeftRadius: 25,
-    ...shadows.lg,
-    elevation: 8,
-    zIndex: 20,
-    justifyContent: "space-between",
-    writingDirection: "rtl",
-  },
-  drawerHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.xxl,
-  },
-  drawerHeaderTextWrapper: {
-    flex: 1,
-    alignItems: "flex-end",
-    gap: spacing.xs,
-  },
-  drawerTitle: {
-    fontFamily: typography.family.heading,
-    fontSize: typography.size.xl,
-    color: colors.primary,
-    textAlign: "right",
-  },
-  drawerSubtitle: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.sm,
-    color: colors.text.secondary,
-    textAlign: "right",
-  },
-  drawerCloseButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  previewIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surfaceMuted,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surfaceMuted,
-    marginLeft: spacing.lg,
-    ...shadows.xs,
   },
-  drawerMenu: {
-    flex: 1,
-    marginTop: spacing.md,
-    writingDirection: "rtl",
-  },
-  drawerMenuContent: {
-    gap: spacing.lg,
-    paddingBottom: 80,
-  },
-  drawerItem: {
-    flexDirection: "row-reverse",
-    alignItems: "flex-start",
-    gap: spacing.md,
-  },
-  drawerItemIcon: {
+  previewIcon: {
     fontSize: typography.size.xl,
-    marginTop: 2,
   },
-  drawerItemTextWrapper: {
-    flex: 1,
-    alignItems: "flex-end",
-    gap: spacing.xs,
+  callout: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    gap: spacing.sm,
+    ...shadows.sm,
     writingDirection: "rtl",
   },
-  drawerItemLabel: {
-    fontFamily: typography.family.medium,
+  calloutTitle: {
+    fontFamily: typography.family.semiBold,
     fontSize: typography.size.lg,
     color: colors.text.primary,
     textAlign: "right",
   },
-  drawerItemDescription: {
+  calloutBody: {
     fontFamily: typography.family.regular,
     fontSize: typography.size.sm,
     color: colors.text.secondary,
-    lineHeight: typography.lineHeight.comfy,
+    lineHeight: typography.lineHeight.relaxed,
     textAlign: "right",
   },
 });
