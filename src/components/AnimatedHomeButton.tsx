@@ -1,24 +1,26 @@
 import React from "react";
 
-import AnimatedCircleButton from "./AnimatedCircleButton";
+import AnimatedHomeIcon from "./AnimatedHomeIcon";
 
 type AnimatedHomeButtonProps = {
   onPress: () => void;
   size?: number;
   accessibilityLabel?: string;
+  active?: boolean;
 };
 
 export default function AnimatedHomeButton({
   onPress,
   size,
   accessibilityLabel,
+  active,
 }: AnimatedHomeButtonProps) {
   return (
-    <AnimatedCircleButton
-      iconName="home"
+    <AnimatedHomeIcon
       onPress={onPress}
       size={size}
-      accessibilityLabel={accessibilityLabel ?? "חזרה למסך הבית"}
+      accessibilityLabel={accessibilityLabel ?? "Home"}
+      active={active}
     />
   );
 }
