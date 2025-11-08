@@ -4,7 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRouter } from "expo-router";
 
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
-import AnimatedMenuIcon from "../components/AnimatedMenuIcon";
+import AnimatedLeafMenuIcon from "../components/AnimatedLeafMenuIcon";
 import { useMenu } from "../context/MenuContext";
 import { colors, spacing, typography } from "../theme";
 
@@ -33,7 +33,7 @@ export default function PersonalBalanceScreen() {
         <View style={styles.header}>
           <AnimatedHomeButton onPress={handleHomePress} />
           <Text style={styles.brand}>Sweet Balance</Text>
-          <AnimatedMenuIcon open={menuOpen} onPress={handleMenuPress} />
+          <AnimatedLeafMenuIcon open={menuOpen} onPress={handleMenuPress} />
         </View>
         <View style={styles.content}>
           <Text style={styles.title}>Welcome to Personal Balance</Text>

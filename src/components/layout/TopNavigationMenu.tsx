@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import AnimatedHomeButton from "../AnimatedHomeButton";
-import AnimatedMenuIcon from "../AnimatedMenuIcon";
+import AnimatedLeafMenuIcon from "../AnimatedLeafMenuIcon";
 import { colors, typography } from "../../theme";
 
 const HEADER_HEIGHT = 60;
@@ -25,7 +25,7 @@ export default function TopNavigationMenu({
       <Text accessibilityRole="header" style={styles.title}>
         Sweet Balance
       </Text>
-      <AnimatedMenuIcon
+      <AnimatedLeafMenuIcon
         open={isMenuOpen}
         onPress={onPressMenu}
         accessibilityState={{ expanded: isMenuOpen }}
