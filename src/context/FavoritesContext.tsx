@@ -9,30 +9,30 @@ import React, {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export type FavoriteLocation = {
+export type FavoriteItem = {
   id: string;
   title: string;
-  latitude: number;
-  longitude: number;
+  category?: string | null;
+  notes?: string | null;
   addedAt: number;
 };
 
 export type FavoritesContextValue = {
-  favorites: FavoriteLocation[];
-  addFavorite: (favorite: FavoriteLocation) => Promise<void>;
+  favorites: FavoriteItem[];
+  addFavorite: (favorite: FavoriteItem) => Promise<void>;
   removeFavorite: (id: string) => Promise<void>;
   clearFavorites: () => Promise<void>;
   isReady: boolean;
 };
 
-const STORAGE_KEY = "openspot:favorites";
+const STORAGE_KEY = "@sweetbalance:favorites";
 
 const FavoritesContext = createContext<FavoritesContextValue | undefined>(
   undefined
 );
 
 export function FavoritesProvider({ children }: PropsWithChildren) {
-  const [favorites, setFavorites] = useState<FavoriteLocation[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [isReady, setReady] = useState(false);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
         if (!stored) {
           return;
         }
-        const parsed = JSON.parse(stored) as FavoriteLocation[];
+        const parsed = JSON.parse(stored) as FavoriteItem[];
         setFavorites(parsed);
       })
       .catch((error) => {
@@ -50,7 +50,7 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
       .finally(() => setReady(true));
   }, []);
 
-  const persist = useCallback(async (next: FavoriteLocation[]) => {
+  const persist = useCallback(async (next: FavoriteItem[]) => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch (error) {
@@ -59,7 +59,7 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
   }, []);
 
   const addFavorite = useCallback(
-    async (favorite: FavoriteLocation) => {
+    async (favorite: FavoriteItem) => {
       setFavorites((current) => {
         const filtered = current.filter((item) => item.id !== favorite.id);
         const next = [favorite, ...filtered];

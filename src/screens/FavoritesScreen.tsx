@@ -14,7 +14,7 @@ export default function FavoritesScreen() {
       <ScreenScaffold contentStyle={styles.loadingContent}>
         <View style={styles.emptyState}>
           <Text variant="bodyLarge" style={styles.loadingLabel}>
-            Loading your saved places…
+            Loading your saved favorites…
           </Text>
         </View>
       </ScreenScaffold>
@@ -29,7 +29,7 @@ export default function FavoritesScreen() {
             No favorites yet
           </Text>
           <Text variant="bodyMedium" style={styles.emptySubtitle}>
-            Save a location from the map search to access it quickly here.
+            Save recipes, workshops, or wellness notes you love and they will appear here.
           </Text>
         </View>
       </ScreenScaffold>
@@ -63,8 +63,13 @@ export default function FavoritesScreen() {
               <Text variant="titleMedium" style={styles.cardTitle}>
                 {item.title}
               </Text>
-              <Text variant="bodySmall" style={styles.cardSubtitle}>
-                {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
+              {(item.category || item.notes) && (
+                <Text variant="bodySmall" style={styles.cardSubtitle}>
+                  {[item.category, item.notes].filter(Boolean).join(" · ")}
+                </Text>
+              )}
+              <Text variant="labelSmall" style={styles.cardMeta}>
+                Added {new Date(item.addedAt).toLocaleDateString()}
               </Text>
             </View>
             <Button
@@ -77,6 +82,7 @@ export default function FavoritesScreen() {
             </Button>
           </Pressable>
         )}
+        showsVerticalScrollIndicator={false}
       />
     </ScreenScaffold>
   );
@@ -125,6 +131,7 @@ const styles = StyleSheet.create({
   cardBody: {
     flex: 1,
     marginRight: spacing.lg,
+    gap: spacing.xs,
   },
   cardTitle: {
     fontFamily: typography.family.semiBold,
@@ -132,9 +139,12 @@ const styles = StyleSheet.create({
     fontSize: typography.size.md,
   },
   cardSubtitle: {
-    marginTop: spacing.xs,
     color: colors.textMuted,
     fontFamily: typography.family.regular,
+  },
+  cardMeta: {
+    color: colors.subtitle,
+    fontFamily: typography.family.medium,
   },
   clearButton: {
     borderRadius: radii.pill,
@@ -149,11 +159,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: spacing.xxxl,
     backgroundColor: colors.background,
+    gap: spacing.md,
   },
   emptyTitle: {
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.xl,
-    marginBottom: spacing.md,
     color: colors.text,
   },
   emptySubtitle: {

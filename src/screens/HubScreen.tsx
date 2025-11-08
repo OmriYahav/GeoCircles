@@ -37,7 +37,7 @@ export default function HubScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Avatar.Icon icon="map-marker" size={48} style={styles.avatar} />
+            <Avatar.Icon icon="flower" size={48} style={styles.avatar} />
             <View style={styles.cardBody}>
               <Text variant="titleMedium" style={styles.cardTitle}>
                 {item.title}
@@ -46,14 +46,14 @@ export default function HubScreen() {
                 {item.description}
               </Text>
               <Text variant="labelMedium" style={styles.cardMeta}>
-                {item.participants} people nearby
+                {item.participants} community members nearby
               </Text>
             </View>
           </View>
         )}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.title}>Curated spots nearby</Text>
+            <Text style={styles.title}>Curated gatherings nearby</Text>
             <Text style={styles.subtitle}>
               Discover vibrant meetups and creative hubs formed by locals within a
               short walk from you.

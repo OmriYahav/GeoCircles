@@ -8,14 +8,6 @@ export default function RootLayout() {
     <AppProviders>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="conversation/[conversationId]"
-          options={{ presentation: "modal", headerShown: false }}
-        />
-        <Stack.Screen
-          name="business-offer/[businessId]"
-          options={{ headerShown: false }}
-        />
       </Stack>
     </AppProviders>
   );

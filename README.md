@@ -16,10 +16,6 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
-### Map configuration
-
-OpenSpot now uses [Leaflet](https://leafletjs.com/) with open map tile providers. No API keys are required to start the project.
-
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)
