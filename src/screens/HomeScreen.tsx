@@ -1,211 +1,178 @@
-import React, { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useRef, useState } from "react";
+import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 
-import ScreenScaffold from "../components/layout/ScreenScaffold";
-import { colors, radii, shadows, spacing, typography } from "../theme";
-
-type PreviewItem = {
-  id: string;
-  icon: string;
-  label: string;
-  description: string;
-};
-
-const PREVIEW_ITEMS: PreviewItem[] = [
-  {
-    id: "recipes",
-    icon: "🧁",
-    label: "מתכונים בריאים",
-    description:
-      "קינוחים מאוזנים ומאפים מזינים שנבנו בקפידה לשגרה מתוקה ובריאה.",
-  },
-  {
-    id: "workshops",
-    icon: "🥄",
-    label: "סדנאות",
-    description:
-      "מפגשים אינטימיים ללמידה חווייתית עם מדריכות מתמחות וקהילה מחבקת.",
-  },
-  {
-    id: "treatments",
-    icon: "🌿",
-    label: "טיפולים",
-    description:
-      "ליווי אישי ומדויק שמאזן בין הגוף לנפש ומעניק אנרגיה מחודשת.",
-  },
-  {
-    id: "nutrition",
-    icon: "🍃",
-    label: "עצות תזונה",
-    description:
-      "טיפים קטנים לשינויים גדולים בשגרת היומיום שלך וברווחה הכללית.",
-  },
-  {
-    id: "blog",
-    icon: "📝",
-    label: "בלוג",
-    description:
-      "השראה, ידע מקצועי וסיפורים מתוקים מהקהילה שלנו ברחבי הארץ.",
-  },
-];
+import AnimatedMenuIcon from "../components/AnimatedMenuIcon";
+import Card from "../components/Card";
+import CTAButton from "../components/CTAButton";
+import ScrollToTopButton from "../components/ScrollToTopButton";
+import TestimonialsCarousel from "../components/TestimonialsCarousel";
+import ThisMonthSection from "../components/ThisMonthSection";
+import { colors, spacing, typography } from "../theme";
 
 export default function HomeScreen() {
-  const previewItems = useMemo(() => PREVIEW_ITEMS.slice(0, 4), []);
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setShowScrollTop(event.nativeEvent.contentOffset.y > 240);
+  };
+
+  const navigateTo = (path: string) => {
+    router.push(path);
+  };
 
   return (
-    <ScreenScaffold contentStyle={styles.screenContent}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.hero}>
+    <LinearGradient colors={[colors.bgFrom, colors.bgTo]} style={styles.gradient}>
+      <StatusBar barStyle="dark-content" />
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.header}>
+          <Text style={styles.brand}>Sweet Balance</Text>
+          <AnimatedMenuIcon
+            open={menuOpen}
+            onPress={() => setMenuOpen((prev) => !prev)}
+          />
+        </View>
+
+        <ScrollView
+          ref={scrollRef}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+        >
           <Text style={styles.heroTitle}>Sweet Balance</Text>
           <Text style={styles.heroSubtitle}>איזון רך לחיים מלאים</Text>
-        </View>
-
-        <View style={styles.introSection}>
-          <Text style={styles.introParagraph}>
-            ברוכה הבאה ל-Sweet Balance – מקום שבו טעם, תזונה ורגעים של רוגע נפגשים.
-            בתפריט שלנו מחכה לך אוסף עשיר של מתכונים, סדנאות, טיפולים ותכנים מעוררי
-            השראה שיעזרו לך לבנות שגרה בריאה ונעימה.
+          <Text style={styles.heroBody}>
+            ברוכה הבאה ל-Sweet Balance — מקום של טעם, תזונה ורגעי רוגע. בתפריט מחכה לך
+            אוסף עשיר של מתכונים, סדנאות, טיפולים ותכנים מעוררי השראה.
           </Text>
-          <Text style={styles.introParagraph}>
-            תוכלי לנווט לכל חלקי האפליקציה באמצעות תפריט ההמבורגר שבחלק העליון.
-            אספנו עבורך טעימה קטנה מתוך התכנים שחיכו לך בסל הקניות הרגוע שלנו:
-          </Text>
-        </View>
 
-        <View style={styles.previewList}>
-          {previewItems.map((item) => (
-            <View key={item.id} style={styles.previewCard}>
-              <View style={styles.previewTextWrapper}>
-                <Text style={styles.previewTitle}>{item.label}</Text>
-                <Text style={styles.previewDescription}>{item.description}</Text>
-              </View>
-              <View style={styles.previewIconWrapper}>
-                <Text style={styles.previewIcon}>{item.icon}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+          <CTAButton
+            title="🍃 גלי את הסדנאות"
+            onPress={() => navigateTo("/(drawer)/workshops")}
+          />
 
-        <View style={styles.callout}>
-          <Text style={styles.calloutTitle}>הכול נמצא בהישג יד</Text>
-          <Text style={styles.calloutBody}>
-            פתחי את התפריט בכל רגע, בחרי את התחום שמסקרן אותך ותני לעצמך מקום של
-            הקשבה, איזון והשראה. אנחנו כאן כדי ללוות אותך בצעדים קטנים ומתוקים לכל
-            אורך הדרך.
-          </Text>
-        </View>
-      </ScrollView>
-    </ScreenScaffold>
+          <View style={styles.cardsSection}>
+            <Card
+              title="מתכונים בריאים"
+              subtitle="קינוחים מאזנים, ארוחות קלילות ומשביעות"
+              onPress={() => navigateTo("/(drawer)/recipes")}
+            />
+            <Card
+              title="סדנאות"
+              subtitle="לוח סדנאות קרובות + שריון מקום"
+              onPress={() => navigateTo("/(drawer)/workshops")}
+            />
+            <Card
+              title="טיפולים"
+              subtitle="מפגשים אישיים וקבוצתיים"
+              onPress={() => navigateTo("/(drawer)/treatments")}
+            />
+            <Card
+              title="עצות תזונה"
+              subtitle="מדריכים קצרים ופרקטיים"
+              onPress={() => navigateTo("/(drawer)/nutrition-tips")}
+            />
+            <Card
+              title="בלוג"
+              subtitle="מאמרים, תובנות והשראה"
+              onPress={() => navigateTo("/(drawer)/blog")}
+            />
+          </View>
+
+          <View style={styles.sectionSpacing}>
+            <ThisMonthSection onReserve={() => navigateTo("/(drawer)/workshops")} />
+          </View>
+
+          <View style={styles.sectionSpacing}>
+            <Text style={styles.sectionTitle}>מה אומרים עלינו</Text>
+            <TestimonialsCarousel
+              items={[
+                { name: "שירי", quote: "האווירה נעימה וכל מתכון הצליח לי בבית." },
+                { name: "נועה", quote: "סדנאות מקצועיות עם טיפים שאפשר ליישם מייד." },
+                { name: "דנה", quote: "מצאתי איזון עדין שמחזיק לאורך זמן." },
+              ]}
+            />
+          </View>
+        </ScrollView>
+
+        <ScrollToTopButton
+          visible={showScrollTop}
+          onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+        />
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  screenContent: {
-    flex: 1,
-    paddingHorizontal: 0,
-  },
-  scroll: {
+  gradient: {
     flex: 1,
   },
-  content: {
-    paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.xxxl,
-    paddingBottom: spacing.xxxl,
-    gap: spacing.xxl,
+  safe: {
+    flex: 1,
   },
-  hero: {
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  heroTitle: {
-    fontFamily: typography.family.heading,
-    fontSize: typography.size.xxl,
-    color: colors.text.primary,
-  },
-  heroSubtitle: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.md,
-    color: colors.text.secondary,
-  },
-  introSection: {
-    gap: spacing.md,
-    writingDirection: "rtl",
-  },
-  introParagraph: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.md,
-    lineHeight: typography.lineHeight.relaxed,
-    color: colors.text.primary,
-    textAlign: "right",
-  },
-  previewList: {
-    gap: spacing.lg,
-  },
-  previewCard: {
-    flexDirection: "row",
+  header: {
+    paddingHorizontal: spacing(2),
+    paddingTop: spacing(1),
+    paddingBottom: spacing(1),
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-    ...shadows.sm,
-    writingDirection: "rtl",
   },
-  previewTextWrapper: {
-    flex: 1,
-    alignItems: "flex-end",
-    gap: spacing.xs,
+  brand: {
+    color: colors.primary,
+    fontSize: 26,
+    fontWeight: "800",
   },
-  previewTitle: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.lg,
+  content: {
+    paddingHorizontal: spacing(2),
+    paddingBottom: spacing(6),
+  },
+  heroTitle: {
+    color: colors.primary,
+    fontSize: typography.title,
+    fontWeight: "800",
+    marginBottom: spacing(0.5),
+    textAlign: "right",
+  },
+  heroSubtitle: {
+    color: "#6b7d72",
+    fontSize: typography.subtitle,
+    marginBottom: spacing(1),
+    textAlign: "right",
+  },
+  heroBody: {
     color: colors.text.primary,
+    fontSize: typography.body,
+    lineHeight: typography.body * typography.line,
+    marginBottom: spacing(2),
     textAlign: "right",
   },
-  previewDescription: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.sm,
-    color: colors.text.secondary,
-    lineHeight: typography.lineHeight.comfy,
-    textAlign: "right",
+  cardsSection: {
+    marginTop: spacing(3),
   },
-  previewIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.lg,
-    backgroundColor: colors.surfaceMuted,
-    alignItems: "center",
-    justifyContent: "center",
+  sectionSpacing: {
+    marginTop: spacing(3),
   },
-  previewIcon: {
-    fontSize: typography.size.xl,
-  },
-  callout: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    gap: spacing.sm,
-    ...shadows.sm,
-    writingDirection: "rtl",
-  },
-  calloutTitle: {
-    fontFamily: typography.family.semiBold,
-    fontSize: typography.size.lg,
+  sectionTitle: {
     color: colors.text.primary,
-    textAlign: "right",
-  },
-  calloutBody: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.sm,
-    color: colors.text.secondary,
-    lineHeight: typography.lineHeight.relaxed,
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: spacing(1),
     textAlign: "right",
   },
 });
