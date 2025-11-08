@@ -56,6 +56,13 @@ const MENU_ITEMS = [
     path: "/(drawer)/blog",
     testID: "menu-blog",
   },
+  {
+    icon: "chatbubble-ellipses-outline" as const,
+    title: "צרו קשר",
+    subtitle: "ערוצים מהירים לשיחה",
+    path: "/(drawer)/contact",
+    testID: "menu-contact",
+  },
 ];
 
 export default function SideMenu() {

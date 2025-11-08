@@ -25,6 +25,7 @@ const MENU_ITEMS: MenuItem[] = [
   { icon: "🌿", label: "טיפולים", route: "/(drawer)/treatments" },
   { icon: "🍃", label: "עצות תזונה", route: "/(drawer)/nutrition-tips" },
   { icon: "📝", label: "בלוג", route: "/(drawer)/blog" },
+  { icon: "💌", label: "צרו קשר", route: "/(drawer)/contact" },
 ];
 
 export type SideMenuContentProps = {
