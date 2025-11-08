@@ -20,7 +20,7 @@ import { useNavigation, useRouter } from "expo-router";
 import type { SavedWorkshop } from "../MyWorkshopsScreen";
 import { radii, shadows, spacing, typography } from "../../theme";
 import AnimatedHomeButton from "../../components/AnimatedHomeButton";
-import AnimatedMenuIcon from "../../components/AnimatedMenuIcon";
+import AnimatedLeafMenuIcon from "../../components/AnimatedLeafMenuIcon";
 import { useMenu } from "../../context/MenuContext";
 
 const STORAGE_KEY = "sweet-balance.workshops";
@@ -246,7 +246,7 @@ export default function WorkshopReservation({
           >
             <Text style={styles.backButtonLabel}>✕</Text>
           </TouchableOpacity>
-          <AnimatedMenuIcon
+          <AnimatedLeafMenuIcon
             open={menuOpen}
             onPress={handleMenuPress}
             accessibilityState={{ expanded: menuOpen }}

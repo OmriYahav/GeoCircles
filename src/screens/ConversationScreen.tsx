@@ -24,7 +24,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatMessage from "../components/ChatMessage";
 import ChatInput from "../components/ChatInput";
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
-import AnimatedMenuIcon from "../components/AnimatedMenuIcon";
+import AnimatedLeafMenuIcon from "../components/AnimatedLeafMenuIcon";
 import { useMenu } from "../context/MenuContext";
 
 export type ConversationScreenParams = {
@@ -241,7 +241,7 @@ export default function ConversationScreen() {
               <Text style={styles.title}>{conversation.title}</Text>
               <Text style={styles.subtitle}>{subtitle}</Text>
             </View>
-            <AnimatedMenuIcon
+            <AnimatedLeafMenuIcon
               open={menuOpen}
               onPress={handleMenuPress}
               accessibilityState={{ expanded: menuOpen }}

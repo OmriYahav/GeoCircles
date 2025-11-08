@@ -21,7 +21,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/he";
 
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
-import AnimatedMenuIcon from "../components/AnimatedMenuIcon";
+import AnimatedLeafMenuIcon from "../components/AnimatedLeafMenuIcon";
 import Card from "../components/Card";
 import CTAButton from "../components/CTAButton";
 import { colors, radius, spacing, typography } from "../theme";
@@ -217,7 +217,7 @@ export default function WorkshopsScreen() {
         <View style={styles.header}>
           <AnimatedHomeButton onPress={handleHomePress} />
           <Text style={styles.brand}>Sweet Balance</Text>
-          <AnimatedMenuIcon open={menuOpen} onPress={handleMenuPress} />
+          <AnimatedLeafMenuIcon open={menuOpen} onPress={handleMenuPress} />
         </View>
 
         <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}>

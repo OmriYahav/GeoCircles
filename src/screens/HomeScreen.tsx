@@ -14,7 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRouter } from "expo-router";
 
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
-import AnimatedMenuIcon from "../components/AnimatedMenuIcon";
+import AnimatedLeafMenuIcon from "../components/AnimatedLeafMenuIcon";
 import Card from "../components/Card";
 import CTAButton from "../components/CTAButton";
 import ScrollToTopButton from "../components/ScrollToTopButton";
@@ -69,7 +69,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <AnimatedHomeButton onPress={handleHomePress} />
           <Text style={styles.brand}>Sweet Balance</Text>
-          <AnimatedMenuIcon open={menuOpen} onPress={handleMenuPress} />
+          <AnimatedLeafMenuIcon open={menuOpen} onPress={handleMenuPress} />
         </View>
 
         <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}>
