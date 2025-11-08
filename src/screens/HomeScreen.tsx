@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -69,6 +70,7 @@ export default function HomeScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const isAnimatingRef = useRef(false);
   const pendingRouteRef = useRef<string | null>(null);
+  const gestureStartRef = useRef(0);
 
   useEffect(() => {
     if (!drawerVisible) {
@@ -159,6 +161,52 @@ export default function HomeScreen() {
     [closeDrawer]
   );
 
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          drawerVisible && (gestureState.dx > 6 || Math.abs(gestureState.vx) > 0.2),
+        onPanResponderGrant: () => {
+          drawerTranslation.stopAnimation((value) => {
+            gestureStartRef.current = value;
+          });
+        },
+        onPanResponderMove: (_, gestureState) => {
+          const dragDistance = Math.max(0, gestureState.dx);
+          const nextTranslation = Math.min(drawerWidth, gestureStartRef.current + dragDistance);
+          drawerTranslation.setValue(nextTranslation);
+          const normalizedOpacity = 1 - nextTranslation / drawerWidth;
+          overlayOpacity.setValue(Math.max(0, Math.min(1, normalizedOpacity)));
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          const dragDistance = Math.max(0, gestureState.dx);
+          const closingThreshold = drawerWidth * 0.35;
+          if (dragDistance > closingThreshold || gestureState.vx > 0.6) {
+            closeDrawer();
+          } else {
+            isAnimatingRef.current = true;
+            Animated.parallel([
+              Animated.spring(drawerTranslation, {
+                toValue: 0,
+                useNativeDriver: true,
+                damping: 20,
+                stiffness: 220,
+              }),
+              Animated.timing(overlayOpacity, {
+                toValue: 1,
+                duration: 180,
+                useNativeDriver: true,
+              }),
+            ]).start(() => {
+              gestureStartRef.current = 0;
+              isAnimatingRef.current = false;
+            });
+          }
+        },
+      }),
+    [closeDrawer, drawerTranslation, drawerVisible, drawerWidth, overlayOpacity]
+  );
+
   const previewItems = useMemo(() => MENU_ITEMS.slice(0, 3), []);
 
   return (
@@ -170,7 +218,7 @@ export default function HomeScreen() {
           accessibilityRole="button"
           hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
           onPress={openDrawer}
-          style={styles.menuButton}
+          style={[styles.menuButton, drawerVisible && styles.menuButtonHidden]}
         >
           <Ionicons name="ellipsis-vertical" size={22} color={colors.primary} />
         </TouchableOpacity>
@@ -231,10 +279,23 @@ export default function HomeScreen() {
               transform: [{ translateX: drawerTranslation }],
             },
           ]}
+          {...panResponder.panHandlers}
         >
           <View style={styles.drawerHeader}>
-            <Text style={styles.drawerTitle}>Sweet Balance</Text>
-            <Text style={styles.drawerSubtitle}>ניווט רך וממוקד עבורך</Text>
+            <View style={styles.drawerHeaderTextWrapper}>
+              <Text style={styles.drawerTitle}>Sweet Balance</Text>
+              <Text style={styles.drawerSubtitle}>ניווט רך וממוקד עבורך</Text>
+            </View>
+            <TouchableOpacity
+              accessibilityLabel="סגירת תפריט"
+              accessibilityRole="button"
+              activeOpacity={0.8}
+              hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
+              onPress={() => closeDrawer()}
+              style={styles.drawerCloseButton}
+            >
+              <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+            </TouchableOpacity>
           </View>
 
           <ScrollView
@@ -284,9 +345,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: spacing.xxxl,
     right: spacing.xxl,
-    zIndex: 1000,
+    zIndex: 10,
     ...shadows.sm,
     elevation: 6,
+  },
+  menuButtonHidden: {
+    zIndex: 0,
   },
   headerContent: {
     alignItems: "center",
@@ -364,33 +428,41 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   overlayContainer: {
-    zIndex: 1,
+    zIndex: 12,
   },
   overlay: {
-    backgroundColor: "rgba(0, 0, 0, 0.25)",
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
   },
   drawer: {
     position: "absolute",
     top: 0,
-    bottom: 80,
+    bottom: 0,
     right: 0,
     paddingTop: spacing.xxxl,
     paddingBottom: spacing.xxxl,
-    paddingHorizontal: spacing.xl,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radii.xl,
-    borderBottomLeftRadius: radii.xl,
+    paddingHorizontal: spacing.xxl,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 25,
+    borderBottomLeftRadius: 25,
     ...shadows.lg,
-    zIndex: 2,
+    elevation: 8,
+    zIndex: 20,
     justifyContent: "space-between",
     writingDirection: "rtl",
   },
   drawerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.xxl,
+  },
+  drawerHeaderTextWrapper: {
+    flex: 1,
     alignItems: "flex-end",
     gap: spacing.xs,
   },
   drawerTitle: {
-    fontFamily: typography.family.medium,
+    fontFamily: typography.family.heading,
     fontSize: typography.size.xl,
     color: colors.primary,
     textAlign: "right",
@@ -401,9 +473,19 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     textAlign: "right",
   },
+  drawerCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceMuted,
+    marginLeft: spacing.lg,
+    ...shadows.xs,
+  },
   drawerMenu: {
     flex: 1,
-    marginTop: spacing.xxxl,
+    marginTop: spacing.md,
     writingDirection: "rtl",
   },
   drawerMenuContent: {
