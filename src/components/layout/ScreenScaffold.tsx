@@ -11,12 +11,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { BlurView } from "expo-blur";
 
 import TopNavigationMenu from "./TopNavigationMenu";
 import { colors, spacing } from "../../theme";
 import SideMenuContent from "./SideMenuContent";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 type ScreenScaffoldProps = {
   children: React.ReactNode;
@@ -107,7 +109,21 @@ export default function ScreenScaffold({
               {
                 opacity: menuAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0, 0.45],
+                  outputRange: [0, 0.55],
+                }),
+              },
+            ]}
+          />
+          <AnimatedBlurView
+            pointerEvents="none"
+            intensity={35}
+            tint="default"
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                opacity: menuAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 1],
                 }),
               },
             ]}
@@ -132,6 +148,7 @@ export default function ScreenScaffold({
             <SideMenuContent
               bottomInset={insets.bottom}
               onClose={handleCloseMenu}
+              animationValue={menuAnim}
               topInset={insets.top}
             />
           </Animated.View>
