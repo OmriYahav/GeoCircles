@@ -20,7 +20,6 @@ export default function TabsLayout() {
       tabBar={(props) => <BottomTabNavigator {...props} />}
     >
       <Tabs.Screen name="map" options={{ title: "Home" }} />
-      <Tabs.Screen name="saved-spots" options={{ title: "Workshops" }} />
       <Tabs.Screen name="my-spots" options={{ title: "Tips" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
     </Tabs>
