@@ -4,7 +4,6 @@ import {
   Alert,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   ToastAndroid,
   View,
@@ -20,7 +19,7 @@ import { colors, radii, shadows, spacing, typography } from "../theme";
 
 const STORAGE_KEY = "sweet-balance.workshops";
 
-const WORKSHOP_OPTIONS: Array<{ id: string; title: string; emoji: string }> = [
+const WORKSHOP_OPTIONS: { id: string; title: string; emoji: string }[] = [
   { id: "kids-baking", title: "אפיה בריאה לילדים", emoji: "🧁" },
   { id: "healthy-cooking", title: "בישול בריא", emoji: "🍲" },
   { id: "natural-care", title: "רוקחות טבעית", emoji: "🌿" },
@@ -186,7 +185,11 @@ export default function WorkshopsScreen() {
   );
 
   return (
-    <ScreenScaffold contentStyle={styles.scaffoldContent} topContent={topContent}>
+    <ScreenScaffold
+      contentStyle={styles.scaffoldContent}
+      flatTopNavigation
+      topContent={topContent}
+    >
       {activeView === "saved" ? (
         <MyWorkshopsScreen
           bookings={bookings}
