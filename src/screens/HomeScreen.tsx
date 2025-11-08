@@ -63,7 +63,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const drawerWidth = Math.min(width * 0.78, 360);
-  const drawerTranslation = useRef(new Animated.Value(-drawerWidth)).current;
+  const drawerTranslation = useRef(new Animated.Value(drawerWidth)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const [drawerVisible, setDrawerVisible] = useState(false);
   const isAnimatingRef = useRef(false);
@@ -71,7 +71,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!drawerVisible) {
-      drawerTranslation.setValue(-drawerWidth);
+      drawerTranslation.setValue(drawerWidth);
     }
   }, [drawerVisible, drawerTranslation, drawerWidth]);
 
@@ -83,7 +83,7 @@ export default function HomeScreen() {
     isAnimatingRef.current = true;
     pendingRouteRef.current = null;
     setDrawerVisible(true);
-    drawerTranslation.setValue(-drawerWidth);
+    drawerTranslation.setValue(drawerWidth);
     overlayOpacity.setValue(0);
 
     Animated.parallel([
@@ -126,7 +126,7 @@ export default function HomeScreen() {
 
       Animated.parallel([
         Animated.spring(drawerTranslation, {
-          toValue: -drawerWidth,
+          toValue: drawerWidth,
           useNativeDriver: true,
           damping: 20,
           stiffness: 220,
@@ -364,13 +364,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     bottom: 0,
-    left: 0,
+    right: 0,
     paddingTop: spacing.xxxl,
     paddingBottom: spacing.xxxl,
     paddingHorizontal: spacing.xl,
     backgroundColor: colors.background,
-    borderTopRightRadius: radii.xl,
-    borderBottomRightRadius: radii.xl,
+    borderTopLeftRadius: radii.xl,
+    borderBottomLeftRadius: radii.xl,
     ...shadows.lg,
     zIndex: 2,
     justifyContent: "space-between",

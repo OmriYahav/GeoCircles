@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { StatusBar, View } from "react-native";
+import { I18nManager, StatusBar, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -56,6 +56,13 @@ export default function AppProviders({ children }: AppProvidersProps) {
     Heebo_600SemiBold,
     Heebo_700Bold,
   });
+
+  useEffect(() => {
+    if (!I18nManager.isRTL) {
+      I18nManager.allowRTL(true);
+      I18nManager.forceRTL(true);
+    }
+  }, []);
 
   useEffect(() => {
     SplashScreen.preventAutoHideAsync().catch((error) => {
