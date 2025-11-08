@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Animated,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -236,7 +237,11 @@ export default function HomeScreen() {
             <Text style={styles.drawerSubtitle}>ניווט רך וממוקד עבורך</Text>
           </View>
 
-          <View style={styles.drawerMenu}>
+          <ScrollView
+            style={styles.drawerMenu}
+            contentContainerStyle={styles.drawerMenuContent}
+            showsVerticalScrollIndicator={false}
+          >
             {MENU_ITEMS.map((item) => (
               <TouchableOpacity
                 key={item.id}
@@ -251,7 +256,7 @@ export default function HomeScreen() {
                 </View>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         </Animated.View>
       )}
     </View>
@@ -264,10 +269,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingTop: spacing.xxxl,
     paddingHorizontal: spacing.xxl,
+    position: "relative",
   },
   headerRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
+    height: 44,
   },
   menuButton: {
     width: 44,
@@ -276,8 +281,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     alignItems: "center",
     justifyContent: "center",
-    alignSelf: "flex-end",
+    position: "absolute",
+    top: spacing.xxxl,
+    right: spacing.xxl,
+    zIndex: 1000,
     ...shadows.sm,
+    elevation: 6,
   },
   headerContent: {
     alignItems: "center",
@@ -363,7 +372,7 @@ const styles = StyleSheet.create({
   drawer: {
     position: "absolute",
     top: 0,
-    bottom: 0,
+    bottom: 80,
     right: 0,
     paddingTop: spacing.xxxl,
     paddingBottom: spacing.xxxl,
@@ -395,8 +404,11 @@ const styles = StyleSheet.create({
   drawerMenu: {
     flex: 1,
     marginTop: spacing.xxxl,
-    gap: spacing.lg,
     writingDirection: "rtl",
+  },
+  drawerMenuContent: {
+    gap: spacing.lg,
+    paddingBottom: 80,
   },
   drawerItem: {
     flexDirection: "row-reverse",
