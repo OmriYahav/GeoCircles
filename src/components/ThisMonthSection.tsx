@@ -11,6 +11,7 @@ export default function ThisMonthSection({ onReserve }: ThisMonthSectionProps) {
     <Card
       title="החודש ב-Sweet Balance"
       subtitle="סדנת אפייה בריאה – 12.12.2025, 18:30 • מקומות מוגבלים"
+      icon="calendar"
       onPress={onReserve}
     />
   );

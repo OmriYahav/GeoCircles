@@ -1,7 +1,7 @@
 import { createMenuScreen } from "../../src/screens/MenuScreenFactory";
 
 export default createMenuScreen({
-  icon: "💬",
+  iconName: "message-circle",
   title: "אודות",
   subtitle: "להכיר את Sweet Balance מקרוב",
   paragraphs: [

@@ -1,10 +1,10 @@
 export const colors = {
-  bg0: '#FAF8F3',
-  bg1: '#F5F1E9',
-  accent: '#2E6B3B',
-  accentSoft: '#4C8B59',
-  text: '#224429',
-  divider: 'rgba(34,68,41,0.12)',
+  bg0: '#F8F6F2',
+  bg1: '#F0ECE5',
+  accent: '#3B7A57',
+  accentSoft: '#4F8A66',
+  text: '#2F6B3A',
+  divider: 'rgba(47,107,58,0.12)',
   shadow: 'rgba(0,0,0,0.08)',
 };
 

@@ -1,7 +1,7 @@
-import React from "react";
-import { I18nManager, Pressable, StyleSheet, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, I18nManager, Pressable, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 
 export type HeaderRightMenuButtonProps = {
   onPress: () => void;
@@ -14,6 +14,36 @@ export default function HeaderRightMenuButton({
   expanded = false,
   accessibilityLabel = "פתיחת תפריט",
 }: HeaderRightMenuButtonProps) {
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 2200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 2200,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [pulse]);
+
+  const scale = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.95, 1.05],
+  });
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -25,26 +55,28 @@ export default function HeaderRightMenuButton({
         pressed && styles.buttonPressed,
       ]}
     >
-      <LinearGradient
-        colors={["rgba(47, 107, 58, 0.95)", "rgba(47, 107, 58, 0.75)"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
-        <View style={styles.iconBadge}>
-          <Ionicons
-            name="leaf"
-            size={18}
-            color="rgba(255,255,255,0.9)"
-            style={styles.leafIcon}
-          />
-        </View>
-        <View style={styles.lines}>
-          <View style={[styles.line, styles.lineWide]} />
-          <View style={[styles.line, styles.lineMedium]} />
-          <View style={[styles.line, styles.lineWide]} />
-        </View>
-      </LinearGradient>
+      <Animated.View style={[styles.animatedContainer, { transform: [{ scale }] }]}>
+        <LinearGradient
+          colors={["rgba(59, 122, 87, 0.95)", "rgba(59, 122, 87, 0.75)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradient}
+        >
+          <View style={styles.iconBadge}>
+            <Feather
+              name="leaf"
+              size={18}
+              color="rgba(255,255,255,0.9)"
+              style={styles.leafIcon}
+            />
+          </View>
+          <View style={styles.lines}>
+            <View style={[styles.line, styles.lineWide]} />
+            <View style={[styles.line, styles.lineMedium]} />
+            <View style={[styles.line, styles.lineWide]} />
+          </View>
+        </LinearGradient>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -67,6 +99,10 @@ const styles = StyleSheet.create({
   buttonPressed: {
     transform: [{ scale: 0.97 }],
     shadowOpacity: 0.18,
+  },
+  animatedContainer: {
+    flex: 1,
+    borderRadius: SIZE / 2,
   },
   gradient: {
     flex: 1,

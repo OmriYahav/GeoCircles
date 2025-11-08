@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
 import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
@@ -18,7 +19,7 @@ import { useMenu } from "../context/MenuContext";
 import { menuRouteMap } from "../constants/menuRoutes";
 
 export type MenuScreenConfig = {
-  icon?: string;
+  iconName?: keyof typeof Feather.glyphMap;
   title: string;
   subtitle: string;
   paragraphs: string[];
@@ -61,7 +62,11 @@ export function createMenuScreen(config: MenuScreenConfig) {
               contentContainerStyle={styles.content}
               showsVerticalScrollIndicator={false}
             >
-              {config.icon ? <Text style={styles.icon}>{config.icon}</Text> : null}
+              {config.iconName ? (
+                <View style={styles.iconBadge}>
+                  <Feather name={config.iconName} size={22} color="#3B7A57" />
+                </View>
+              ) : null}
               <Text style={styles.title}>{config.title}</Text>
               <Text style={styles.subtitle}>{config.subtitle}</Text>
               {config.paragraphs.map((paragraph) => (
@@ -121,8 +126,12 @@ const styles = StyleSheet.create({
     gap: spacing(1.5),
     alignItems: "flex-end",
   },
-  icon: {
-    fontSize: typography.title,
+  iconBadge: {
+    alignSelf: "flex-end",
+    backgroundColor: "#E8F3EA",
+    borderRadius: 28,
+    padding: spacing(1.5),
+    marginBottom: spacing(1),
   },
   title: {
     color: colors.primary,

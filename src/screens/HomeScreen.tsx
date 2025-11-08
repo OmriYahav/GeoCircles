@@ -8,10 +8,12 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
 import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
@@ -87,12 +89,12 @@ export default function HomeScreen() {
             </Text>
 
             <CTAButton
-              title="🍃 גלי את הסדנאות"
+              title="גלי את הסדנאות"
               onPress={() => navigateTo(menuRouteMap.Workshops)}
             />
 
             <CTAButton
-              title="🌱 איזון אישי"
+              title="איזון אישי"
               onPress={() => navigateTo("/personal-balance")}
             />
 
@@ -100,26 +102,31 @@ export default function HomeScreen() {
               <Card
                 title="מתכונים בריאים"
                 subtitle="קינוחים מאזנים, ארוחות קלילות ומשביעות"
+                icon="coffee"
                 onPress={() => navigateTo(menuRouteMap.Recipes)}
               />
               <Card
                 title="סדנאות"
                 subtitle="לוח סדנאות קרובות + שריון מקום"
+                icon="users"
                 onPress={() => navigateTo(menuRouteMap.Workshops)}
               />
               <Card
                 title="טיפולים"
                 subtitle="מפגשים אישיים וקבוצתיים"
+                icon="leaf"
                 onPress={() => navigateTo(menuRouteMap.Treatments)}
               />
               <Card
                 title="עצות תזונה"
                 subtitle="מדריכים קצרים ופרקטיים"
+                icon="apple"
                 onPress={() => navigateTo(menuRouteMap.Tips)}
               />
               <Card
                 title="בלוג"
                 subtitle="מאמרים, תובנות והשראה"
+                icon="book"
                 onPress={() => navigateTo(menuRouteMap.Blog)}
               />
             </View>
@@ -145,6 +152,18 @@ export default function HomeScreen() {
           visible={showScrollTop}
           onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
         />
+
+        <View style={styles.bottomCtaContainer}>
+          <TouchableOpacity
+            style={styles.ctaButton}
+            onPress={() => navigateTo(menuRouteMap.Treatments)}
+            accessibilityRole="button"
+            accessibilityLabel="איזון טבעי – מעבר לטיפולים"
+          >
+            <Feather name="wind" size={20} color="#FFFFFF" />
+            <Text style={styles.ctaText}>איזון טבעי – רגע לנשום</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
 
       <SideMenuNew
@@ -225,5 +244,23 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily,
     textAlign: "right",
     marginBottom: spacing(1),
+  },
+  bottomCtaContainer: {
+    paddingHorizontal: spacing(2),
+    paddingBottom: spacing(2),
+  },
+  ctaButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3B7A57",
+    borderRadius: 30,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  ctaText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Heebo_600SemiBold",
   },
 });
