@@ -8,7 +8,6 @@ import { colors, radii, shadows, spacing, typography } from "../theme";
 
 const TAB_ICON_MAP: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
   map: { icon: "home-outline", label: "בית" },
-  "saved-spots": { icon: "calendar-outline", label: "סדנאות" },
   "my-spots": { icon: "chatbubbles-outline", label: "עצות" },
 };
 

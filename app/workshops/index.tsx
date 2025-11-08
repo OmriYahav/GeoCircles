@@ -1,12 +1,7 @@
-import { createMenuScreen } from "../../src/screens/MenuScreenFactory";
+import React from "react";
 
-export default createMenuScreen({
-  icon: "🥄",
-  title: "סדנאות",
-  subtitle: "חוויות למידה שמחברות בין ידע לטעם",
-  paragraphs: [
-    "הסדנאות נבנות בקבוצות קטנות כדי להעניק זמן לשאלות ולתירגול מעשי, עם דגש על טכניקות בישול בריאות.",
-    "נלמד יחד על קיפול בצקים מלאים, שילובי עשבי תיבול והרכבת תפריטים מאוזנים שמתאימים לכל בני הבית.",
-    "תוכלי להצטרף למפגשים פתוחים או להזמין מפגש פרטי עם החברים והמשפחה בפורמט שנוח לך.",
-  ],
-});
+import WorkshopsScreen from "../../src/screens/WorkshopsScreen";
+
+export default function WorkshopsRoute() {
+  return <WorkshopsScreen />;
+}
