@@ -1,47 +1,76 @@
 import React, {
   createContext,
-  useContext,
-  useMemo,
   useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
   type ReactNode,
 } from "react";
+import { BackHandler } from "react-native";
 
-import { useMenuStore } from "../state/menuStore";
+export type MenuRouteName =
+  | "Recipes"
+  | "Workshops"
+  | "Treatments"
+  | "Tips"
+  | "Blog"
+  | "Contact";
 
 type MenuContextValue = {
-  menuOpen: boolean;
-  toggleMenu: () => void;
-  openMenu: () => void;
-  closeMenu: () => void;
+  isOpen: boolean;
+  open: () => void;
+  close: () => void;
 };
 
-const MenuContext = createContext<MenuContextValue | undefined>(undefined);
+const MenuContext = createContext<MenuContextValue>({
+  isOpen: false,
+  open: () => {},
+  close: () => {},
+});
 
-type MenuProviderProps = {
+export type MenuProviderProps = {
   children: ReactNode;
 };
 
 export function MenuProvider({ children }: MenuProviderProps) {
-  const menuOpen = useMenuStore((state) => state.open);
-  const toggle = useMenuStore((state) => state.toggle);
-  const setOpen = useMenuStore((state) => state.setOpen);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const openMenu = useCallback(() => {
-    setOpen(true);
-  }, [setOpen]);
+  const open = useCallback(() => {
+    setIsOpen(true);
+  }, []);
 
-  const closeMenu = useCallback(() => {
-    setOpen(false);
-  }, [setOpen]);
+  const close = useCallback(() => {
+    setIsOpen(false);
+  }, []);
 
-  const value = useMemo(
+  useEffect(() => {
+    const handleBackPress = () => {
+      if (!isOpen) {
+        return false;
+      }
+
+      setIsOpen(false);
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleBackPress,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isOpen]);
+
+  const value = useMemo<MenuContextValue>(
     () => ({
-      menuOpen,
-      toggleMenu: toggle,
-      openMenu,
-      closeMenu,
+      isOpen,
+      open,
+      close,
     }),
-    [menuOpen, toggle, openMenu, closeMenu],
+    [isOpen, open, close],
   );
 
   return <MenuContext.Provider value={value}>{children}</MenuContext.Provider>;
@@ -54,7 +83,27 @@ export function useMenu() {
     throw new Error("useMenu must be used within a MenuProvider");
   }
 
-  return context;
+  const { isOpen, open, close } = context;
+
+  const toggle = useCallback(() => {
+    if (isOpen) {
+      close();
+      return;
+    }
+
+    open();
+  }, [isOpen, open, close]);
+
+  return {
+    isOpen,
+    open,
+    close,
+    toggle,
+    menuOpen: isOpen,
+    openMenu: open,
+    closeMenu: close,
+    toggleMenu: toggle,
+  } as const;
 }
 
-export default MenuProvider;
+export default MenuContext;

@@ -8,12 +8,14 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
-import AnimatedLeafMenuIcon from "../components/AnimatedLeafMenuIcon";
+import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
+import SideMenuNew from "../components/SideMenuNew";
 import { colors, spacing, typography } from "../theme";
 import { useMenu } from "../context/MenuContext";
+import { menuRouteMap } from "../constants/menuRoutes";
 
 export type MenuScreenConfig = {
   icon?: string;
@@ -24,9 +26,8 @@ export type MenuScreenConfig = {
 
 export function createMenuScreen(config: MenuScreenConfig) {
   function MenuScreen() {
-    const navigation = useNavigation<any>();
     const router = useRouter();
-    const { menuOpen, toggleMenu, closeMenu } = useMenu();
+    const { isOpen, open, close } = useMenu();
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -38,18 +39,13 @@ export function createMenuScreen(config: MenuScreenConfig) {
     }, [fadeAnim]);
 
     const handleMenuPress = useCallback(() => {
-      if (typeof navigation?.toggleDrawer === "function") {
-        navigation.toggleDrawer();
-        return;
-      }
-
-      toggleMenu();
-    }, [navigation, toggleMenu]);
+      open();
+    }, [open]);
 
     const handleHomePress = useCallback(() => {
-      closeMenu();
+      close();
       router.navigate("/");
-    }, [closeMenu, router]);
+    }, [close, router]);
 
     return (
       <LinearGradient colors={[colors.bgFrom, colors.bgTo]} style={styles.gradient}>
@@ -57,7 +53,7 @@ export function createMenuScreen(config: MenuScreenConfig) {
           <View style={styles.header}>
             <AnimatedHomeButton onPress={handleHomePress} />
             <Text style={styles.brand}>Sweet Balance</Text>
-            <AnimatedLeafMenuIcon open={menuOpen} onPress={handleMenuPress} />
+            <HeaderRightMenuButton onPress={handleMenuPress} expanded={isOpen} />
           </View>
 
           <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}>
@@ -76,6 +72,16 @@ export function createMenuScreen(config: MenuScreenConfig) {
             </ScrollView>
           </Animated.View>
         </SafeAreaView>
+
+        <SideMenuNew
+          visible={isOpen}
+          onClose={close}
+          navigate={(route, params) => {
+            const target = menuRouteMap[route] ?? route;
+            close();
+            router.navigate({ pathname: target, params: params ?? {} });
+          }}
+        />
       </LinearGradient>
     );
   }

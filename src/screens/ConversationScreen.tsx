@@ -19,13 +19,15 @@ import {
 import { useUserProfile } from "../context/UserProfileContext";
 import { useNearbyBusinessChat } from "../context/BusinessContext";
 import { colors, spacing, typography } from "../theme";
-import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatMessage from "../components/ChatMessage";
 import ChatInput from "../components/ChatInput";
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
-import AnimatedLeafMenuIcon from "../components/AnimatedLeafMenuIcon";
+import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
+import SideMenuNew from "../components/SideMenuNew";
 import { useMenu } from "../context/MenuContext";
+import { menuRouteMap } from "../constants/menuRoutes";
 
 export type ConversationScreenParams = {
   conversationId?: string | string[];
@@ -33,13 +35,12 @@ export type ConversationScreenParams = {
 
 export default function ConversationScreen() {
   const router = useRouter();
-  const navigation = useNavigation<any>();
   const params = useLocalSearchParams<ConversationScreenParams>();
   const { profile } = useUserProfile();
   const { conversations, sendMessage, respondToJoinRequest, requestToJoin } =
     useChatConversations();
   const { nearbyBusiness } = useNearbyBusinessChat();
-  const { menuOpen, toggleMenu, closeMenu } = useMenu();
+  const { isOpen, open, close } = useMenu();
 
   const conversation = useMemo<Conversation | undefined>(
     () => {
@@ -51,7 +52,7 @@ export default function ConversationScreen() {
       }
       return conversations.find((item) => item.id === conversationId);
     },
-    [conversations, params.conversationId]
+    [conversations, params.conversationId],
   );
 
   const [messageDraft, setMessageDraft] = useState("");
@@ -64,7 +65,7 @@ export default function ConversationScreen() {
 
   const isHost = conversation?.hostId === profile.id;
   const isParticipant = Boolean(
-    conversation && conversation.participants.includes(profile.id)
+    conversation && conversation.participants.includes(profile.id),
   );
 
   const myRequest = useMemo<JoinRequest | undefined>(() => {
@@ -72,7 +73,7 @@ export default function ConversationScreen() {
       return undefined;
     }
     return conversation.joinRequests.find(
-      (item) => item.userId === profile.id && item.status === "pending"
+      (item) => item.userId === profile.id && item.status === "pending",
     );
   }, [conversation, profile.id]);
 
@@ -83,7 +84,7 @@ export default function ConversationScreen() {
       conversation && isHost
         ? conversation.joinRequests.filter((item) => item.status === "pending")
         : [],
-    [conversation, isHost]
+    [conversation, isHost],
   );
 
   const handleApprove = useCallback(
@@ -97,7 +98,7 @@ export default function ConversationScreen() {
         approve: true,
       });
     },
-    [conversation, respondToJoinRequest]
+    [conversation, respondToJoinRequest],
   );
 
   const handleReject = useCallback(
@@ -111,7 +112,7 @@ export default function ConversationScreen() {
         approve: false,
       });
     },
-    [conversation, respondToJoinRequest]
+    [conversation, respondToJoinRequest],
   );
 
   const handleSendMessage = useCallback(() => {
@@ -137,24 +138,19 @@ export default function ConversationScreen() {
     ({ item }: { item: Conversation["messages"][number] }) => (
       <ChatMessage message={item} isMine={item.senderId === profile.id} />
     ),
-    [profile.id]
+    [profile.id],
   );
 
   const insets = useSafeAreaInsets();
 
   const handleMenuPress = useCallback(() => {
-    if (typeof navigation?.toggleDrawer === "function") {
-      navigation.toggleDrawer();
-      return;
-    }
-
-    toggleMenu();
-  }, [navigation, toggleMenu]);
+    open();
+  }, [open]);
 
   const handleHomePress = useCallback(() => {
-    closeMenu();
+    close();
     router.navigate("/");
-  }, [closeMenu, router]);
+  }, [close, router]);
 
   if (!conversation) {
     return null;
@@ -198,96 +194,77 @@ export default function ConversationScreen() {
                   compact
                   onPress={() => handleReject(request.id)}
                 >
-                  Decline
+                  Reject
                 </Button>
               </View>
             </View>
           ))}
         </View>
       )}
-      {!canSendMessages && !myRequest && (
+      {!canSendMessages && !myRequest ? (
         <View style={styles.infoBlock}>
-          <Text style={styles.sectionTitle}>Ask to join this chat</Text>
+          <Text style={styles.infoTitle}>Request to join</Text>
           <Text style={styles.infoDescription}>
-            Only the host can approve new participants. Send a request and we will notify the host.
+            Send a request so the host can add you to the conversation.
           </Text>
           <Button mode="contained" onPress={handleRequestJoin}>
-            Request to join
+            Request access
           </Button>
         </View>
-      )}
-      {!canSendMessages && myRequest && (
-        <View style={styles.infoBlock}>
-          <Text style={styles.sectionTitle}>Waiting for approval</Text>
-          <Text style={styles.infoDescription}>
-            {conversation.hostName} has received your request. You will be able to chat once it is approved.
-          </Text>
-        </View>
-      )}
+      ) : null}
     </View>
   );
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardAvoider}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={styles.safeArea}>
-          <View style={[styles.header, { paddingTop: insets.top || spacing.md }]}>
-            <AnimatedHomeButton onPress={handleHomePress} />
-            <View style={styles.headerText}>
-              <Text style={styles.title}>{conversation.title}</Text>
-              <Text style={styles.subtitle}>{subtitle}</Text>
-            </View>
-            <AnimatedLeafMenuIcon
-              open={menuOpen}
-              onPress={handleMenuPress}
-              accessibilityState={{ expanded: menuOpen }}
-            />
-          </View>
-
-          <View style={styles.content}>
-            <FlatList
-              data={conversation.messages}
-              keyExtractor={(item) => item.id}
-              renderItem={renderMessage}
-              contentContainerStyle={styles.listContent}
-              keyboardShouldPersistTaps="handled"
-              ListHeaderComponent={listHeader}
-            />
-          </View>
-
-          <View
-            style={[
-              styles.inputContainer,
-              { paddingBottom: Math.max(insets.bottom, spacing.sm) },
-            ]}
-          >
-            <ChatInput
-              value={messageDraft}
-              onChangeText={setMessageDraft}
-              onSend={handleSendMessage}
-              placeholder={
-                canSendMessages
-                  ? "Write a message..."
-                  : "Join the conversation to send messages"
-              }
-              disabled={!canSendMessages}
-            />
-          </View>
+    <View style={styles.safe}>
+      <View style={[styles.header, { paddingTop: insets.top }]}> 
+        <AnimatedHomeButton onPress={handleHomePress} />
+        <View style={styles.headerTextBlock}>
+          <Text style={styles.headerTitle}>{conversation.title}</Text>
+          <Text style={styles.headerSubtitle}>{subtitle}</Text>
         </View>
+        <HeaderRightMenuButton onPress={handleMenuPress} expanded={isOpen} />
+      </View>
+
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          style={styles.body}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 60}
+        >
+          <FlatList
+            data={conversation.messages}
+            renderItem={renderMessage}
+            keyExtractor={(item) => item.id}
+            ListHeaderComponent={listHeader}
+            contentContainerStyle={styles.listContent}
+            inverted
+          />
+
+          <ChatInput
+            value={messageDraft}
+            onChangeText={setMessageDraft}
+            onSend={handleSendMessage}
+            disabled={!canSendMessages}
+          />
+        </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+
+      <SideMenuNew
+        visible={isOpen}
+        onClose={close}
+        navigate={(route, params) => {
+          const target = menuRouteMap[route] ?? route;
+          close();
+          router.navigate({ pathname: target, params: params ?? {} });
+        }}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardAvoider: {
-    flex: 1,
-  },
-  safeArea: {
+  safe: {
     flex: 1,
     backgroundColor: colors.background,
   },
@@ -295,77 +272,86 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.divider,
-    zIndex: 40,
+    paddingHorizontal: spacing(2),
+    paddingBottom: spacing(1),
   },
-  headerText: {
+  headerTextBlock: {
     flex: 1,
-    alignItems: "center",
-    gap: spacing.xs,
+    marginHorizontal: spacing(1.5),
   },
-  title: {
-    fontSize: typography.size.xl,
-    fontFamily: typography.family.semiBold,
-    color: colors.text,
-    textAlign: "center",
+  headerTitle: {
+    color: colors.primary,
+    fontSize: typography.subtitle,
+    fontWeight: "700",
+    fontFamily: typography.fontFamily,
+    textAlign: "right",
   },
-  subtitle: {
+  headerSubtitle: {
     color: colors.subtitle,
-    fontFamily: typography.family.regular,
-    textAlign: "center",
+    fontSize: typography.small,
+    textAlign: "right",
   },
-  content: {
+  body: {
     flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: spacing(2),
+    paddingBottom: spacing(2),
+    gap: spacing(1),
+  },
+  listHeader: {
+    gap: spacing(1.5),
+    marginBottom: spacing(2),
+  },
+  infoBlock: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: spacing(1.5),
+    gap: spacing(1),
+    shadowColor: "rgba(0,0,0,0.06)",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  infoTitle: {
+    color: colors.primary,
+    fontSize: typography.body,
+    fontWeight: "700",
+    textAlign: "right",
+  },
+  infoDescription: {
+    color: colors.text,
+    fontSize: typography.small,
+    textAlign: "right",
+    lineHeight: typography.small * 1.6,
+  },
+  sectionTitle: {
+    color: colors.primary,
+    fontSize: typography.body,
+    fontWeight: "700",
+    textAlign: "right",
   },
   requestRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: spacing(1),
+    marginTop: spacing(0.5),
   },
   requestName: {
-    fontFamily: typography.family.medium,
-    color: colors.text,
+    color: colors.primary,
+    fontSize: typography.body,
+    textAlign: "right",
   },
   requestTime: {
     color: colors.subtitle,
-    marginTop: spacing.xs / 2,
+    fontSize: typography.small,
+    textAlign: "right",
   },
   requestActions: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  listContent: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    gap: spacing.lg,
-  },
-  listHeader: {
-    gap: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  infoBlock: {
-    gap: spacing.xs,
-  },
-  infoTitle: {
-    fontFamily: typography.family.medium,
-    color: colors.text,
-  },
-  infoDescription: {
-    fontFamily: typography.family.regular,
-    color: colors.subtitle,
-    lineHeight: typography.lineHeight.comfortable,
-  },
-  sectionTitle: {
-    fontFamily: typography.family.medium,
-    color: colors.text,
-  },
-  inputContainer: {
-    backgroundColor: colors.surface,
+    gap: spacing(0.5),
   },
 });

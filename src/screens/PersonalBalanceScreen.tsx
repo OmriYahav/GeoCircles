@@ -1,31 +1,27 @@
 import React, { useCallback } from "react";
 import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
-import AnimatedLeafMenuIcon from "../components/AnimatedLeafMenuIcon";
+import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
+import SideMenuNew from "../components/SideMenuNew";
 import { useMenu } from "../context/MenuContext";
 import { colors, spacing, typography } from "../theme";
+import { menuRouteMap } from "../constants/menuRoutes";
 
 export default function PersonalBalanceScreen() {
-  const navigation = useNavigation<any>();
   const router = useRouter();
-  const { menuOpen, toggleMenu, closeMenu } = useMenu();
+  const { isOpen, open, close } = useMenu();
 
   const handleMenuPress = useCallback(() => {
-    if (typeof navigation?.toggleDrawer === "function") {
-      navigation.toggleDrawer();
-      return;
-    }
-
-    toggleMenu();
-  }, [navigation, toggleMenu]);
+    open();
+  }, [open]);
 
   const handleHomePress = useCallback(() => {
-    closeMenu();
+    close();
     router.navigate("/");
-  }, [closeMenu, router]);
+  }, [close, router]);
 
   return (
     <LinearGradient colors={[colors.bgFrom, colors.bgTo]} style={styles.gradient}>
@@ -33,12 +29,22 @@ export default function PersonalBalanceScreen() {
         <View style={styles.header}>
           <AnimatedHomeButton onPress={handleHomePress} />
           <Text style={styles.brand}>Sweet Balance</Text>
-          <AnimatedLeafMenuIcon open={menuOpen} onPress={handleMenuPress} />
+          <HeaderRightMenuButton onPress={handleMenuPress} expanded={isOpen} />
         </View>
         <View style={styles.content}>
           <Text style={styles.title}>Welcome to Personal Balance</Text>
         </View>
       </SafeAreaView>
+
+      <SideMenuNew
+        visible={isOpen}
+        onClose={close}
+        navigate={(route, params) => {
+          const target = menuRouteMap[route] ?? route;
+          close();
+          router.navigate({ pathname: target, params: params ?? {} });
+        }}
+      />
     </LinearGradient>
   );
 }

@@ -15,13 +15,15 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import dayjs from "dayjs";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 
 import type { SavedWorkshop } from "../MyWorkshopsScreen";
 import { radii, shadows, spacing, typography } from "../../theme";
 import AnimatedHomeButton from "../../components/AnimatedHomeButton";
-import AnimatedLeafMenuIcon from "../../components/AnimatedLeafMenuIcon";
+import HeaderRightMenuButton from "../../components/HeaderRightMenuButton";
+import SideMenuNew from "../../components/SideMenuNew";
 import { useMenu } from "../../context/MenuContext";
+import { menuRouteMap } from "../../constants/menuRoutes";
 
 const STORAGE_KEY = "sweet-balance.workshops";
 
@@ -61,8 +63,7 @@ function parseStoredReservations(raw: unknown): SavedWorkshop[] {
 
           return {
             id:
-              (item as SavedWorkshop).id ??
-              `${title}-${date}-${time}-${Date.now()}`,
+              (item as SavedWorkshop).id ?? `${title}-${date}-${time}-${Date.now()}`,
             title,
             date,
             time,
@@ -86,8 +87,7 @@ function parseStoredReservations(raw: unknown): SavedWorkshop[] {
 
               migrated.push({
                 id:
-                  (item as SavedWorkshop).id ??
-                  `${title}-${date}-${time}-${Date.now()}`,
+                  (item as SavedWorkshop).id ?? `${title}-${date}-${time}-${Date.now()}`,
                 title,
                 date,
                 time,
@@ -116,8 +116,7 @@ export default function WorkshopReservation({
   nextDate,
 }: WorkshopReservationProps) {
   const router = useRouter();
-  const navigation = useNavigation<any>();
-  const { menuOpen, toggleMenu, closeMenu } = useMenu();
+  const { isOpen, open, close } = useMenu();
   const [modalVisible, setModalVisible] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -154,18 +153,13 @@ export default function WorkshopReservation({
   }, []);
 
   const handleMenuPress = useCallback(() => {
-    if (typeof navigation?.toggleDrawer === "function") {
-      navigation.toggleDrawer();
-      return;
-    }
-
-    toggleMenu();
-  }, [navigation, toggleMenu]);
+    open();
+  }, [open]);
 
   const handleHomePress = useCallback(() => {
-    closeMenu();
+    close();
     router.navigate("/");
-  }, [closeMenu, router]);
+  }, [close, router]);
 
   const showSuccessMessage = useCallback(() => {
     const message = "השריון שלך נקלט בהצלחה!";
@@ -204,14 +198,14 @@ export default function WorkshopReservation({
         email: trimmedEmail,
       };
 
-      const nextReservations = [...existing, reservation];
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextReservations));
+      const updated = [...existing, reservation];
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
       showSuccessMessage();
       handleCloseModal();
     } catch (error) {
-      console.warn("Failed to store reservation", error);
-      Alert.alert("אירעה שגיאה בשמירת השריון. נסי שוב מאוחר יותר.");
+      console.warn("Failed to save reservation", error);
+      Alert.alert("שגיאה", "לא הצלחנו לשמור את השריון. נסי שוב מאוחר יותר.");
     } finally {
       setIsSaving(false);
     }
@@ -227,269 +221,227 @@ export default function WorkshopReservation({
   ]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        bounces={false}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        style={styles.scroll}
-      >
-        <View style={styles.headerRow}>
-          <AnimatedHomeButton onPress={handleHomePress} />
-          <TouchableOpacity
-            accessibilityLabel="חזרה"
-            accessibilityRole="button"
-            hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <Text style={styles.backButtonLabel}>✕</Text>
+    <SafeAreaView style={styles.safe}> 
+      <View style={styles.header}>
+        <AnimatedHomeButton onPress={handleHomePress} />
+        <Text style={styles.brand}>Sweet Balance</Text>
+        <HeaderRightMenuButton onPress={handleMenuPress} expanded={isOpen} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.heroCard}>
+          <Text style={styles.heroTitle}>{title}</Text>
+          <Text style={styles.heroSubtitle}>{`המפגש הבא יתקיים ב-${formattedDate}`}</Text>
+          <TouchableOpacity style={styles.heroButton} onPress={handleOpenModal}>
+            <Text style={styles.heroButtonText}>שרייני מקום</Text>
           </TouchableOpacity>
-          <AnimatedLeafMenuIcon
-            open={menuOpen}
-            onPress={handleMenuPress}
-            accessibilityState={{ expanded: menuOpen }}
-          />
         </View>
 
-        <View style={styles.textBlock}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>בחרי תאריך ושרייני מקום לסדנה שלך</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>המועד הקרוב</Text>
-          <Text style={styles.cardDate}>{formattedDate}</Text>
-
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={handleOpenModal}
-            style={styles.reserveButton}
-          >
-            <Text style={styles.reserveButtonLabel}>שריין מקום</Text>
-          </TouchableOpacity>
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>מה מחכה לך בסדנה?</Text>
+          <Text style={styles.infoParagraph}>
+            מפגש חווייתי באווירה אינטימית, עם טיפים פרקטיים שתוכלי לקחת הביתה כבר באותו ערב.
+            נבשל, נטעם ונלמד איך ליצור איזון נעים גם בימים העמוסים.
+          </Text>
         </View>
       </ScrollView>
 
-      <Modal animationType="fade" transparent visible={modalVisible} onRequestClose={handleCloseModal}>
-        <View style={styles.modalBackdrop}>
+      <Modal visible={modalVisible} animationType="fade" transparent onRequestClose={handleCloseModal}>
+        <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             style={styles.modalContainer}
           >
-            <View style={styles.modalCard}>
+            <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>פרטי השריון</Text>
-
-              <View style={styles.inputs}>
-                <TextInput
-                  accessibilityLabel="שם מלא"
-                  autoCapitalize="words"
-                  onChangeText={setFullName}
-                  placeholder="שם מלא"
-                  placeholderTextColor={palette.placeholder}
-                  style={styles.input}
-                  textAlign="right"
-                  value={fullName}
-                />
-                <TextInput
-                  accessibilityLabel="טלפון"
-                  keyboardType="phone-pad"
-                  onChangeText={setPhone}
-                  placeholder="טלפון"
-                  placeholderTextColor={palette.placeholder}
-                  style={styles.input}
-                  textAlign="right"
-                  value={phone}
-                />
-                <TextInput
-                  accessibilityLabel="כתובת מייל"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  onChangeText={setEmail}
-                  placeholder="כתובת מייל"
-                  placeholderTextColor={palette.placeholder}
-                  style={styles.input}
-                  textAlign="right"
-                  value={email}
-                />
-              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="שם מלא"
+                placeholderTextColor={palette.placeholder}
+                value={fullName}
+                onChangeText={setFullName}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="טלפון"
+                placeholderTextColor={palette.placeholder}
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="אימייל"
+                placeholderTextColor={palette.placeholder}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
 
               <View style={styles.modalActions}>
                 <TouchableOpacity
-                  accessibilityRole="button"
+                  style={[styles.modalButton, styles.modalButtonSecondary]}
+                  onPress={handleCloseModal}
                   disabled={isSaving}
-                  onPress={handleConfirm}
-                  style={[styles.confirmButton, isSaving && styles.buttonDisabled]}
                 >
-                  <Text style={styles.confirmButtonLabel}>אישור שריון</Text>
+                  <Text style={styles.modalButtonSecondaryText}>ביטול</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  accessibilityRole="button"
-                  onPress={handleCloseModal}
-                  style={styles.cancelButton}
+                  style={[styles.modalButton, styles.modalButtonPrimary]}
+                  onPress={handleConfirm}
+                  disabled={isSaving}
                 >
-                  <Text style={styles.cancelButtonLabel}>בטל</Text>
+                  <Text style={styles.modalButtonPrimaryText}>
+                    {isSaving ? "שומרת..." : "אישור"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
           </KeyboardAvoidingView>
         </View>
       </Modal>
+
+      <SideMenuNew
+        visible={isOpen}
+        onClose={close}
+        navigate={(route, params) => {
+          const target = menuRouteMap[route] ?? route;
+          close();
+          router.navigate({ pathname: target, params: params ?? {} });
+        }}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  safe: {
     flex: 1,
     backgroundColor: palette.background,
   },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.xxxl,
-    paddingBottom: spacing.xxxl,
-    gap: spacing.xxl,
-  },
-  headerRow: {
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    zIndex: 30,
+    paddingHorizontal: spacing(2),
+    paddingVertical: spacing(1.25),
   },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(82, 115, 77, 0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backButtonLabel: {
-    fontSize: typography.size.xl,
+  brand: {
     color: palette.text,
+    fontSize: typography.subtitle,
+    fontWeight: "700",
+    fontFamily: typography.fontFamily,
+    flex: 1,
+    textAlign: "center",
   },
-  textBlock: {
-    gap: spacing.sm,
-    alignItems: "flex-end",
+  content: {
+    padding: spacing(2),
+    gap: spacing(2),
   },
-  title: {
-    fontFamily: typography.family.heading,
-    fontSize: typography.size.xxl,
-    color: palette.text,
-    textAlign: "right",
-  },
-  subtitle: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.md,
-    color: palette.text,
-    textAlign: "right",
-    opacity: 0.85,
-    lineHeight: typography.lineHeight.relaxed,
-  },
-  card: {
+  heroCard: {
     backgroundColor: palette.surface,
     borderRadius: radii.xl,
-    paddingHorizontal: spacing.xxxl,
-    paddingVertical: spacing.xxxl,
-    alignItems: "center",
-    gap: spacing.lg,
-    ...shadows.md,
+    padding: spacing(2),
+    ...shadows.card,
+    gap: spacing(1),
   },
-  cardLabel: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.sm,
+  heroTitle: {
     color: palette.text,
-    opacity: 0.7,
+    fontSize: typography.title,
+    fontWeight: "700",
+    fontFamily: typography.fontFamily,
+    textAlign: "right",
   },
-  cardDate: {
-    fontFamily: typography.family.semiBold,
-    fontSize: typography.size.xl,
+  heroSubtitle: {
     color: palette.text,
+    fontSize: typography.body,
+    textAlign: "right",
   },
-  reserveButton: {
-    marginTop: spacing.sm,
+  heroButton: {
+    marginTop: spacing(1),
     backgroundColor: palette.button,
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.xxxl,
-    paddingVertical: spacing.md,
-    ...shadows.sm,
+    paddingVertical: spacing(1),
+    borderRadius: radii.lg,
+    alignItems: "center",
   },
-  reserveButtonLabel: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.md,
+  heroButtonText: {
     color: "#FFFFFF",
+    fontWeight: "700",
   },
-  modalBackdrop: {
+  infoCard: {
+    backgroundColor: palette.surface,
+    borderRadius: radii.xl,
+    padding: spacing(2),
+    gap: spacing(1),
+    ...shadows.card,
+  },
+  infoTitle: {
+    color: palette.text,
+    fontSize: typography.subtitle,
+    fontWeight: "700",
+    textAlign: "right",
+  },
+  infoParagraph: {
+    color: palette.text,
+    fontSize: typography.body,
+    lineHeight: typography.body * 1.5,
+    textAlign: "right",
+  },
+  modalOverlay: {
     flex: 1,
     backgroundColor: palette.overlay,
-    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.xxl,
+    padding: spacing(2),
   },
   modalContainer: {
-    width: "100%",
+    flex: 1,
+    justifyContent: "center",
   },
-  modalCard: {
+  modalContent: {
     backgroundColor: palette.surface,
     borderRadius: radii.xl,
-    paddingHorizontal: spacing.xxl,
-    paddingVertical: spacing.xxxl,
-    gap: spacing.xl,
-    ...shadows.lg,
+    padding: spacing(2),
+    gap: spacing(1.5),
   },
   modalTitle: {
-    fontFamily: typography.family.semiBold,
-    fontSize: typography.size.lg,
+    color: palette.text,
+    fontSize: typography.subtitle,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: palette.outline,
+    borderRadius: radii.lg,
+    paddingVertical: spacing(1),
+    paddingHorizontal: spacing(1.5),
     color: palette.text,
     textAlign: "right",
   },
-  inputs: {
-    gap: spacing.md,
-  },
-  input: {
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: palette.outline,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.md,
-    color: palette.text,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-  },
   modalActions: {
-    gap: spacing.md,
+    flexDirection: "row",
+    gap: spacing(1),
+    justifyContent: "space-between",
   },
-  confirmButton: {
-    backgroundColor: palette.button,
-    borderRadius: radii.pill,
-    paddingVertical: spacing.md,
+  modalButton: {
+    flex: 1,
+    borderRadius: radii.lg,
+    paddingVertical: spacing(1),
     alignItems: "center",
-    ...shadows.sm,
   },
-  confirmButtonLabel: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.md,
-    color: "#FFFFFF",
+  modalButtonSecondary: {
+    backgroundColor: "rgba(82, 115, 77, 0.12)",
   },
-  cancelButton: {
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: palette.button,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-    backgroundColor: "transparent",
-  },
-  cancelButtonLabel: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.md,
+  modalButtonSecondaryText: {
     color: palette.button,
+    fontWeight: "600",
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  modalButtonPrimary: {
+    backgroundColor: palette.button,
+  },
+  modalButtonPrimaryText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
 });
