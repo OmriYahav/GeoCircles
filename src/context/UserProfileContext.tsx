@@ -24,7 +24,7 @@ type UserProfileContextValue = {
   resetProfile: () => Promise<void>;
 };
 
-const STORAGE_KEY = "@openspot:user-profile";
+const STORAGE_KEY = "@sweetbalance:user-profile";
 
 const DEFAULT_PROFILE: UserProfile = {
   id: "current-user",

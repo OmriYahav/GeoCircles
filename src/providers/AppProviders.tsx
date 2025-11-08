@@ -19,8 +19,6 @@ import {
 
 import { FavoritesProvider } from "../context/FavoritesContext";
 import { UserProfileProvider } from "../context/UserProfileContext";
-import { ChatConversationsProvider } from "../context/ChatConversationsContext";
-import { BusinessProvider } from "../context/BusinessContext";
 import { AuthProvider } from "../contexts/AuthContext";
 import KeyboardDismissView from "../components/KeyboardDismissView";
 import { colors } from "../theme";
@@ -107,23 +105,19 @@ export default function AppProviders({ children }: AppProvidersProps) {
         <PaperProvider theme={paperTheme}>
           <AuthProvider>
             <UserProfileProvider>
-              <BusinessProvider>
-                <ChatConversationsProvider>
-                  <FavoritesProvider>
-                    <StatusBar
-                      barStyle="dark-content"
-                      backgroundColor={colors.background}
-                    />
-                    <KeyboardDismissView>
-                      <MenuProvider>
-                        <View style={{ flex: 1, backgroundColor: colors.background }}>
-                          {children}
-                        </View>
-                      </MenuProvider>
-                    </KeyboardDismissView>
-                  </FavoritesProvider>
-                </ChatConversationsProvider>
-              </BusinessProvider>
+              <FavoritesProvider>
+                <StatusBar
+                  barStyle="dark-content"
+                  backgroundColor={colors.background}
+                />
+                <KeyboardDismissView>
+                  <MenuProvider>
+                    <View style={{ flex: 1, backgroundColor: colors.background }}>
+                      {children}
+                    </View>
+                  </MenuProvider>
+                </KeyboardDismissView>
+              </FavoritesProvider>
             </UserProfileProvider>
           </AuthProvider>
         </PaperProvider>

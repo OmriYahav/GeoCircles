@@ -316,7 +316,7 @@ export default function ProfileSettingsScreen() {
   const renderAuthContent = () => (
     <View style={styles.authContainer}>
       <View style={styles.authHeader}>
-        <Text style={styles.authTitle}>Sign in to OpenSpot</Text>
+        <Text style={styles.authTitle}>Sign in to Sweet Balance</Text>
         <Text style={styles.authSubtitle}>
           Continue with a social account or use your email to keep exploring.
         </Text>

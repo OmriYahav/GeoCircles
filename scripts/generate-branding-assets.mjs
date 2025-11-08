@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Regenerates the OpenSpot branding assets from embedded Base64 data so we do not
+// Regenerates the Sweet Balance branding assets from embedded Base64 data so we do not
 // need to store binary blobs in git.
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const assetsDir = join(__dirname, '..', 'assets', 'images');

@@ -63,7 +63,7 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
 };
 
-const STORAGE_KEY = "@openspot:auth-session";
+const STORAGE_KEY = "@sweetbalance:auth-session";
 const DISABLED_GOOGLE_AUTH_CLIENT_ID = "google-auth-disabled";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
