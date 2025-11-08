@@ -1,84 +1,50 @@
-import React, { useCallback, useRef } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
-import { useNavigationDrawer } from "../../contexts/NavigationDrawerContext";
-import { colors, spacing, typography } from "../../theme";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
+import { colors, typography } from "../../theme";
 
 const HEADER_HEIGHT = 60;
 const HEADER_PADDING = 16;
-const ICON_COLOR = "#3B6545";
-
-function NavigationIconButton({
-  icon,
-  accessibilityLabel,
-  onPress,
-}: {
-  icon: string;
-  accessibilityLabel: string;
-  onPress: () => void;
-}) {
-  const scale = useRef(new Animated.Value(1)).current;
-
-  const animateTo = useCallback(
-    (value: number) => {
-      Animated.spring(scale, {
-        toValue: value,
-        useNativeDriver: true,
-        speed: 18,
-        bounciness: 8,
-      }).start();
-    },
-    [scale]
-  );
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      onPressIn={() => animateTo(0.94)}
-      onPressOut={() => animateTo(1)}
-      onPress={onPress}
-      hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
-      style={styles.iconPressable}
-    >
-      <Animated.View style={[styles.iconButton, { transform: [{ scale }] }]}>
-        <Text style={styles.iconLabel}>{icon}</Text>
-      </Animated.View>
-    </Pressable>
-  );
-}
+const ICON_COLOR = "#355E3B";
 
 type TopNavigationMenuProps = {
-  variant?: "default" | "modal";
-  content?: React.ReactNode;
-  flat?: boolean;
+  isMenuOpen: boolean;
+  onPressHome: () => void;
+  onPressMenu: () => void;
 };
 
-export default function TopNavigationMenu(_props: TopNavigationMenuProps) {
-  const { closeDrawer, toggleDrawer } = useNavigationDrawer();
-
-  const handleHomePress = useCallback(() => {
-    closeDrawer("/");
-  }, [closeDrawer]);
-
-  const handleMenuPress = useCallback(() => {
-    toggleDrawer();
-  }, [toggleDrawer]);
-
+export default function TopNavigationMenu({
+  isMenuOpen,
+  onPressHome,
+  onPressMenu,
+}: TopNavigationMenuProps) {
   return (
     <View style={styles.container}>
-      <NavigationIconButton
+      <TouchableOpacity
         accessibilityLabel="חזרה למסך הבית"
-        icon="🏠"
-        onPress={handleHomePress}
-      />
+        accessibilityRole="button"
+        onPress={onPressHome}
+        style={styles.iconPressable}
+      >
+        <View style={styles.iconButton}>
+          <Ionicons name="home" size={24} color={ICON_COLOR} />
+        </View>
+      </TouchableOpacity>
       <Text accessibilityRole="header" style={styles.title}>
         Sweet Balance
       </Text>
-      <NavigationIconButton
-        accessibilityLabel="פתיחת תפריט"
-        icon="☰"
-        onPress={handleMenuPress}
-      />
+      <TouchableOpacity
+        accessibilityLabel={isMenuOpen ? "סגירת תפריט" : "פתיחת תפריט"}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isMenuOpen }}
+        onPress={onPressMenu}
+        style={styles.iconPressable}
+      >
+        <View style={styles.iconButton}>
+          <Ionicons name="menu" size={28} color={ICON_COLOR} />
+        </View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -116,12 +82,8 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     borderRadius: 20,
-    backgroundColor: "rgba(59, 101, 69, 0.12)",
+    backgroundColor: "rgba(53, 94, 59, 0.12)",
     alignItems: "center",
     justifyContent: "center",
-  },
-  iconLabel: {
-    fontSize: typography.size.lg,
-    color: ICON_COLOR,
   },
 });
