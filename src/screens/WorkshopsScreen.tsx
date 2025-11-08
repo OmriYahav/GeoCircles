@@ -1,38 +1,54 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Animated,
-  Alert,
-  Platform,
-  Pressable,
-  StyleSheet,
-  ToastAndroid,
-  View,
-} from "react-native";
+import { Animated, Pressable, StyleSheet, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import dayjs from "dayjs";
 import { Text } from "react-native-paper";
 
-import WorkshopBookingModal from "../components/WorkshopBookingModal";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
 import MyWorkshopsScreen, { type SavedWorkshop } from "./MyWorkshopsScreen";
 import { colors, radii, shadows, spacing, typography } from "../theme";
 
 const STORAGE_KEY = "sweet-balance.workshops";
 
-const WORKSHOP_OPTIONS: { id: string; title: string; emoji: string }[] = [
-  { id: "kids-baking", title: "אפיה בריאה לילדים", emoji: "🧁" },
-  { id: "healthy-cooking", title: "בישול בריא", emoji: "🍲" },
-  { id: "natural-care", title: "רוקחות טבעית", emoji: "🌿" },
-  { id: "healthy-hosting", title: "אירוח בריא", emoji: "🍽️" },
+const WORKSHOP_OPTIONS: {
+  id: string;
+  title: string;
+  emoji: string;
+  route: string;
+}[] = [
+  {
+    id: "kids-baking",
+    title: "אפיה בריאה לילדים",
+    emoji: "🧁",
+    route: "/workshops/healthy-baking",
+  },
+  {
+    id: "healthy-cooking",
+    title: "בישול בריא",
+    emoji: "🍲",
+    route: "/workshops/healthy-cooking",
+  },
+  {
+    id: "natural-care",
+    title: "רוקחות טבעית",
+    emoji: "🌿",
+    route: "/workshops/natural-cosmetics",
+  },
+  {
+    id: "healthy-hosting",
+    title: "אירוח בריא",
+    emoji: "🍽️",
+    route: "/workshops/healthy-hosting",
+  },
 ];
 
 type ActiveView = "options" | "saved";
 
 export default function WorkshopsScreen() {
+  const router = useRouter();
   const [bookings, setBookings] = useState<SavedWorkshop[]>([]);
   const [activeView, setActiveView] = useState<ActiveView>("options");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedWorkshop, setSelectedWorkshop] = useState<string | null>(null);
 
   const fade = useRef(new Animated.Value(0)).current;
 
@@ -44,54 +60,86 @@ export default function WorkshopsScreen() {
     }).start();
   }, [fade]);
 
-  useEffect(() => {
-    const loadBookings = async () => {
-      try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (!stored) {
-          return;
-        }
+  const loadBookings = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
 
-        const parsed = JSON.parse(stored);
+      if (!stored) {
+        setBookings([]);
+        return;
+      }
 
-        if (Array.isArray(parsed)) {
-          setBookings(parsed);
-          return;
-        }
+      const parsed = JSON.parse(stored);
 
-        if (parsed && typeof parsed === "object") {
-          const migrated: SavedWorkshop[] = [];
-          Object.values(parsed).forEach((value) => {
-            if (Array.isArray(value)) {
-              value.forEach((item) => {
-                if (item && typeof item === "object") {
-                  const title = (item as SavedWorkshop).title ?? "סדנה";
-                  const date = (item as SavedWorkshop).date ?? dayjs().format("YYYY-MM-DD");
-                  const time = (item as SavedWorkshop).time ?? "18:00";
-                  migrated.push({
-                    id:
-                      (item as SavedWorkshop).id ??
-                      `${title}-${date}-${time}-${Date.now()}`,
-                    title,
-                    date,
-                    time,
-                    createdAt: (item as SavedWorkshop).createdAt ?? Date.now(),
-                  });
-                }
-              });
-            }
+      if (Array.isArray(parsed)) {
+        const normalized = parsed
+          .filter((item) => item && typeof item === "object")
+          .map((item) => {
+            const title = (item as SavedWorkshop).title ?? "סדנה";
+            const date = (item as SavedWorkshop).date ?? dayjs().format("YYYY-MM-DD");
+            const time = (item as SavedWorkshop).time ?? "18:00";
+
+            return {
+              id:
+                (item as SavedWorkshop).id ??
+                `${title}-${date}-${time}-${Date.now()}`,
+              title,
+              date,
+              time,
+              createdAt: (item as SavedWorkshop).createdAt ?? Date.now(),
+              name: (item as SavedWorkshop).name,
+              phone: (item as SavedWorkshop).phone,
+              email: (item as SavedWorkshop).email,
+            } satisfies SavedWorkshop;
           });
 
-          setBookings(migrated);
-          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-        }
-      } catch (error) {
-        console.warn("Failed to load workshops", error);
+        setBookings(normalized);
+        return;
       }
-    };
 
-    void loadBookings();
+      if (parsed && typeof parsed === "object") {
+        const migrated: SavedWorkshop[] = [];
+        Object.values(parsed).forEach((value) => {
+          if (Array.isArray(value)) {
+            value.forEach((item) => {
+              if (item && typeof item === "object") {
+                const title = (item as SavedWorkshop).title ?? "סדנה";
+                const date = (item as SavedWorkshop).date ?? dayjs().format("YYYY-MM-DD");
+                const time = (item as SavedWorkshop).time ?? "18:00";
+                migrated.push({
+                  id:
+                    (item as SavedWorkshop).id ??
+                    `${title}-${date}-${time}-${Date.now()}`,
+                  title,
+                  date,
+                  time,
+                  createdAt: (item as SavedWorkshop).createdAt ?? Date.now(),
+                  name: (item as SavedWorkshop).name,
+                  phone: (item as SavedWorkshop).phone,
+                  email: (item as SavedWorkshop).email,
+                });
+              }
+            });
+          }
+        });
+
+        setBookings(migrated);
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      }
+    } catch (error) {
+      console.warn("Failed to load workshops", error);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadBookings();
+  }, [loadBookings]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadBookings();
+    }, [loadBookings])
+  );
 
   const persistBookings = useCallback(async (next: SavedWorkshop[]) => {
     try {
@@ -100,46 +148,6 @@ export default function WorkshopsScreen() {
       console.warn("Failed to store workshops", error);
     }
   }, []);
-
-  const showConfirmationToast = useCallback((message: string) => {
-    if (Platform.OS === "android") {
-      ToastAndroid.show(message, ToastAndroid.SHORT);
-    } else {
-      Alert.alert(message);
-    }
-  }, []);
-
-  const handleOpenModal = useCallback((workshopTitle: string) => {
-    setSelectedWorkshop(workshopTitle);
-    setModalVisible(true);
-  }, []);
-
-  const handleCloseModal = useCallback(() => {
-    setModalVisible(false);
-    setSelectedWorkshop(null);
-  }, []);
-
-  const handleConfirmBooking = useCallback(
-    (payload: { title: string; date: string; time: string }) => {
-      const booking: SavedWorkshop = {
-        id: `${payload.title}-${payload.date}-${payload.time}-${Date.now()}`,
-        title: payload.title,
-        date: payload.date,
-        time: payload.time,
-        createdAt: Date.now(),
-      };
-
-      setBookings((current) => {
-        const next = [...current, booking];
-        void persistBookings(next);
-        return next;
-      });
-
-      showConfirmationToast("הסדנה נשריינה בהצלחה");
-      handleCloseModal();
-    },
-    [handleCloseModal, persistBookings, showConfirmationToast]
-  );
 
   const handleDeleteBooking = useCallback(
     (bookingId: string) => {
@@ -220,7 +228,7 @@ export default function WorkshopsScreen() {
             <Pressable
               key={option.id}
               accessibilityRole="button"
-              onPress={() => handleOpenModal(option.title)}
+              onPress={() => router.push(option.route)}
               style={({ pressed }) => [
                 styles.optionButton,
                 pressed && styles.optionButtonPressed,
@@ -238,13 +246,6 @@ export default function WorkshopsScreen() {
           ))}
         </Animated.ScrollView>
       )}
-
-      <WorkshopBookingModal
-        visible={modalVisible}
-        workshopTitle={selectedWorkshop}
-        onClose={handleCloseModal}
-        onConfirm={handleConfirmBooking}
-      />
     </ScreenScaffold>
   );
 }
