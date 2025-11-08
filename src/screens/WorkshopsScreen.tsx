@@ -1,62 +1,90 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
-  Modal,
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  ToastAndroid,
   View,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Text, TextInput } from "react-native-paper";
+import dayjs from "dayjs";
+import { Text } from "react-native-paper";
 
-import HebrewCalendar from "../components/HebrewCalendar";
+import WorkshopBookingModal from "../components/WorkshopBookingModal";
 import ScreenScaffold from "../components/layout/ScreenScaffold";
+import MyWorkshopsScreen, { type SavedWorkshop } from "./MyWorkshopsScreen";
 import { colors, radii, shadows, spacing, typography } from "../theme";
-
-type WorkshopBooking = {
-  id: string;
-  date: string;
-  title: string;
-  description?: string;
-  time: string;
-  createdAt: number;
-};
 
 const STORAGE_KEY = "sweet-balance.workshops";
 
-const TIME_SLOTS = (() => {
-  const slots: string[] = [];
-  for (let hour = 8; hour <= 21; hour += 1) {
-    for (const minute of [0, 30]) {
-      const hoursLabel = hour.toString().padStart(2, "0");
-      const minutesLabel = minute.toString().padStart(2, "0");
-      slots.push(`${hoursLabel}:${minutesLabel}`);
-    }
-  }
-  return slots;
-})();
+const WORKSHOP_OPTIONS: Array<{ id: string; title: string; emoji: string }> = [
+  { id: "kids-baking", title: "אפיה בריאה לילדים", emoji: "🧁" },
+  { id: "healthy-cooking", title: "בישול בריא", emoji: "🍲" },
+  { id: "natural-care", title: "רוקחות טבעית", emoji: "🌿" },
+  { id: "healthy-hosting", title: "אירוח בריא", emoji: "🍽️" },
+];
+
+type ActiveView = "options" | "saved";
 
 export default function WorkshopsScreen() {
-  const [bookings, setBookings] = useState<Record<string, WorkshopBooking[]>>({});
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedHebrewLabel, setSelectedHebrewLabel] = useState<string | null>(null);
+  const [bookings, setBookings] = useState<SavedWorkshop[]>([]);
+  const [activeView, setActiveView] = useState<ActiveView>("options");
   const [modalVisible, setModalVisible] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [time, setTime] = useState<string>(TIME_SLOTS[0]);
-  const [titleError, setTitleError] = useState(false);
-  const [timeError, setTimeError] = useState(false);
+  const [selectedWorkshop, setSelectedWorkshop] = useState<string | null>(null);
 
-  const modalOpacity = useRef(new Animated.Value(0)).current;
+  const fade = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fade, {
+      toValue: 1,
+      duration: 240,
+      useNativeDriver: true,
+    }).start();
+  }, [fade]);
 
   useEffect(() => {
     const loadBookings = async () => {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed: Record<string, WorkshopBooking[]> = JSON.parse(stored);
+        if (!stored) {
+          return;
+        }
+
+        const parsed = JSON.parse(stored);
+
+        if (Array.isArray(parsed)) {
           setBookings(parsed);
+          return;
+        }
+
+        if (parsed && typeof parsed === "object") {
+          const migrated: SavedWorkshop[] = [];
+          Object.values(parsed).forEach((value) => {
+            if (Array.isArray(value)) {
+              value.forEach((item) => {
+                if (item && typeof item === "object") {
+                  const title = (item as SavedWorkshop).title ?? "סדנה";
+                  const date = (item as SavedWorkshop).date ?? dayjs().format("YYYY-MM-DD");
+                  const time = (item as SavedWorkshop).time ?? "18:00";
+                  migrated.push({
+                    id:
+                      (item as SavedWorkshop).id ??
+                      `${title}-${date}-${time}-${Date.now()}`,
+                    title,
+                    date,
+                    time,
+                    createdAt: (item as SavedWorkshop).createdAt ?? Date.now(),
+                  });
+                }
+              });
+            }
+          });
+
+          setBookings(migrated);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
         }
       } catch (error) {
         console.warn("Failed to load workshops", error);
@@ -66,47 +94,7 @@ export default function WorkshopsScreen() {
     void loadBookings();
   }, []);
 
-  useEffect(() => {
-    if (modalVisible) {
-      modalOpacity.setValue(0);
-      Animated.timing(modalOpacity, {
-        toValue: 1,
-        duration: 220,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [modalOpacity, modalVisible]);
-
-  const bookedDateCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    Object.entries(bookings).forEach(([date, list]) => {
-      if (list.length > 0) {
-        counts[date] = list.length;
-      }
-    });
-    return counts;
-  }, [bookings]);
-
-  const selectedBookings = selectedDate ? bookings[selectedDate] ?? [] : [];
-
-  const handleSelectDate = useCallback((isoDate: string, context: { label: string }) => {
-    setSelectedDate(isoDate);
-    setSelectedHebrewLabel(context.label);
-  }, []);
-
-  const handleReservePress = useCallback(() => {
-    if (!selectedDate) {
-      return;
-    }
-    setTitle("");
-    setDescription("");
-    setTime(TIME_SLOTS[0]);
-    setTitleError(false);
-    setTimeError(false);
-    setModalVisible(true);
-  }, [selectedDate]);
-
-  const persistBookings = useCallback(async (next: Record<string, WorkshopBooking[]>) => {
+  const persistBookings = useCallback(async (next: SavedWorkshop[]) => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch (error) {
@@ -114,238 +102,167 @@ export default function WorkshopsScreen() {
     }
   }, []);
 
-  const handleConfirmBooking = useCallback(() => {
-    if (!selectedDate) {
-      return;
+  const showConfirmationToast = useCallback((message: string) => {
+    if (Platform.OS === "android") {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
+    } else {
+      Alert.alert(message);
     }
+  }, []);
 
-    const trimmedTitle = title.trim();
-    const trimmedDescription = description.trim();
-
-    if (!trimmedTitle) {
-      setTitleError(true);
-      return;
-    }
-
-    if (!time) {
-      setTimeError(true);
-      return;
-    }
-
-    const booking: WorkshopBooking = {
-      id: `${selectedDate}-${Date.now()}`,
-      date: selectedDate,
-      title: trimmedTitle,
-      description: trimmedDescription.length > 0 ? trimmedDescription : undefined,
-      time,
-      createdAt: Date.now(),
-    };
-
-    setBookings((current) => {
-      const updatedList = [...(current[selectedDate] ?? []), booking];
-      const next = { ...current, [selectedDate]: updatedList };
-      void persistBookings(next);
-      return next;
-    });
-
-    setModalVisible(false);
-  }, [description, persistBookings, selectedDate, time, title]);
+  const handleOpenModal = useCallback((workshopTitle: string) => {
+    setSelectedWorkshop(workshopTitle);
+    setModalVisible(true);
+  }, []);
 
   const handleCloseModal = useCallback(() => {
     setModalVisible(false);
+    setSelectedWorkshop(null);
   }, []);
+
+  const handleConfirmBooking = useCallback(
+    (payload: { title: string; date: string; time: string }) => {
+      const booking: SavedWorkshop = {
+        id: `${payload.title}-${payload.date}-${payload.time}-${Date.now()}`,
+        title: payload.title,
+        date: payload.date,
+        time: payload.time,
+        createdAt: Date.now(),
+      };
+
+      setBookings((current) => {
+        const next = [...current, booking];
+        void persistBookings(next);
+        return next;
+      });
+
+      showConfirmationToast("הסדנה נשריינה בהצלחה");
+      handleCloseModal();
+    },
+    [handleCloseModal, persistBookings, showConfirmationToast]
+  );
+
+  const handleDeleteBooking = useCallback(
+    (bookingId: string) => {
+      setBookings((current) => {
+        const next = current.filter((booking) => booking.id !== bookingId);
+        void persistBookings(next);
+        return next;
+      });
+    },
+    [persistBookings]
+  );
+
+  const sortedOptions = useMemo(() => WORKSHOP_OPTIONS, []);
 
   const topContent = (
     <View style={styles.topContent}>
-      <Text style={styles.topTitle}>סדנאות</Text>
-      <Text style={styles.topSubtitle}>בחרי תאריכים בלוח העברי כדי לשריין מפגשים עתידיים.</Text>
+      <View style={styles.topHeader}>
+        <Text style={styles.topTitle}>סדנאות</Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={activeView === "saved"}
+          onPress={() => setActiveView("saved")}
+          style={({ pressed }) => [
+            styles.myWorkshopsButton,
+            activeView === "saved" && styles.myWorkshopsButtonDisabled,
+            pressed && activeView !== "saved" && styles.myWorkshopsButtonPressed,
+          ]}
+        >
+          <Text
+            style={[
+              styles.myWorkshopsLabel,
+              activeView === "saved" && styles.myWorkshopsLabelDisabled,
+            ]}
+          >
+            הסדנאות שלי
+          </Text>
+        </Pressable>
+      </View>
+      <Text style={styles.topSubtitle}>
+        בחרי סדנה שתרצי לשריין והתחילי לתכנן את הרגע המיוחד הבא שלך.
+      </Text>
     </View>
   );
 
   return (
-    <ScreenScaffold topContent={topContent}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <HebrewCalendar
-          bookedDates={bookedDateCounts}
-          selectedDate={selectedDate}
-          onSelectDate={(isoDate, context) =>
-            handleSelectDate(isoDate, {
-              label: context.hDate.render("he"),
-            })
-          }
-          style={styles.calendar}
+    <ScreenScaffold contentStyle={styles.scaffoldContent} topContent={topContent}>
+      {activeView === "saved" ? (
+        <MyWorkshopsScreen
+          bookings={bookings}
+          visible={activeView === "saved"}
+          onBack={() => setActiveView("options")}
+          onDelete={handleDeleteBooking}
         />
-
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>תכנון הסדנאות שלך</Text>
-          <Text style={styles.infoDescription}>
-            {selectedHebrewLabel
-              ? `התאריך שנבחר: ${selectedHebrewLabel}`
-              : "בחרי תאריך עתידי בלוח כדי להתחיל."}
-          </Text>
-
-          {selectedBookings.length > 0 ? (
-            <View style={styles.bookingsList}>
-              <Text style={styles.bookingsListTitle}>סדנאות שכבר שריינת לתאריך זה</Text>
-              {selectedBookings.map((booking) => (
-                <View key={booking.id} style={styles.bookingItem}>
-                  <Text style={styles.bookingItemTitle}>{booking.title}</Text>
-                  <Text style={styles.bookingItemMeta}>
-                    {booking.time}
-                    {booking.description ? ` · ${booking.description}` : ""}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-
-          <Pressable
-            accessibilityRole="button"
-            disabled={!selectedDate}
-            onPress={handleReservePress}
-            style={({ pressed }) => [
-              styles.reserveButton,
-              !selectedDate && styles.reserveButtonDisabled,
-              pressed && selectedDate && styles.reserveButtonPressed,
-            ]}
-          >
-            <Text style={styles.reserveButtonLabel}>שריין סדנה</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-
-      <Modal
-        visible={modalVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={handleCloseModal}
-      >
-        <View style={styles.modalBackdrop}>
-          <Animated.View
-            style={[
-              styles.modalCard,
-              {
-                opacity: modalOpacity,
-                transform: [
-                  {
-                    translateY: modalOpacity.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [24, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.modalTitle}>פרטי הסדנה</Text>
-            <Text style={styles.modalSubtitle}>
-              {selectedHebrewLabel
-                ? `התאריך הנבחר: ${selectedHebrewLabel}`
-                : "בחרי תאריך בלוח כדי להמשיך."}
-            </Text>
-
-            <TextInput
-              mode="outlined"
-              label="כותרת הסדנה"
-              value={title}
-              onChangeText={(value) => {
-                setTitle(value);
-                if (titleError && value.trim()) {
-                  setTitleError(false);
-                }
-              }}
-              style={styles.textInput}
-              contentStyle={styles.textInputContent}
-              placeholder="הקלידי שם קצר לסדנה"
-            />
-            {titleError ? (
-              <Text style={styles.errorText}>נא להזין כותרת לסדנה.</Text>
-            ) : null}
-
-            <TextInput
-              mode="outlined"
-              label="תיאור (לא חובה)"
-              value={description}
-              onChangeText={setDescription}
-              style={styles.textInput}
-              contentStyle={styles.textInputContent}
-              placeholder="הוסיפי פרטים ורעיונות לסדנה"
-              multiline
-            />
-
-            <View style={styles.modalSection}>
-              <Text style={styles.sectionLabel}>בחרי שעה</Text>
-              <View style={styles.timeGrid}>
-                {TIME_SLOTS.map((slot) => {
-                  const isSelected = time === slot;
-                  return (
-                    <Pressable
-                      key={slot}
-                      accessibilityRole="button"
-                      onPress={() => {
-                        setTime(slot);
-                        if (timeError) {
-                          setTimeError(false);
-                        }
-                      }}
-                      style={({ pressed }) => [
-                        styles.timeOption,
-                        isSelected && styles.timeOptionSelected,
-                        pressed && styles.timeOptionPressed,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.timeOptionLabel,
-                          isSelected && styles.timeOptionLabelSelected,
-                        ]}
-                      >
-                        {slot}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+      ) : (
+        <Animated.ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          style={[
+            styles.animatedScroll,
+            {
+              opacity: fade,
+              transform: [
+                {
+                  translateY: fade.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {sortedOptions.map((option) => (
+            <Pressable
+              key={option.id}
+              accessibilityRole="button"
+              onPress={() => handleOpenModal(option.title)}
+              style={({ pressed }) => [
+                styles.optionButton,
+                pressed && styles.optionButtonPressed,
+              ]}
+            >
+              <View style={styles.optionContent}>
+                <Text style={styles.optionTitle}>
+                  {option.emoji} {option.title}
+                </Text>
+                <Text style={styles.optionDescription}>
+                  לחצי כדי לבחור תאריך ושעה לסדנה זו.
+                </Text>
               </View>
-              {timeError ? (
-                <Text style={styles.errorText}>נא לבחור שעה מתאימה.</Text>
-              ) : null}
-            </View>
+            </Pressable>
+          ))}
+        </Animated.ScrollView>
+      )}
 
-            <View style={styles.modalActions}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleCloseModal}
-                style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
-              >
-                <Text style={styles.secondaryButtonLabel}>בטל</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleConfirmBooking}
-                style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
-              >
-                <Text style={styles.primaryButtonLabel}>אישור</Text>
-              </Pressable>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
+      <WorkshopBookingModal
+        visible={modalVisible}
+        workshopTitle={selectedWorkshop}
+        onClose={handleCloseModal}
+        onConfirm={handleConfirmBooking}
+      />
     </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    paddingVertical: spacing.xxxl,
-    gap: spacing.xxl,
+  scaffoldContent: {
+    paddingTop: spacing.xxxl,
+    paddingBottom: spacing.xxxl,
+    paddingHorizontal: spacing.xxl,
+    backgroundColor: colors.background,
   },
   topContent: {
     flexDirection: "column",
-    alignItems: "flex-end",
+    gap: spacing.sm,
     paddingRight: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  topHeader: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   topTitle: {
     fontFamily: typography.family.heading,
@@ -353,195 +270,67 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
   },
   topSubtitle: {
-    marginTop: spacing.xs,
     fontFamily: typography.family.regular,
     fontSize: typography.size.sm,
     color: colors.text.secondary,
     textAlign: "right",
-  },
-  calendar: {
-    width: "100%",
-  },
-  infoCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.xl,
-    paddingVertical: spacing.xxl,
-    paddingHorizontal: spacing.xxl,
-    gap: spacing.lg,
-    ...shadows.md,
-  },
-  infoTitle: {
-    fontFamily: typography.family.semiBold,
-    fontSize: typography.size.lg,
-    color: colors.text.primary,
-    textAlign: "right",
-  },
-  infoDescription: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.sm,
-    color: colors.text.secondary,
     lineHeight: typography.lineHeight.comfy,
-    textAlign: "right",
   },
-  bookingsList: {
-    gap: spacing.sm,
-  },
-  bookingsListTitle: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.sm,
-    color: colors.text.secondary,
-    textAlign: "right",
-  },
-  bookingItem: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.lg,
-    paddingVertical: spacing.md,
+  myWorkshopsButton: {
     paddingHorizontal: spacing.lg,
-    alignItems: "flex-end",
-    gap: spacing.xs,
-  },
-  bookingItemTitle: {
-    fontFamily: typography.family.semiBold,
-    fontSize: typography.size.md,
-    color: colors.text.primary,
-  },
-  bookingItemMeta: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.xs,
-    color: colors.text.muted,
-  },
-  reserveButton: {
-    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radii.pill,
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  reserveButtonDisabled: {
-    backgroundColor: colors.primaryTint,
-  },
-  reserveButtonPressed: {
-    transform: [{ scale: 0.98 }],
-  },
-  reserveButtonLabel: {
-    fontFamily: typography.family.semiBold,
-    fontSize: typography.size.md,
-    color: colors.text.inverse,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.32)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: spacing.xl,
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 420,
     backgroundColor: colors.surface,
-    borderRadius: radii.xl,
-    paddingVertical: spacing.xxl,
-    paddingHorizontal: spacing.xxl,
-    gap: spacing.md,
-    ...shadows.lg,
+    ...shadows.sm,
   },
-  modalTitle: {
-    fontFamily: typography.family.semiBold,
-    fontSize: typography.size.lg,
-    color: colors.text.primary,
-    textAlign: "right",
-  },
-  modalSubtitle: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.sm,
-    color: colors.text.secondary,
-    textAlign: "right",
-  },
-  textInput: {
-    direction: "rtl",
-  },
-  textInputContent: {
-    textAlign: "right",
-  },
-  modalSection: {
-    gap: spacing.sm,
-    alignItems: "flex-end",
-  },
-  sectionLabel: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.sm,
-    color: colors.text.primary,
-  },
-  timeGrid: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    justifyContent: "flex-start",
-  },
-  timeOption: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: radii.lg,
-    backgroundColor: colors.surfaceMuted,
-  },
-  timeOptionSelected: {
-    backgroundColor: colors.primary,
-  },
-  timeOptionPressed: {
+  myWorkshopsButtonPressed: {
     transform: [{ scale: 0.97 }],
   },
-  timeOptionLabel: {
+  myWorkshopsButtonDisabled: {
+    backgroundColor: colors.surfaceMuted,
+    shadowOpacity: 0,
+  },
+  myWorkshopsLabel: {
     fontFamily: typography.family.medium,
     fontSize: typography.size.sm,
     color: colors.text.primary,
   },
-  timeOptionLabelSelected: {
-    color: colors.text.inverse,
+  myWorkshopsLabelDisabled: {
+    color: colors.text.secondary,
   },
-  modalActions: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    gap: spacing.md,
-    marginTop: spacing.md,
+  scrollContent: {
+    gap: spacing.xl,
+    paddingBottom: spacing.xxxl,
   },
-  secondaryButton: {
+  animatedScroll: {
     flex: 1,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-    justifyContent: "center",
   },
-  secondaryButtonPressed: {
-    opacity: 0.85,
+  optionButton: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    paddingVertical: spacing.xxl,
+    paddingHorizontal: spacing.xxl,
+    alignItems: "flex-end",
+    gap: spacing.sm,
+    ...shadows.md,
   },
-  secondaryButtonLabel: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.sm,
-    color: colors.primary,
-  },
-  primaryButton: {
-    flex: 1,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryButtonPressed: {
+  optionButtonPressed: {
     transform: [{ scale: 0.98 }],
   },
-  primaryButtonLabel: {
-    fontFamily: typography.family.semiBold,
-    fontSize: typography.size.md,
-    color: colors.text.inverse,
+  optionContent: {
+    gap: spacing.xs,
+    alignItems: "flex-end",
   },
-  errorText: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.xs,
-    color: "#B71C1C",
+  optionTitle: {
+    fontFamily: typography.family.semiBold,
+    fontSize: typography.size.lg,
+    color: colors.text.primary,
+    textAlign: "right",
+  },
+  optionDescription: {
+    fontFamily: typography.family.regular,
+    fontSize: typography.size.sm,
+    color: colors.text.secondary,
     textAlign: "right",
   },
 });
