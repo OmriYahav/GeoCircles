@@ -1,7 +1,7 @@
 import React from "react";
 
-import MapScreen from "../../src/screens/MapScreen";
+import HomeScreen from "../../src/screens/HomeScreen";
 
 export default function MapTabScreen() {
-  return <MapScreen />;
+  return <HomeScreen />;
 }

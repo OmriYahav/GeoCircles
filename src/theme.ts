@@ -1,106 +1,100 @@
 import { Platform } from "react-native";
 
-export const colors = {
-  primary: "#4C6EF5",
-  primarySoft: "#EEF0FF",
-  primaryTint: "rgba(76, 110, 245, 0.16)",
-  secondary: "#A855F7",
-  secondarySoft: "#F5E8FF",
-  success: "#34D399",
-  warning: "#F59E0B",
-  danger: "#F87171",
-  background: "#F6F7FB",
-  surface: "#FFFFFF",
-  surfaceElevated: "#FBFCFF",
-  surfaceMuted: "#EDF1FA",
-  border: "#E2E8F6",
-  divider: "#D8E0F0",
-  text: {
-    primary: "#1E2550",
-    secondary: "#5B628A",
-    muted: "#7C83AD",
-    inverse: "#FFFFFF",
-  },
-  overlay: "rgba(16, 24, 40, 0.2)",
-  shadow: "rgba(15, 23, 42, 0.12)",
-};
+import { colors } from "./theme/colors";
 
 export const gradients = {
-  primary: ["#5F7BFF", "#5065F4"],
-  accent: ["#8B5CF6", "#6366F1"],
+  primary: ["#7CA46A", "#6E8B52"],
+  accent: ["#B6C49C", "#8FA572"],
 };
 
 export const spacing = {
   xxs: 4,
   xs: 6,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 28,
-  xxxl: 36,
+  sm: 10,
+  md: 14,
+  lg: 18,
+  xl: 24,
+  xxl: 32,
+  xxxl: 40,
 };
 
 export const radii = {
-  xs: 8,
-  sm: 12,
-  md: 16,
-  lg: 20,
-  xl: 24,
+  xs: 10,
+  sm: 14,
+  md: 18,
+  lg: 24,
+  xl: 32,
   pill: 999,
 };
 
 export const shadows = {
   sm: {
     shadowColor: colors.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   md: {
     shadowColor: colors.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 7,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
   lg: {
     shadowColor: colors.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 12,
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
   },
 };
 
-const baseFontFamily = Platform.select({
-  ios: "System",
-  android: "sans-serif",
-  default: "System",
+const defaultBodyFont = Platform.select({
+  ios: "Heebo_400Regular",
+  android: "Heebo_400Regular",
+  default: "Heebo_400Regular",
 });
 
 export const typography = {
   family: {
-    regular: baseFontFamily,
-    medium: Platform.OS === "ios" ? "System" : "sans-serif-medium",
-    semiBold: Platform.OS === "ios" ? "System" : "sans-serif-medium",
-    bold: Platform.OS === "ios" ? "System" : "sans-serif-bold",
+    heading: Platform.select({
+      ios: "Courgette_400Regular",
+      android: "Courgette_400Regular",
+      default: "Courgette_400Regular",
+    }),
+    regular: defaultBodyFont,
+    medium: Platform.select({
+      ios: "Heebo_500Medium",
+      android: "Heebo_500Medium",
+      default: "Heebo_500Medium",
+    }),
+    semiBold: Platform.select({
+      ios: "Heebo_600SemiBold",
+      android: "Heebo_600SemiBold",
+      default: "Heebo_600SemiBold",
+    }),
+    bold: Platform.select({
+      ios: "Heebo_700Bold",
+      android: "Heebo_700Bold",
+      default: "Heebo_700Bold",
+    }),
   },
   size: {
     caption: 12,
     xs: 13,
-    sm: 14,
-    md: 16,
-    lg: 18,
-    xl: 22,
-    xxl: 28,
+    sm: 15,
+    md: 17,
+    lg: 20,
+    xl: 26,
+    xxl: 34,
   },
   lineHeight: {
     tight: 18,
     comfy: 22,
-    relaxed: 26,
-    spacious: 32,
+    relaxed: 28,
+    spacious: 34,
   },
 };
 
@@ -114,3 +108,4 @@ export const theme = {
 };
 
 export type AppTheme = typeof theme;
+export { colors };
