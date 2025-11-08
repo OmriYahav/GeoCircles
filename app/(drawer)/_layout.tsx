@@ -5,8 +5,8 @@ import { BlurView } from "expo-blur";
 import { Slot, usePathname, useRouter } from "expo-router";
 
 import {
-  NavigationDrawerProvider,
   type NavigationDrawerContextValue,
+  useSyncNavigationDrawerValue,
 } from "../../src/contexts/NavigationDrawerContext";
 import { colors } from "../../src/theme/colors";
 import { radii, spacing, typography } from "../../src/theme";
@@ -136,35 +136,35 @@ export default function DrawerNavigationLayout() {
     [drawerWidth, handleNavigate, pathname]
   );
 
+  useSyncNavigationDrawerValue(providerValue);
+
   return (
-    <NavigationDrawerProvider value={providerValue}>
-      <DrawerLayout
-        ref={drawerRef}
-        drawerWidth={drawerWidth}
-        drawerPosition="right"
-        drawerType="front"
-        drawerBackgroundColor="transparent"
-        overlayColor="transparent"
-        renderNavigationView={renderNavigation}
-        onDrawerClose={handleDrawerClose}
-        onDrawerOpen={handleDrawerOpen}
-        edgeWidth={0}
-      >
-        <View style={styles.container}>
-          <Slot />
-          {isDrawerOpen ? (
-            <Pressable
-              accessibilityLabel="סגירת תפריט"
-              accessibilityRole="button"
-              onPress={() => closeDrawer()}
-              style={styles.backdrop}
-            >
-              <BlurView intensity={18} tint="light" style={StyleSheet.absoluteFill} />
-            </Pressable>
-          ) : null}
-        </View>
-      </DrawerLayout>
-    </NavigationDrawerProvider>
+    <DrawerLayout
+      ref={drawerRef}
+      drawerWidth={drawerWidth}
+      drawerPosition="right"
+      drawerType="front"
+      drawerBackgroundColor="transparent"
+      overlayColor="transparent"
+      renderNavigationView={renderNavigation}
+      onDrawerClose={handleDrawerClose}
+      onDrawerOpen={handleDrawerOpen}
+      edgeWidth={0}
+    >
+      <View style={styles.container}>
+        <Slot />
+        {isDrawerOpen ? (
+          <Pressable
+            accessibilityLabel="סגירת תפריט"
+            accessibilityRole="button"
+            onPress={() => closeDrawer()}
+            style={styles.backdrop}
+          >
+            <BlurView intensity={18} tint="light" style={StyleSheet.absoluteFill} />
+          </Pressable>
+        ) : null}
+      </View>
+    </DrawerLayout>
   );
 }
 
