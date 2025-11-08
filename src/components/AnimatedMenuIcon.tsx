@@ -46,6 +46,7 @@ export default function AnimatedMenuIcon({
       accessibilityRole="button"
       onPress={onPress}
       style={[styles.touchable, { width: size + 16, height: size + 16 }]}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
     >
       <View style={styles.circle}>
         <Animated.View
@@ -76,6 +77,8 @@ const styles = StyleSheet.create({
   touchable: {
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 10,
+    elevation: 10,
   },
   circle: {
     backgroundColor: "#fff",

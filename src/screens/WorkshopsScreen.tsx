@@ -1,64 +1,84 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Pressable, StyleSheet, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  Animated,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import dayjs from "dayjs";
-import { Text } from "react-native-paper";
+import "dayjs/locale/he";
 
-import ScreenScaffold from "../components/layout/ScreenScaffold";
-import MyWorkshopsScreen, { type SavedWorkshop } from "./MyWorkshopsScreen";
-import { colors, radii, shadows, spacing, typography } from "../theme";
+import AnimatedMenuIcon from "../components/AnimatedMenuIcon";
+import Card from "../components/Card";
+import CTAButton from "../components/CTAButton";
+import { colors, radius, spacing, typography } from "../theme";
+import { useMenu } from "../context/MenuContext";
+import type { SavedWorkshop } from "./MyWorkshopsScreen";
 
 const STORAGE_KEY = "sweet-balance.workshops";
 
-const WORKSHOP_OPTIONS: {
+type WorkshopOption = {
   id: string;
   title: string;
   emoji: string;
   route: string;
-}[] = [
+  description: string;
+};
+
+const WORKSHOP_OPTIONS: WorkshopOption[] = [
   {
     id: "kids-baking",
     title: "אפיה בריאה לילדים",
     emoji: "🧁",
-    route: "/workshops/healthy-baking",
+    route: "/(drawer)/workshops/healthy-baking",
+    description: "הכנת קינוחים מאוזנים לכל המשפחה",
   },
   {
     id: "healthy-cooking",
     title: "בישול בריא",
     emoji: "🍲",
-    route: "/workshops/healthy-cooking",
+    route: "/(drawer)/workshops/healthy-cooking",
+    description: "מנות חמות עם ירקות עונתיים וטעמים מרעננים",
   },
   {
     id: "natural-care",
     title: "רוקחות טבעית",
     emoji: "🌿",
-    route: "/workshops/natural-cosmetics",
+    route: "/(drawer)/workshops/natural-cosmetics",
+    description: "סדנת יצירה לטיפוח גוף טבעי ומזין",
   },
   {
     id: "healthy-hosting",
     title: "אירוח בריא",
     emoji: "🍽️",
-    route: "/workshops/healthy-hosting",
+    route: "/(drawer)/workshops/healthy-hosting",
+    description: "שולחן מפנק לאירועים קטנים עם נגיעות ירוקות",
   },
 ];
 
 type ActiveView = "options" | "saved";
 
+dayjs.locale("he");
+
 export default function WorkshopsScreen() {
   const router = useRouter();
+  const navigation = useNavigation<any>();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { menuOpen, toggleMenu, closeMenu } = useMenu();
   const [bookings, setBookings] = useState<SavedWorkshop[]>([]);
   const [activeView, setActiveView] = useState<ActiveView>("options");
-
-  const fade = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(fade, {
-      toValue: 1,
-      duration: 240,
-      useNativeDriver: true,
-    }).start();
-  }, [fade]);
 
   const loadBookings = useCallback(async () => {
     try {
@@ -81,8 +101,7 @@ export default function WorkshopsScreen() {
 
             return {
               id:
-                (item as SavedWorkshop).id ??
-                `${title}-${date}-${time}-${Date.now()}`,
+                (item as SavedWorkshop).id ?? `${title}-${date}-${time}-${Date.now()}`,
               title,
               date,
               time,
@@ -108,8 +127,7 @@ export default function WorkshopsScreen() {
                 const time = (item as SavedWorkshop).time ?? "18:00";
                 migrated.push({
                   id:
-                    (item as SavedWorkshop).id ??
-                    `${title}-${date}-${time}-${Date.now()}`,
+                    (item as SavedWorkshop).id ?? `${title}-${date}-${time}-${Date.now()}`,
                   title,
                   date,
                   time,
@@ -132,14 +150,16 @@ export default function WorkshopsScreen() {
   }, []);
 
   useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
+
+  useEffect(() => {
     void loadBookings();
   }, [loadBookings]);
-
-  useFocusEffect(
-    useCallback(() => {
-      void loadBookings();
-    }, [loadBookings])
-  );
 
   const persistBookings = useCallback(async (next: SavedWorkshop[]) => {
     try {
@@ -157,184 +177,310 @@ export default function WorkshopsScreen() {
         return next;
       });
     },
-    [persistBookings]
+    [persistBookings],
   );
 
-  const sortedOptions = useMemo(() => WORKSHOP_OPTIONS, []);
+  const sortedBookings = useMemo(() => {
+    return [...bookings].sort((first, second) => {
+      const a = dayjs(`${first.date}T${first.time}`);
+      const b = dayjs(`${second.date}T${second.time}`);
+      return a.valueOf() - b.valueOf();
+    });
+  }, [bookings]);
 
-  const topContent = (
-    <View style={styles.topContent}>
-      <View style={styles.topHeader}>
-        <Text style={styles.topTitle}>סדנאות</Text>
-        <Pressable
-          accessibilityRole="button"
-          disabled={activeView === "saved"}
-          onPress={() => setActiveView("saved")}
-          style={({ pressed }) => [
-            styles.myWorkshopsButton,
-            activeView === "saved" && styles.myWorkshopsButtonDisabled,
-            pressed && activeView !== "saved" && styles.myWorkshopsButtonPressed,
-          ]}
-        >
-          <Text
-            style={[
-              styles.myWorkshopsLabel,
-              activeView === "saved" && styles.myWorkshopsLabelDisabled,
-            ]}
-          >
-            הסדנאות שלי
-          </Text>
-        </Pressable>
-      </View>
-      <Text style={styles.topSubtitle}>
-        בחרי סדנה שתרצי לשריין והתחילי לתכנן את הרגע המיוחד הבא שלך.
-      </Text>
-    </View>
+  const handleMenuPress = useCallback(() => {
+    if (typeof navigation?.toggleDrawer === "function") {
+      navigation.toggleDrawer();
+      return;
+    }
+
+    toggleMenu();
+  }, [navigation, toggleMenu]);
+
+  const handleNavigateOption = useCallback(
+    (route: string) => {
+      closeMenu();
+      router.push(route);
+    },
+    [closeMenu, router],
   );
 
   return (
-    <ScreenScaffold
-      contentStyle={styles.scaffoldContent}
-      flatTopNavigation
-      topContent={topContent}
-    >
-      {activeView === "saved" ? (
-        <MyWorkshopsScreen
-          bookings={bookings}
-          visible={activeView === "saved"}
-          onBack={() => setActiveView("options")}
-          onDelete={handleDeleteBooking}
-        />
-      ) : (
-        <Animated.ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          style={[
-            styles.animatedScroll,
-            {
-              opacity: fade,
-              transform: [
-                {
-                  translateY: fade.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          {sortedOptions.map((option) => (
-            <Pressable
-              key={option.id}
-              accessibilityRole="button"
-              onPress={() => router.push(option.route)}
-              style={({ pressed }) => [
-                styles.optionButton,
-                pressed && styles.optionButtonPressed,
-              ]}
-            >
-              <View style={styles.optionContent}>
-                <Text style={styles.optionTitle}>
-                  {option.emoji} {option.title}
+    <LinearGradient colors={[colors.bgFrom, colors.bgTo]} style={styles.gradient}>
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.header}>
+          <Text style={styles.brand}>Sweet Balance</Text>
+          <AnimatedMenuIcon open={menuOpen} onPress={handleMenuPress} />
+        </View>
+
+        <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}>
+          <ScrollView
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.screenTitle}>סדנאות</Text>
+            <Text style={styles.screenSubtitle}>
+              בחרי סדנה שתרצי לשריין והתחילי לתכנן את הרגע המיוחד הבא שלך.
+            </Text>
+
+            <View style={styles.tabRow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: activeView === "options" }}
+                onPress={() => setActiveView("options")}
+                style={[styles.tabButton, activeView === "options" && styles.tabButtonActive]}
+              >
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    activeView === "options" && styles.tabLabelActive,
+                  ]}
+                >
+                  סדנאות זמינות
                 </Text>
-                <Text style={styles.optionDescription}>
-                  לחצי כדי לבחור תאריך ושעה לסדנה זו.
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: activeView === "saved" }}
+                onPress={() => setActiveView("saved")}
+                style={[styles.tabButton, activeView === "saved" && styles.tabButtonActive]}
+              >
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    activeView === "saved" && styles.tabLabelActive,
+                  ]}
+                >
+                  הסדנאות שלי
                 </Text>
+              </Pressable>
+            </View>
+
+            {activeView === "options" ? (
+              <View style={styles.optionsList}>
+                {WORKSHOP_OPTIONS.map((option) => (
+                  <View key={option.id} style={styles.optionCard}>
+                    <Text style={styles.optionEmoji}>{option.emoji}</Text>
+                    <Card
+                      title={option.title}
+                      subtitle={option.description}
+                      onPress={() => handleNavigateOption(option.route)}
+                    />
+                  </View>
+                ))}
+                <CTAButton
+                  title="שרייני מקום"
+                  onPress={() => setActiveView("saved")}
+                />
               </View>
-            </Pressable>
-          ))}
-        </Animated.ScrollView>
-      )}
-    </ScreenScaffold>
+            ) : (
+              <View style={styles.savedList}>
+                {sortedBookings.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateTitle}>עוד לא נשריין מקום</Text>
+                    <Text style={styles.emptyStateSubtitle}>
+                      לחצי על ״סדנאות זמינות״ כדי לבחור את החוויה הבאה שלך.
+                    </Text>
+                    <CTAButton title="לסדנאות" onPress={() => setActiveView("options")} />
+                  </View>
+                ) : (
+                  sortedBookings.map((booking) => {
+                    const formattedDate = dayjs(`${booking.date}T${booking.time}`)
+                      .locale("he")
+                      .format("dddd, D MMMM YYYY");
+
+                    return (
+                      <View key={booking.id} style={styles.bookingCard}>
+                        <View style={styles.bookingDetails}>
+                          <Text style={styles.bookingTitle}>{booking.title}</Text>
+                          <Text style={styles.bookingSubtitle}>{`${formattedDate} • ${booking.time}`}</Text>
+                          {booking.name ? (
+                            <Text style={styles.bookingMeta}>{`לשם: ${booking.name}`}</Text>
+                          ) : null}
+                        </View>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => handleDeleteBooking(booking.id)}
+                          style={({ pressed }) => [
+                            styles.deleteButton,
+                            pressed && styles.deleteButtonPressed,
+                          ]}
+                        >
+                          <Text style={styles.deleteLabel}>מחקי</Text>
+                        </Pressable>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            )}
+          </ScrollView>
+        </Animated.View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  scaffoldContent: {
-    paddingTop: spacing.xxxl,
-    paddingBottom: spacing.xxxl,
-    paddingHorizontal: spacing.xxl,
-    backgroundColor: colors.background,
+  gradient: {
+    flex: 1,
   },
-  topContent: {
-    flexDirection: "column",
-    gap: spacing.sm,
-    paddingRight: spacing.lg,
-    paddingBottom: spacing.md,
+  safe: {
+    flex: 1,
   },
-  topHeader: {
+  header: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: spacing(2),
+    paddingVertical: spacing(1),
   },
-  topTitle: {
-    fontFamily: typography.family.heading,
-    fontSize: typography.size.xl,
-    color: colors.text.primary,
+  brand: {
+    color: colors.primary,
+    fontSize: typography.subtitle,
+    fontWeight: "700",
+    fontFamily: typography.fontFamily,
   },
-  topSubtitle: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.sm,
-    color: colors.text.secondary,
-    textAlign: "right",
-    lineHeight: typography.lineHeight.comfy,
-  },
-  myWorkshopsButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-    ...shadows.sm,
-  },
-  myWorkshopsButtonPressed: {
-    transform: [{ scale: 0.97 }],
-  },
-  myWorkshopsButtonDisabled: {
-    backgroundColor: colors.surfaceMuted,
-    shadowOpacity: 0,
-  },
-  myWorkshopsLabel: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.sm,
-    color: colors.text.primary,
-  },
-  myWorkshopsLabelDisabled: {
-    color: colors.text.secondary,
-  },
-  scrollContent: {
-    gap: spacing.xl,
-    paddingBottom: spacing.xxxl,
-  },
-  animatedScroll: {
+  animatedContent: {
     flex: 1,
   },
-  optionButton: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.xl,
-    paddingVertical: spacing.xxl,
-    paddingHorizontal: spacing.xxl,
-    alignItems: "flex-end",
-    gap: spacing.sm,
-    ...shadows.md,
+  content: {
+    paddingHorizontal: spacing(2),
+    paddingBottom: spacing(6),
+    gap: spacing(2),
   },
-  optionButtonPressed: {
-    transform: [{ scale: 0.98 }],
-  },
-  optionContent: {
-    gap: spacing.xs,
-    alignItems: "flex-end",
-  },
-  optionTitle: {
-    fontFamily: typography.family.semiBold,
-    fontSize: typography.size.lg,
-    color: colors.text.primary,
+  screenTitle: {
+    color: colors.primary,
+    fontSize: typography.title,
+    fontWeight: "700",
+    fontFamily: typography.fontFamily,
     textAlign: "right",
   },
-  optionDescription: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.sm,
-    color: colors.text.secondary,
+  screenSubtitle: {
+    color: colors.subtitle,
+    fontSize: typography.subtitle,
+    fontFamily: typography.fontFamily,
     textAlign: "right",
+    lineHeight: typography.subtitle * 1.4,
+  },
+  tabRow: {
+    marginTop: spacing(2),
+    flexDirection: "row-reverse",
+    gap: spacing(1),
+  },
+  tabButton: {
+    flex: 1,
+    borderRadius: radius.pill,
+    paddingVertical: spacing(1),
+    backgroundColor: "rgba(47, 110, 68, 0.12)",
+  },
+  tabButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  tabLabel: {
+    textAlign: "center",
+    color: colors.primary,
+    fontSize: typography.small,
+    fontFamily: typography.fontFamily,
+    fontWeight: "600",
+  },
+  tabLabelActive: {
+    color: "#fff",
+  },
+  optionsList: {
+    marginTop: spacing(3),
+    gap: spacing(2),
+  },
+  optionCard: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: spacing(2),
+  },
+  optionEmoji: {
+    fontSize: typography.title,
+    marginTop: spacing(1),
+  },
+  savedList: {
+    marginTop: spacing(3),
+    gap: spacing(2),
+  },
+  emptyState: {
+    backgroundColor: colors.cardBg,
+    borderRadius: radius.lg,
+    padding: spacing(3),
+    alignItems: "center",
+    gap: spacing(1.5),
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  emptyStateTitle: {
+    color: colors.primary,
+    fontSize: typography.subtitle,
+    fontWeight: "700",
+    fontFamily: typography.fontFamily,
+    textAlign: "center",
+  },
+  emptyStateSubtitle: {
+    color: colors.subtitle,
+    fontSize: typography.body,
+    fontFamily: typography.fontFamily,
+    textAlign: "center",
+    lineHeight: typography.body * 1.5,
+  },
+  bookingCard: {
+    backgroundColor: colors.cardBg,
+    borderRadius: radius.lg,
+    padding: spacing(2),
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing(2),
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  bookingDetails: {
+    flex: 1,
+    alignItems: "flex-end",
+    gap: spacing(0.5),
+  },
+  bookingTitle: {
+    color: colors.primary,
+    fontSize: typography.subtitle,
+    fontWeight: "600",
+    fontFamily: typography.fontFamily,
+    textAlign: "right",
+  },
+  bookingSubtitle: {
+    color: colors.subtitle,
+    fontSize: typography.body,
+    fontFamily: typography.fontFamily,
+    textAlign: "right",
+  },
+  bookingMeta: {
+    color: colors.subtitle,
+    fontSize: typography.small,
+    fontFamily: typography.fontFamily,
+    textAlign: "right",
+  },
+  deleteButton: {
+    borderRadius: radius.pill,
+    paddingVertical: spacing(0.5),
+    paddingHorizontal: spacing(1.5),
+    backgroundColor: "rgba(47, 110, 68, 0.12)",
+  },
+  deleteButtonPressed: {
+    transform: [{ scale: 0.97 }],
+    backgroundColor: "rgba(47, 110, 68, 0.2)",
+  },
+  deleteLabel: {
+    color: colors.primary,
+    fontSize: typography.small,
+    fontFamily: typography.fontFamily,
   },
 });

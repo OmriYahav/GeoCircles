@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBg,
     borderRadius: radius.lg,
     padding: spacing(2),
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     gap: spacing(2),
     shadowColor: "#000",
@@ -52,15 +52,18 @@ const styles = StyleSheet.create({
   },
   textWrap: {
     flex: 1,
+    alignItems: "flex-end",
   },
   title: {
-    color: colors.text.primary,
+    color: colors.primary,
     fontSize: typography.subtitle,
     fontWeight: "700",
+    textAlign: "right",
   },
   subtitle: {
-    color: "#5b6d61",
+    color: colors.subtitle,
     fontSize: typography.small,
     lineHeight: typography.small * 1.5,
+    textAlign: "right",
   },
 });

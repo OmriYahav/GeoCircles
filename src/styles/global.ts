@@ -32,24 +32,24 @@ export const globalStyles = StyleSheet.create({
   heading: {
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.xl,
-    color: colors.text.primary,
+    color: colors.text,
     letterSpacing: 0.2,
   },
   subheading: {
     fontFamily: typography.family.medium,
     fontSize: typography.size.lg,
-    color: colors.text.secondary,
+    color: colors.subtitle,
   },
   body: {
     fontFamily: typography.family.regular,
     fontSize: typography.size.md,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     lineHeight: typography.lineHeight.relaxed,
   },
   caption: {
     fontFamily: typography.family.medium,
     fontSize: typography.size.caption,
-    color: colors.text.muted,
+    color: colors.textMuted,
   },
   divider: {
     height: 1,

@@ -94,12 +94,12 @@ const styles = StyleSheet.create({
     fontSize: typography.size.xl,
     fontFamily: typography.family.semiBold,
     marginBottom: spacing.sm,
-    color: colors.text.primary,
+    color: colors.text,
   },
   subtitle: {
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.relaxed,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     marginBottom: spacing.xl,
   },
   optionRow: {
@@ -113,11 +113,11 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: typography.size.md,
     fontFamily: typography.family.medium,
-    color: colors.text.primary,
+    color: colors.text,
   },
   optionDescription: {
     fontSize: typography.size.sm,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     marginTop: spacing.xs,
     maxWidth: 240,
   },

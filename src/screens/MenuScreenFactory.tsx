@@ -1,11 +1,21 @@
-import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useRef } from "react";
+import {
+  Animated,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "expo-router";
 
-import ScreenScaffold from "../components/layout/ScreenScaffold";
+import AnimatedMenuIcon from "../components/AnimatedMenuIcon";
 import { colors, spacing, typography } from "../theme";
+import { useMenu } from "../context/MenuContext";
 
 export type MenuScreenConfig = {
-  icon: string;
+  icon?: string;
   title: string;
   subtitle: string;
   paragraphs: string[];
@@ -13,28 +23,52 @@ export type MenuScreenConfig = {
 
 export function createMenuScreen(config: MenuScreenConfig) {
   function MenuScreen() {
+    const navigation = useNavigation<any>();
+    const { menuOpen, toggleMenu } = useMenu();
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    }, [fadeAnim]);
+
+    const handleMenuPress = useCallback(() => {
+      if (typeof navigation?.toggleDrawer === "function") {
+        navigation.toggleDrawer();
+        return;
+      }
+
+      toggleMenu();
+    }, [navigation, toggleMenu]);
+
     return (
-      <ScreenScaffold contentStyle={styles.screenContent}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.hero}>
-            <Text style={styles.icon}>{config.icon}</Text>
-            <Text style={styles.title}>{config.title}</Text>
-            <Text style={styles.subtitle}>{config.subtitle}</Text>
+      <LinearGradient colors={[colors.bgFrom, colors.bgTo]} style={styles.gradient}>
+        <SafeAreaView style={styles.safe}>
+          <View style={styles.header}>
+            <Text style={styles.brand}>Sweet Balance</Text>
+            <AnimatedMenuIcon open={menuOpen} onPress={handleMenuPress} />
           </View>
 
-          <View style={styles.body}>
-            {config.paragraphs.map((paragraph, index) => (
-              <Text key={index} style={styles.paragraph}>
-                {paragraph}
-              </Text>
-            ))}
-          </View>
-        </ScrollView>
-      </ScreenScaffold>
+          <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}>
+            <ScrollView
+              contentContainerStyle={styles.content}
+              showsVerticalScrollIndicator={false}
+            >
+              {config.icon ? <Text style={styles.icon}>{config.icon}</Text> : null}
+              <Text style={styles.title}>{config.title}</Text>
+              <Text style={styles.subtitle}>{config.subtitle}</Text>
+              {config.paragraphs.map((paragraph) => (
+                <Text key={paragraph} style={styles.paragraph}>
+                  {paragraph}
+                </Text>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
@@ -42,51 +76,57 @@ export function createMenuScreen(config: MenuScreenConfig) {
 }
 
 const styles = StyleSheet.create({
-  screenContent: {
+  gradient: {
     flex: 1,
-    paddingHorizontal: 0,
   },
-  scroll: {
+  safe: {
     flex: 1,
-    backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: spacing(2),
+    paddingVertical: spacing(1),
+  },
+  brand: {
+    color: colors.primary,
+    fontSize: typography.subtitle,
+    fontWeight: "700",
+    fontFamily: typography.fontFamily,
+  },
+  animatedContent: {
+    flex: 1,
   },
   content: {
-    paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.xxxl,
-    paddingBottom: spacing.xxxl,
-    gap: spacing.xxxl,
-  },
-  hero: {
+    paddingHorizontal: spacing(2),
+    paddingBottom: spacing(4),
+    gap: spacing(1.5),
     alignItems: "flex-end",
-    gap: spacing.md,
-    writingDirection: "rtl",
   },
   icon: {
-    fontSize: 52,
-    textAlign: "right",
+    fontSize: typography.title,
   },
   title: {
-    fontFamily: typography.family.heading,
-    fontSize: typography.size.xxl,
-    color: colors.text.primary,
+    color: colors.primary,
+    fontSize: typography.title,
+    fontWeight: "700",
+    fontFamily: typography.fontFamily,
     textAlign: "right",
   },
   subtitle: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.lg,
-    color: colors.text.secondary,
+    color: colors.subtitle,
+    fontSize: typography.subtitle,
+    fontFamily: typography.fontFamily,
     textAlign: "right",
-  },
-  body: {
-    gap: spacing.lg,
-    writingDirection: "rtl",
   },
   paragraph: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.md,
-    color: colors.text.primary,
+    width: "100%",
+    color: colors.text,
+    fontSize: typography.body,
+    lineHeight: typography.body * 1.6,
+    fontFamily: typography.fontFamily,
     textAlign: "right",
-    lineHeight: typography.lineHeight.relaxed,
   },
 });
 

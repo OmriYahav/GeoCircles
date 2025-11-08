@@ -81,12 +81,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.size.xl,
     fontFamily: typography.family.semiBold,
-    color: colors.text.primary,
+    color: colors.text,
     letterSpacing: 0.2,
   },
   subtitle: {
     marginTop: spacing.sm,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     fontFamily: typography.family.regular,
   },
   input: {

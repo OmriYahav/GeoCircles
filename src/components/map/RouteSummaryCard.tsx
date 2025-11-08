@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.size.lg,
     fontFamily: typography.family.semiBold,
-    color: colors.text.inverse,
+    color: colors.textInverse,
     letterSpacing: 0.3,
   },
   pill: {
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.18)",
   },
   pillText: {
-    color: colors.text.inverse,
+    color: colors.textInverse,
     fontSize: typography.size.xs,
     fontFamily: typography.family.medium,
   },
@@ -93,6 +93,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     fontSize: typography.size.lg,
     fontFamily: typography.family.semiBold,
-    color: colors.text.inverse,
+    color: colors.textInverse,
   },
 });

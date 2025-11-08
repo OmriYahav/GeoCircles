@@ -166,11 +166,11 @@ const styles = StyleSheet.create({
     fontSize: typography.size.xl,
     fontFamily: typography.family.semiBold,
     marginBottom: spacing.xs,
-    color: colors.text.primary,
+    color: colors.text,
   },
   subtitle: {
     fontSize: typography.size.sm,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     marginBottom: spacing.xl,
   },
   input: {
@@ -194,12 +194,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryTint,
   },
   resultTitle: {
-    color: colors.text.primary,
+    color: colors.text,
     fontSize: typography.size.md,
     fontFamily: typography.family.medium,
   },
   resultSubtitle: {
-    color: colors.text.secondary,
+    color: colors.subtitle,
     fontSize: typography.size.xs,
     marginTop: spacing.xs,
   },

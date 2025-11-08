@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
-import { radii, spacing, typography } from "../../theme";
+import { colors, radii, spacing, typography } from "../../theme";
 
 type MenuItem = {
   icon: string;
@@ -70,7 +70,7 @@ export default function SideMenuContent({
             pressed && styles.closeButtonPressed,
           ]}
         >
-          <Ionicons name="close" size={24} color="#355E3B" />
+          <Ionicons name="close" size={24} color={colors.primary} />
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>Sweet Balance</Text>
@@ -118,8 +118,8 @@ export default function SideMenuContent({
                   <LinearGradient
                     colors={
                       pressed
-                        ? ["#F7F3E9", "#FFFDF6"]
-                        : ["#FFFDF6", "#F7F3E9"]
+                        ? [colors.bgTo, "#FFFFFF"]
+                        : ["#FFFFFF", colors.bgFrom]
                     }
                     start={{ x: I18nManager.isRTL ? 1 : 0, y: 0 }}
                     end={{ x: I18nManager.isRTL ? 0 : 1, y: 1 }}
@@ -142,7 +142,7 @@ export default function SideMenuContent({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f7f4ec",
+    backgroundColor: colors.bgFrom,
     borderTopLeftRadius: radii.xl,
     borderBottomLeftRadius: radii.xl,
     paddingHorizontal: spacing.xxl,
@@ -160,15 +160,15 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(53, 94, 59, 0.12)",
-    shadowColor: "#355E3B",
+    backgroundColor: "rgba(47, 110, 68, 0.12)",
+    shadowColor: colors.shadow,
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 10,
     elevation: 6,
   },
   closeButtonPressed: {
-    backgroundColor: "rgba(53, 94, 59, 0.18)",
+    backgroundColor: "rgba(47, 110, 68, 0.18)",
     transform: [{ scale: 0.94 }],
   },
   headerText: {
@@ -176,23 +176,22 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   title: {
-    fontFamily: typography.family.heading,
-    fontSize: typography.size.xl,
-    color: "#355E3B",
+    fontFamily: typography.fontFamily,
+    fontSize: typography.title,
+    color: colors.primary,
     textAlign: "right",
   },
   titleUnderline: {
     alignSelf: "flex-end",
     height: 3,
     borderRadius: 3,
-    backgroundColor: "rgba(53, 94, 59, 0.4)",
+    backgroundColor: "rgba(47, 110, 68, 0.4)",
     width: "40%",
   },
   subtitle: {
-    fontFamily: typography.family.regular,
-    fontSize: typography.size.sm,
-    color: "#355E3B",
-    opacity: 0.75,
+    fontFamily: typography.fontFamily,
+    fontSize: typography.subtitle,
+    color: colors.subtitle,
     textAlign: "right",
   },
   menuItems: {
@@ -204,7 +203,7 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     borderRadius: radii.xxl,
-    shadowColor: "#2e4c36",
+    shadowColor: colors.shadow,
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 14,
@@ -223,22 +222,22 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     gap: spacing.lg,
     borderWidth: 1,
-    borderColor: "rgba(53, 94, 59, 0.08)",
+    borderColor: "rgba(47, 110, 68, 0.12)",
   },
   menuItemIcon: {
-    fontSize: typography.size.xl,
-    color: "#355E3B",
+    fontSize: typography.subtitle,
+    color: colors.primary,
   },
   menuItemLabel: {
     flex: 1,
     textAlign: I18nManager.isRTL ? "right" : "left",
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.lg,
-    color: "#355E3B",
+    fontFamily: typography.fontFamily,
+    fontSize: typography.body,
+    color: colors.text,
   },
   menuDivider: {
     height: 1,
-    backgroundColor: "rgba(53, 94, 59, 0.12)",
+    backgroundColor: "rgba(47, 110, 68, 0.12)",
     marginHorizontal: spacing.xl,
     marginTop: spacing.md,
   },

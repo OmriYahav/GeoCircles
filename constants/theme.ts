@@ -14,11 +14,11 @@ export type { AppTheme };
 
 export const Colors = {
   light: {
-    text: colors.text.primary,
+    text: colors.text,
     background: colors.background,
     tint: colors.primary,
-    icon: colors.text.muted,
-    tabIconDefault: colors.text.muted,
+    icon: colors.textMuted,
+    tabIconDefault: colors.textMuted,
     tabIconSelected: colors.primary,
   },
   dark: {

@@ -339,7 +339,7 @@ export default function ProfileSettingsScreen() {
           mode="contained"
           icon="google"
           buttonColor={colors.surface}
-          textColor={colors.text.primary}
+          textColor={colors.text}
           style={styles.socialButton}
           contentStyle={styles.socialButtonContent}
           onPress={handleGooglePress}
@@ -482,11 +482,11 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize: typography.size.xl,
     fontFamily: typography.family.bold,
-    color: colors.text.primary,
+    color: colors.text,
   },
   subtitle: {
     fontSize: typography.size.sm,
-    color: colors.text.secondary,
+    color: colors.subtitle,
   },
   section: {
     backgroundColor: colors.surface,
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.size.lg,
     fontFamily: typography.family.semiBold,
-    color: colors.text.primary,
+    color: colors.text,
   },
   input: {
     backgroundColor: colors.surface,
@@ -536,11 +536,11 @@ const styles = StyleSheet.create({
   authTitle: {
     fontSize: typography.size.xxl,
     fontFamily: typography.family.bold,
-    color: colors.text.primary,
+    color: colors.text,
   },
   authSubtitle: {
     fontSize: typography.size.md,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     lineHeight: typography.lineHeight.relaxed,
   },
   authButtonGroup: {
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: typography.size.sm,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   dialogTitle: {
     fontSize: typography.size.lg,
     fontFamily: typography.family.semiBold,
-    color: colors.text.primary,
+    color: colors.text,
   },
   dialogContent: {
     gap: spacing.md,
@@ -607,6 +607,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: typography.size.md,
-    color: colors.text.secondary,
+    color: colors.subtitle,
   },
 });

@@ -80,13 +80,13 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.xxl,
-    color: colors.text.primary,
+    color: colors.text,
     letterSpacing: 0.2,
   },
   subtitle: {
     fontFamily: typography.family.regular,
     fontSize: typography.size.md,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     lineHeight: typography.lineHeight.relaxed,
   },
   card: {
@@ -108,17 +108,17 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.lg,
-    color: colors.text.primary,
+    color: colors.text,
   },
   cardDescription: {
     marginTop: spacing.xs,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     fontFamily: typography.family.regular,
     lineHeight: typography.lineHeight.relaxed,
   },
   cardMeta: {
     marginTop: spacing.sm,
-    color: colors.text.muted,
+    color: colors.textMuted,
     fontFamily: typography.family.medium,
   },
 });

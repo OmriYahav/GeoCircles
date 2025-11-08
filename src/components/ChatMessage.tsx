@@ -69,18 +69,18 @@ const styles = StyleSheet.create({
   },
   sender: {
     fontFamily: typography.family.medium,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     marginBottom: spacing.xs,
   },
   message: {
-    color: colors.text.primary,
+    color: colors.text,
     fontFamily: typography.family.regular,
     lineHeight: typography.lineHeight.relaxed,
   },
   timestamp: {
     marginTop: spacing.xs,
     fontSize: typography.size.xs,
-    color: colors.text.muted,
+    color: colors.textMuted,
     alignSelf: "flex-end",
   },
 });

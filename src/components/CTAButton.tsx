@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingVertical: spacing(1.5),
     paddingHorizontal: spacing(3),
-    alignSelf: "flex-start",
+    alignSelf: "flex-end",
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 8,

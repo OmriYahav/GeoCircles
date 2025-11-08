@@ -38,16 +38,16 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.lg,
-    color: colors.text.primary,
+    color: colors.text,
   },
   description: {
     marginTop: spacing.xs,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     fontFamily: typography.family.regular,
   },
   meta: {
     marginTop: spacing.sm,
-    color: colors.text.muted,
+    color: colors.textMuted,
     fontFamily: typography.family.medium,
     fontSize: typography.size.xs,
   },

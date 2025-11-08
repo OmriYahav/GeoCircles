@@ -198,13 +198,13 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.lg,
-    color: colors.text.primary,
+    color: colors.text,
     textAlign: "right",
   },
   subtitle: {
     fontFamily: typography.family.regular,
     fontSize: typography.size.sm,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     textAlign: "right",
   },
   pickerSection: {
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: typography.family.medium,
     fontSize: typography.size.sm,
-    color: colors.text.primary,
+    color: colors.text,
     textAlign: "right",
   },
   pickerContainer: {
@@ -258,6 +258,6 @@ const styles = StyleSheet.create({
   primaryButtonLabel: {
     fontFamily: typography.family.semiBold,
     fontSize: typography.size.md,
-    color: colors.text.inverse,
+    color: colors.textInverse,
   },
 });

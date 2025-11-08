@@ -292,10 +292,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.size.xl,
     fontFamily: typography.family.semiBold,
-    color: colors.text.primary,
+    color: colors.text,
   },
   subtitle: {
-    color: colors.text.secondary,
+    color: colors.subtitle,
     fontFamily: typography.family.regular,
   },
   content: {
@@ -309,10 +309,10 @@ const styles = StyleSheet.create({
   },
   requestName: {
     fontFamily: typography.family.medium,
-    color: colors.text.primary,
+    color: colors.text,
   },
   requestTime: {
-    color: colors.text.secondary,
+    color: colors.subtitle,
     marginTop: spacing.xs / 2,
   },
   requestActions: {
@@ -334,16 +334,16 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontFamily: typography.family.medium,
-    color: colors.text.primary,
+    color: colors.text,
   },
   infoDescription: {
     fontFamily: typography.family.regular,
-    color: colors.text.secondary,
+    color: colors.subtitle,
     lineHeight: typography.lineHeight.comfortable,
   },
   sectionTitle: {
     fontFamily: typography.family.medium,
-    color: colors.text.primary,
+    color: colors.text,
   },
   inputContainer: {
     backgroundColor: colors.surface,

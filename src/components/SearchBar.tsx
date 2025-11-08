@@ -69,7 +69,7 @@ const SearchBar = (
       <Ionicons
         name="search-outline"
         size={20}
-        color={colors.text.muted}
+        color={colors.textMuted}
         style={styles.leadingIcon}
         accessible={false}
       />
@@ -81,7 +81,7 @@ const SearchBar = (
         onFocus={onFocus}
         onBlur={onBlur}
         placeholder={placeholder}
-        placeholderTextColor={colors.text.muted}
+        placeholderTextColor={colors.textMuted}
         returnKeyType="search"
         autoCorrect={false}
         autoCapitalize="none"
@@ -106,7 +106,7 @@ const SearchBar = (
               pressed && styles.iconButtonPressed,
             ]}
           >
-            <Ionicons name="mic-outline" size={20} color={colors.text.muted} />
+            <Ionicons name="mic-outline" size={20} color={colors.textMuted} />
           </Pressable>
         ) : null}
       </View>
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: typography.size.md,
-    color: colors.text.primary,
+    color: colors.text,
     fontFamily: typography.family.medium,
     paddingVertical: 0,
   },
