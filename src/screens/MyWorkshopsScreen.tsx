@@ -12,6 +12,9 @@ export type SavedWorkshop = {
   date: string;
   time: string;
   createdAt: number;
+  name?: string;
+  phone?: string;
+  email?: string;
 };
 
 type MyWorkshopsScreenProps = {
