@@ -1,301 +1,152 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { useMemo, type ReactElement } from "react";
 import {
-  Animated,
-  Easing,
+  Alert,
   I18nManager,
   Linking,
   Pressable,
   StyleSheet,
-  Text,
   View,
+  useWindowDimensions,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { FontAwesome } from "@expo/vector-icons";
-
 import ScreenScaffold from "../components/layout/ScreenScaffold";
-import { colors, shadows, spacing, typography } from "../theme";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 
-type ContactMethod = {
-  key: string;
-  label: string;
+I18nManager.allowRTL(true);
+
+type ContactItemKey = "whatsapp" | "instagram" | "facebook" | "email";
+
+type ContactItem = {
+  key: ContactItemKey;
   url: string;
-  colors: string[];
-  pressedColors: string[];
-  icon: keyof typeof FontAwesome.glyphMap;
+  a11y: string;
+  renderIcon: () => ReactElement;
+  bg: string;
 };
 
-const brightenColor = (hex: string, amount = 0.15) => {
-  const normalized = hex.replace("#", "");
-  if (normalized.length !== 6) {
-    return hex;
-  }
-
-  const num = parseInt(normalized, 16);
-  const r = (num >> 16) & 0xff;
-  const g = (num >> 8) & 0xff;
-  const b = num & 0xff;
-
-  const liftChannel = (channel: number) =>
-    Math.min(255, Math.round(channel + (255 - channel) * amount));
-
-  const toHex = (channel: number) => channel.toString(16).padStart(2, "0");
-
-  return `#${toHex(liftChannel(r))}${toHex(liftChannel(g))}${toHex(
-    liftChannel(b),
-  )}`.toUpperCase();
-};
-
-const lightenGradient = (baseColors: string[]) =>
-  baseColors.map((color) => brightenColor(color, 0.18));
-
-const CONTACT_METHODS: ContactMethod[] = [
+const CONTACT_ITEMS: ContactItem[] = [
   {
     key: "whatsapp",
-    label: "וואצאפ 💬",
-    url: "https://wa.me/972XXXXXXXXX",
-    colors: ["#25D366", "#25D366"],
-    pressedColors: lightenGradient(["#25D366", "#25D366"]),
-    icon: "whatsapp",
-  },
-  {
-    key: "facebook",
-    label: "פייסבוק 📘",
-    url: "https://www.facebook.com/yourpage",
-    colors: ["#1877F2", "#1877F2"],
-    pressedColors: lightenGradient(["#1877F2", "#1877F2"]),
-    icon: "facebook",
+    url: "https://wa.me/972507117202",
+    a11y: "שליחת הודעה בוואטסאפ",
+    bg: "#25D366",
+    renderIcon: () => <FontAwesome name="whatsapp" size={36} color="#fff" />,
   },
   {
     key: "instagram",
-    label: "אינסטגרם 📷",
-    url: "https://www.instagram.com/yourprofile",
-    colors: ["#F58529", "#DD2A7B", "#8134AF", "#515BD4"],
-    pressedColors: lightenGradient([
-      "#F58529",
-      "#DD2A7B",
-      "#8134AF",
-      "#515BD4",
-    ]),
-    icon: "instagram",
+    url: "https://www.instagram.com/batchenlev?igsh=MXJjNDJjaHEzNTlyaw==",
+    a11y: "כניסה לפרופיל אינסטגרם",
+    bg: "#C13584",
+    renderIcon: () => <Feather name="instagram" size={36} color="#fff" />,
+  },
+  {
+    key: "facebook",
+    url: "https://www.facebook.com/share/17YP65zVDC/?mibextid=wwXIfr",
+    a11y: "פתיחת פייסבוק",
+    bg: "#1877F2",
+    renderIcon: () => <Feather name="facebook" size={36} color="#fff" />,
+  },
+  {
+    key: "email",
+    url: "mailto:batchenlev@gmail.com",
+    a11y: "שליחת מייל",
+    bg: "#4CAF50",
+    renderIcon: () => <Feather name="mail" size={34} color="#fff" />,
   },
 ];
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+async function openUrl(url: string) {
+  try {
+    const canOpen = await Linking.canOpenURL(url);
+    if (!canOpen) {
+      throw new Error("cannot open");
+    }
 
-type ContactButtonProps = {
-  method: ContactMethod;
-};
+    await Linking.openURL(url);
+  } catch (error) {
+    console.warn("Failed to open contact link", error);
+    Alert.alert("שגיאה", "לא הצלחתי לפתוח את הקישור. נסו שוב מאוחר יותר.");
+  }
+}
 
-const ContactButton = ({ method }: ContactButtonProps) => {
-  const scale = useRef(new Animated.Value(1)).current;
+const CIRCLE = 86;
+const GAP = 18;
 
-  const handlePressFeedback = useCallback(() => {
-    scale.stopAnimation(() => {
-      scale.setValue(1);
-      Animated.sequence([
-        Animated.timing(scale, {
-          toValue: 1.1,
-          duration: 150,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: 150,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
-  }, [scale]);
+export default function ContactScreen() {
+  const { width } = useWindowDimensions();
+  const columns = width >= 600 ? 4 : 2;
 
-  const handlePress = useCallback(() => {
-    Linking.openURL(method.url).catch((error) => {
-      console.warn(`Failed to open contact url: ${method.url}`, error);
-    });
-  }, [method.url]);
-
-  const gradientOrientation = useMemo(
-    () => ({
-      start: { x: I18nManager.isRTL ? 1 : 0, y: 0.5 },
-      end: { x: I18nManager.isRTL ? 0 : 1, y: 0.5 },
-    }),
-    [],
-  );
-
-  return (
-    <Animated.View
-      style={[
-        styles.buttonWrapper,
-        {
-          transform: [{ scale }],
-        },
-      ]}
-    >
-      <AnimatedPressable
-        accessibilityRole="button"
-        accessibilityLabel={method.label}
-        accessibilityHint="פתיחה בקישור חיצוני"
-        onPressIn={handlePressFeedback}
-        onPress={handlePress}
-        style={styles.button}
-      >
-        {({ pressed }) => (
-          <LinearGradient
-            colors={pressed ? method.pressedColors : method.colors}
-            start={gradientOrientation.start}
-            end={gradientOrientation.end}
-            style={styles.buttonGradient}
-          >
-            <View style={styles.buttonContent}>
-              <FontAwesome
-                name={method.icon}
-                size={30}
-                color="#FFFFFF"
-                style={styles.buttonIcon}
-              />
-              <Text style={styles.buttonText}>{method.label}</Text>
-            </View>
-          </LinearGradient>
-        )}
-      </AnimatedPressable>
-    </Animated.View>
-  );
-};
-
-const ContactScreen = () => {
-  const entrance = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(entrance, {
-      toValue: 1,
-      duration: 360,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [entrance]);
-
-  const animatedStyle = useMemo(
-    () => ({
-      opacity: entrance,
-      transform: [
-        {
-          translateX: entrance.interpolate({
-            inputRange: [0, 1],
-            outputRange: [48, 0],
-          }),
-        },
-      ],
-    }),
-    [entrance],
-  );
+  const gridStyle = useMemo(() => {
+    const totalWidth = columns * (CIRCLE + GAP);
+    return {
+      maxWidth: totalWidth,
+    };
+  }, [columns]);
 
   return (
     <ScreenScaffold contentStyle={styles.scaffoldContent}>
-      <Animated.View style={[styles.content, animatedStyle]}>
-        <View style={styles.mainContent}>
-          <View style={styles.header}>
-            <Text style={styles.title}>צרו קשר</Text>
-            <Text style={styles.subtitle}>
-              שלחנו אהבה בכל אחד מהערוצים הבאים
-            </Text>
-          </View>
-          <View style={styles.buttonsContainer}>
-            {CONTACT_METHODS.map((method) => (
-              <ContactButton key={method.key} method={method} />
-            ))}
-          </View>
+      <View style={styles.container}>
+        <View style={[styles.grid, gridStyle]}>
+          {CONTACT_ITEMS.map((item) => (
+            <Pressable
+              key={item.key}
+              accessibilityRole="button"
+              accessibilityLabel={item.a11y}
+              onPress={() => openUrl(item.url)}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              style={({ pressed }) => [
+                styles.circle,
+                { backgroundColor: item.bg },
+                pressed && styles.pressed,
+              ]}
+            >
+              {item.renderIcon()}
+            </Pressable>
+          ))}
         </View>
-        <Text style={styles.footer}>נשמח לשמוע מכם 💚</Text>
-      </Animated.View>
+      </View>
     </ScreenScaffold>
   );
-};
-
-export default ContactScreen;
+}
 
 const styles = StyleSheet.create({
   scaffoldContent: {
     flex: 1,
-    paddingTop: spacing.xxxl,
-    paddingBottom: spacing.xxxl,
     justifyContent: "center",
+    alignItems: "center",
   },
-  content: {
+  container: {
+    width: "100%",
     flex: 1,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  mainContent: {
-    flex: 1,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xxl,
-  },
-  header: {
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  title: {
-    fontFamily: typography.family.semiBold,
-    fontSize: typography.size.xxl,
-    color: colors.primary,
-    textAlign: "center",
-    writingDirection: "rtl",
-  },
-  subtitle: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.md,
-    color: colors.subtitle,
-    textAlign: "center",
-    writingDirection: "rtl",
-  },
-  buttonsContainer: {
-    width: "100%",
-    maxWidth: 420,
-    alignSelf: "stretch",
-  },
-  buttonWrapper: {
-    marginVertical: 12,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    ...shadows.lg,
-  },
-  button: {
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  buttonGradient: {
-    paddingVertical: spacing.xxl,
-    paddingHorizontal: spacing.xxl,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 24,
+    backgroundColor: "#F6F1EA",
   },
-  buttonContent: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
+  grid: {
+    width: "100%",
+    flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "center",
-    gap: spacing.md,
+    alignItems: "center",
+    alignSelf: "center",
+    direction: "rtl",
   },
-  buttonIcon: {
-    marginTop: -2,
+  circle: {
+    width: CIRCLE,
+    height: CIRCLE,
+    borderRadius: CIRCLE / 2,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: GAP / 2,
+    marginVertical: GAP / 2,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontFamily: typography.family.bold,
-    fontSize: typography.size.lg,
-    fontWeight: "700",
-    textAlign: "center",
-    writingDirection: "rtl",
-  },
-  footer: {
-    fontFamily: typography.family.medium,
-    fontSize: typography.size.sm,
-    color: "#4C8052",
-    fontStyle: "italic",
-    textAlign: "center",
-    writingDirection: "rtl",
+  pressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
   },
 });
