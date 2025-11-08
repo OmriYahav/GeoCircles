@@ -8,8 +8,9 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 
+import AnimatedHomeButton from "../components/AnimatedHomeButton";
 import AnimatedMenuIcon from "../components/AnimatedMenuIcon";
 import { colors, spacing, typography } from "../theme";
 import { useMenu } from "../context/MenuContext";
@@ -22,7 +23,8 @@ const PARAGRAPHS = [
 
 export default function BlogScreen() {
   const navigation = useNavigation<any>();
-  const { menuOpen, toggleMenu } = useMenu();
+  const router = useRouter();
+  const { menuOpen, toggleMenu, closeMenu } = useMenu();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -42,10 +44,16 @@ export default function BlogScreen() {
     toggleMenu();
   }, [navigation, toggleMenu]);
 
+  const handleHomePress = useCallback(() => {
+    closeMenu();
+    router.navigate("/");
+  }, [closeMenu, router]);
+
   return (
     <LinearGradient colors={[colors.bgFrom, colors.bgTo]} style={styles.gradient}>
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
+          <AnimatedHomeButton onPress={handleHomePress} />
           <Text style={styles.brand}>Sweet Balance</Text>
           <AnimatedMenuIcon open={menuOpen} onPress={handleMenuPress} />
         </View>
@@ -74,17 +82,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: spacing(2),
     paddingVertical: spacing(1),
+    zIndex: 20,
   },
   brand: {
     color: colors.primary,
     fontSize: typography.subtitle,
     fontWeight: "700",
     fontFamily: typography.fontFamily,
+    flex: 1,
+    textAlign: "center",
   },
   animatedContent: {
     flex: 1,

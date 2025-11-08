@@ -1,12 +1,12 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, Text, View } from "react-native";
 
+import AnimatedHomeButton from "../AnimatedHomeButton";
+import AnimatedMenuIcon from "../AnimatedMenuIcon";
 import { colors, typography } from "../../theme";
 
 const HEADER_HEIGHT = 60;
 const HEADER_PADDING = 16;
-const ICON_COLOR = "#355E3B";
 
 type TopNavigationMenuProps = {
   isMenuOpen: boolean;
@@ -21,30 +21,15 @@ export default function TopNavigationMenu({
 }: TopNavigationMenuProps) {
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        accessibilityLabel="חזרה למסך הבית"
-        accessibilityRole="button"
-        onPress={onPressHome}
-        style={styles.iconPressable}
-      >
-        <View style={styles.iconButton}>
-          <Ionicons name="home" size={24} color={ICON_COLOR} />
-        </View>
-      </TouchableOpacity>
+      <AnimatedHomeButton onPress={onPressHome} />
       <Text accessibilityRole="header" style={styles.title}>
         Sweet Balance
       </Text>
-      <TouchableOpacity
-        accessibilityLabel={isMenuOpen ? "סגירת תפריט" : "פתיחת תפריט"}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: isMenuOpen }}
+      <AnimatedMenuIcon
+        open={isMenuOpen}
         onPress={onPressMenu}
-        style={styles.iconPressable}
-      >
-        <View style={styles.iconButton}>
-          <Ionicons name="menu" size={28} color={ICON_COLOR} />
-        </View>
-      </TouchableOpacity>
+        accessibilityState={{ expanded: isMenuOpen }}
+      />
     </View>
   );
 }
@@ -68,22 +53,8 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: typography.family.heading,
     fontSize: typography.size.xl,
-    color: ICON_COLOR,
+    color: colors.primary,
     textAlign: "center",
-  },
-  iconPressable: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconButton: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 20,
-    backgroundColor: "rgba(53, 94, 59, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
+    flex: 1,
   },
 });

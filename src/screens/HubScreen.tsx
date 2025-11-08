@@ -2,8 +2,8 @@ import React, { useMemo } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { Text, Avatar } from "react-native-paper";
 
+import ScreenScaffold from "../components/layout/ScreenScaffold";
 import { colors, radii, shadows, spacing, typography } from "../theme";
-import { globalStyles } from "../styles/global";
 
 const dummyHubItems = [
   {
@@ -30,43 +30,45 @@ export default function HubScreen() {
   const items = useMemo(() => dummyHubItems, []);
 
   return (
-    <FlatList
-      contentContainerStyle={styles.list}
-      style={styles.container}
-      ListHeaderComponent={
-        <View style={styles.header}> 
-          <Text style={styles.title}>Curated spots nearby</Text>
-          <Text style={styles.subtitle}>
-            Discover vibrant meetups and creative hubs formed by locals within a
-            short walk from you.
-          </Text>
-        </View>
-      }
-      data={items}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <View style={styles.card}>
-          <Avatar.Icon icon="map-marker" size={48} style={styles.avatar} />
-          <View style={styles.cardBody}>
-            <Text variant="titleMedium" style={styles.cardTitle}>
-              {item.title}
-            </Text>
-            <Text variant="bodyMedium" style={styles.cardDescription}>
-              {item.description}
-            </Text>
-            <Text variant="labelMedium" style={styles.cardMeta}>
-              {item.participants} people nearby
+    <ScreenScaffold contentStyle={styles.scaffoldContent}>
+      <FlatList
+        contentContainerStyle={styles.list}
+        data={items}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Avatar.Icon icon="map-marker" size={48} style={styles.avatar} />
+            <View style={styles.cardBody}>
+              <Text variant="titleMedium" style={styles.cardTitle}>
+                {item.title}
+              </Text>
+              <Text variant="bodyMedium" style={styles.cardDescription}>
+                {item.description}
+              </Text>
+              <Text variant="labelMedium" style={styles.cardMeta}>
+                {item.participants} people nearby
+              </Text>
+            </View>
+          </View>
+        )}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={styles.title}>Curated spots nearby</Text>
+            <Text style={styles.subtitle}>
+              Discover vibrant meetups and creative hubs formed by locals within a
+              short walk from you.
             </Text>
           </View>
-        </View>
-      )}
-    />
+        }
+        showsVerticalScrollIndicator={false}
+      />
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    ...globalStyles.screen,
+  scaffoldContent: {
+    paddingHorizontal: 0,
   },
   list: {
     paddingHorizontal: spacing.xxl,
