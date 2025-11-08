@@ -15,10 +15,13 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import dayjs from "dayjs";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 
 import type { SavedWorkshop } from "../MyWorkshopsScreen";
 import { radii, shadows, spacing, typography } from "../../theme";
+import AnimatedHomeButton from "../../components/AnimatedHomeButton";
+import AnimatedMenuIcon from "../../components/AnimatedMenuIcon";
+import { useMenu } from "../../context/MenuContext";
 
 const STORAGE_KEY = "sweet-balance.workshops";
 
@@ -113,6 +116,8 @@ export default function WorkshopReservation({
   nextDate,
 }: WorkshopReservationProps) {
   const router = useRouter();
+  const navigation = useNavigation<any>();
+  const { menuOpen, toggleMenu, closeMenu } = useMenu();
   const [modalVisible, setModalVisible] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -147,6 +152,20 @@ export default function WorkshopReservation({
     setPhone("");
     setEmail("");
   }, []);
+
+  const handleMenuPress = useCallback(() => {
+    if (typeof navigation?.toggleDrawer === "function") {
+      navigation.toggleDrawer();
+      return;
+    }
+
+    toggleMenu();
+  }, [navigation, toggleMenu]);
+
+  const handleHomePress = useCallback(() => {
+    closeMenu();
+    router.navigate("/");
+  }, [closeMenu, router]);
 
   const showSuccessMessage = useCallback(() => {
     const message = "השריון שלך נקלט בהצלחה!";
@@ -217,6 +236,7 @@ export default function WorkshopReservation({
         style={styles.scroll}
       >
         <View style={styles.headerRow}>
+          <AnimatedHomeButton onPress={handleHomePress} />
           <TouchableOpacity
             accessibilityLabel="חזרה"
             accessibilityRole="button"
@@ -226,6 +246,11 @@ export default function WorkshopReservation({
           >
             <Text style={styles.backButtonLabel}>✕</Text>
           </TouchableOpacity>
+          <AnimatedMenuIcon
+            open={menuOpen}
+            onPress={handleMenuPress}
+            accessibilityState={{ expanded: menuOpen }}
+          />
         </View>
 
         <View style={styles.textBlock}>
@@ -331,7 +356,9 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: "row",
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
+    alignItems: "center",
+    zIndex: 30,
   },
   backButton: {
     width: 44,

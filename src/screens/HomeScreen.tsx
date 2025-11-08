@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRouter } from "expo-router";
 
+import AnimatedHomeButton from "../components/AnimatedHomeButton";
 import AnimatedMenuIcon from "../components/AnimatedMenuIcon";
 import Card from "../components/Card";
 import CTAButton from "../components/CTAButton";
@@ -51,6 +52,11 @@ export default function HomeScreen() {
     toggleMenu();
   }, [navigation, toggleMenu]);
 
+  const handleHomePress = useCallback(() => {
+    closeMenu();
+    router.navigate("/");
+  }, [closeMenu, router]);
+
   const navigateTo = (path: string) => {
     closeMenu();
     router.push(path);
@@ -61,6 +67,7 @@ export default function HomeScreen() {
       <StatusBar barStyle="dark-content" />
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
+          <AnimatedHomeButton onPress={handleHomePress} />
           <Text style={styles.brand}>Sweet Balance</Text>
           <AnimatedMenuIcon open={menuOpen} onPress={handleMenuPress} />
         </View>
@@ -166,7 +173,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: typography.fontFamily,
     flex: 1,
-    textAlign: "left",
+    textAlign: "center",
   },
   animatedContent: {
     flex: 1,

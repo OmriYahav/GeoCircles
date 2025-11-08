@@ -8,7 +8,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { Button, IconButton, Text } from "react-native-paper";
+import { Button, Text } from "react-native-paper";
 import dayjs from "dayjs";
 
 import {
@@ -19,10 +19,13 @@ import {
 import { useUserProfile } from "../context/UserProfileContext";
 import { useNearbyBusinessChat } from "../context/BusinessContext";
 import { colors, spacing, typography } from "../theme";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatMessage from "../components/ChatMessage";
 import ChatInput from "../components/ChatInput";
+import AnimatedHomeButton from "../components/AnimatedHomeButton";
+import AnimatedMenuIcon from "../components/AnimatedMenuIcon";
+import { useMenu } from "../context/MenuContext";
 
 export type ConversationScreenParams = {
   conversationId?: string | string[];
@@ -30,11 +33,13 @@ export type ConversationScreenParams = {
 
 export default function ConversationScreen() {
   const router = useRouter();
+  const navigation = useNavigation<any>();
   const params = useLocalSearchParams<ConversationScreenParams>();
   const { profile } = useUserProfile();
   const { conversations, sendMessage, respondToJoinRequest, requestToJoin } =
     useChatConversations();
   const { nearbyBusiness } = useNearbyBusinessChat();
+  const { menuOpen, toggleMenu, closeMenu } = useMenu();
 
   const conversation = useMemo<Conversation | undefined>(
     () => {
@@ -137,6 +142,20 @@ export default function ConversationScreen() {
 
   const insets = useSafeAreaInsets();
 
+  const handleMenuPress = useCallback(() => {
+    if (typeof navigation?.toggleDrawer === "function") {
+      navigation.toggleDrawer();
+      return;
+    }
+
+    toggleMenu();
+  }, [navigation, toggleMenu]);
+
+  const handleHomePress = useCallback(() => {
+    closeMenu();
+    router.navigate("/");
+  }, [closeMenu, router]);
+
   if (!conversation) {
     return null;
   }
@@ -217,16 +236,16 @@ export default function ConversationScreen() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.safeArea}>
           <View style={[styles.header, { paddingTop: insets.top || spacing.md }]}>
-            <IconButton
-              icon="arrow-left"
-              onPress={() => router.back()}
-              style={styles.backButton}
-              size={20}
-            />
+            <AnimatedHomeButton onPress={handleHomePress} />
             <View style={styles.headerText}>
               <Text style={styles.title}>{conversation.title}</Text>
               <Text style={styles.subtitle}>{subtitle}</Text>
             </View>
+            <AnimatedMenuIcon
+              open={menuOpen}
+              onPress={handleMenuPress}
+              accessibilityState={{ expanded: menuOpen }}
+            />
           </View>
 
           <View style={styles.content}>
@@ -275,28 +294,29 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     backgroundColor: colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.divider,
-  },
-  backButton: {
-    margin: 0,
-    marginRight: spacing.sm,
+    zIndex: 40,
   },
   headerText: {
     flex: 1,
+    alignItems: "center",
     gap: spacing.xs,
   },
   title: {
     fontSize: typography.size.xl,
     fontFamily: typography.family.semiBold,
     color: colors.text,
+    textAlign: "center",
   },
   subtitle: {
     color: colors.subtitle,
     fontFamily: typography.family.regular,
+    textAlign: "center",
   },
   content: {
     flex: 1,

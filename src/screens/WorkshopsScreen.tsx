@@ -20,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import dayjs from "dayjs";
 import "dayjs/locale/he";
 
+import AnimatedHomeButton from "../components/AnimatedHomeButton";
 import AnimatedMenuIcon from "../components/AnimatedMenuIcon";
 import Card from "../components/Card";
 import CTAButton from "../components/CTAButton";
@@ -197,6 +198,11 @@ export default function WorkshopsScreen() {
     toggleMenu();
   }, [navigation, toggleMenu]);
 
+  const handleHomePress = useCallback(() => {
+    closeMenu();
+    router.navigate("/");
+  }, [closeMenu, router]);
+
   const handleNavigateOption = useCallback(
     (route: string) => {
       closeMenu();
@@ -209,6 +215,7 @@ export default function WorkshopsScreen() {
     <LinearGradient colors={[colors.bgFrom, colors.bgTo]} style={styles.gradient}>
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
+          <AnimatedHomeButton onPress={handleHomePress} />
           <Text style={styles.brand}>Sweet Balance</Text>
           <AnimatedMenuIcon open={menuOpen} onPress={handleMenuPress} />
         </View>
@@ -329,17 +336,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: spacing(2),
     paddingVertical: spacing(1),
+    zIndex: 20,
   },
   brand: {
     color: colors.primary,
     fontSize: typography.subtitle,
     fontWeight: "700",
     fontFamily: typography.fontFamily,
+    flex: 1,
+    textAlign: "center",
   },
   animatedContent: {
     flex: 1,
