@@ -93,6 +93,23 @@ export default function RecipesScreen() {
     setIsAdmin((prev) => !prev);
   }, []);
 
+  const handleRecipePress = useCallback(
+    (recipe: Recipe) => {
+      router.push({
+        pathname: "/(drawer)/recipe-details",
+        params: {
+          id: String(recipe.id),
+          title: recipe.title,
+          image: recipe.image,
+          ingredients: JSON.stringify(recipe.ingredients),
+          instructions: JSON.stringify(recipe.instructions),
+          nutrition: recipe.nutrition ?? "",
+        },
+      });
+    },
+    [router]
+  );
+
   const resetForm = useCallback(() => {
     setTitle("");
     setImage("");
@@ -191,7 +208,12 @@ export default function RecipesScreen() {
             ) : (
               <View style={styles.recipeList}>
                 {recipes.map((recipe) => (
-                  <View key={recipe.id} style={styles.recipeCard}>
+                  <TouchableOpacity
+                    key={recipe.id}
+                    style={styles.recipeCard}
+                    activeOpacity={0.9}
+                    onPress={() => handleRecipePress(recipe)}
+                  >
                     <Image source={{ uri: recipe.image }} style={styles.recipeImage} contentFit="cover" />
                     <View style={styles.recipeContent}>
                       <Text style={styles.recipeTitle}>{recipe.title}</Text>
@@ -216,7 +238,7 @@ export default function RecipesScreen() {
                         </View>
                       ) : null}
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
