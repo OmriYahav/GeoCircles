@@ -117,8 +117,29 @@ export default function HomeScreen() {
                   },
                 ]}
               >
-                <View style={styles.heroGraphic}>
-                  <Image source={homeLogo} style={styles.logo} resizeMode="contain" />
+                <View
+                  style={{
+                    width: "100%",
+                    aspectRatio: 1,
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    backgroundColor: "#f4e9db",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Image
+                    source={homeLogo}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      resizeMode: "cover",
+                      borderRadius: 12,
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                    }}
+                  />
                 </View>
               </Animated.View>
             </Animated.View>
@@ -219,22 +240,6 @@ const styles = StyleSheet.create({
   parallaxInner: {
     width: "100%",
     height: 260,
-  },
-  heroGraphic: {
-    flex: 1,
-    width: "100%",
-    backgroundColor: "#F4E8D5",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing(1.5),
-  },
-  logo: {
-    width: 160,
-    height: 160,
-    alignSelf: "center",
-    marginTop: 24,
-    marginBottom: 12,
-    borderRadius: 16,
   },
   descriptionWrapper: {
     gap: spacing(1.5),
