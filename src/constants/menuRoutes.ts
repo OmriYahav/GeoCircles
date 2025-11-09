@@ -4,7 +4,6 @@ export const menuRouteMap: Record<MenuRouteName, string> = {
   Recipes: "/(drawer)/recipes",
   Workshops: "/(drawer)/workshops",
   Treatments: "/(drawer)/treatments",
-  Tips: "/(drawer)/nutrition-tips",
   Blog: "/(drawer)/blog",
   Contact: "/(drawer)/contact",
 };

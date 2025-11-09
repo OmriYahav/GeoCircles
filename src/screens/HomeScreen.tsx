@@ -15,7 +15,6 @@ import { useRouter } from "expo-router";
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
 import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
 import Card from "../components/Card";
-import CTAButton from "../components/CTAButton";
 import ScrollToTopButton from "../components/ScrollToTopButton";
 import TestimonialsCarousel from "../components/TestimonialsCarousel";
 import ThisMonthSection from "../components/ThisMonthSection";
@@ -84,16 +83,6 @@ export default function HomeScreen() {
               אוסף עשיר של מתכונים, סדנאות, טיפולים ותכנים מעוררי השראה.
             </Text>
 
-            <CTAButton
-              title="גלי את הסדנאות"
-              onPress={() => navigateTo(menuRouteMap.Workshops)}
-            />
-
-            <CTAButton
-              title="איזון אישי"
-              onPress={() => navigateTo("/personal-balance")}
-            />
-
             <View style={styles.cardsSection}>
               <Card
                 title="מתכונים בריאים"
@@ -112,12 +101,6 @@ export default function HomeScreen() {
                 subtitle="מפגשים אישיים וקבוצתיים"
                 icon="leaf"
                 onPress={() => navigateTo(menuRouteMap.Treatments)}
-              />
-              <Card
-                title="עצות תזונה"
-                subtitle="מדריכים קצרים ופרקטיים"
-                icon="book-open"
-                onPress={() => navigateTo(menuRouteMap.Tips)}
               />
               <Card
                 title="בלוג"
@@ -212,6 +195,7 @@ const styles = StyleSheet.create({
   },
   cardsSection: {
     gap: spacing(1.5),
+    marginTop: spacing(1),
   },
   sectionSpacing: {
     marginTop: spacing(2),
