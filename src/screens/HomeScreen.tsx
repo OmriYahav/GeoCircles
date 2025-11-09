@@ -54,17 +54,22 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const preloadScreens = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      const screens = [
-        () => import("./WorkshopsScreen"),
-        () => import("./TreatmentsScreen"),
-        () => import("./RecipesScreen"),
-        () => import("./TipsScreen"),
-        () => import("./BlogScreen"),
-      ];
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      for (const loader of screens) {
-        loader();
+        const screens = [
+          () => import("../screens/WorkshopsScreen"),
+          () => import("../screens/TreatmentsScreen"),
+          () => import("../screens/RecipesScreen"),
+          () => import("../screens/TipsScreen"),
+          () => import("../screens/BlogScreen"),
+        ];
+
+        screens.forEach((loader) => {
+          void loader();
+        });
+      } catch (error) {
+        console.warn("Preload error:", error);
       }
     };
 
