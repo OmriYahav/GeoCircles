@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   Animated,
+  ImageBackground,
   NativeScrollEvent,
   NativeSyntheticEvent,
   SafeAreaView,
@@ -14,10 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
 import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
-import Card from "../components/Card";
 import ScrollToTopButton from "../components/ScrollToTopButton";
-import TestimonialsCarousel from "../components/TestimonialsCarousel";
-import ThisMonthSection from "../components/ThisMonthSection";
 import SideMenuNew from "../components/SideMenuNew";
 import { colors, spacing, typography } from "../theme";
 import { useMenu } from "../context/MenuContext";
@@ -28,6 +26,8 @@ export default function HomeScreen() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const scrollY = useRef(new Animated.Value(0)).current;
   const { isOpen, open, close } = useMenu();
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -35,12 +35,32 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, [fadeAnim]);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 5,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, scaleAnim]);
+
+  const parallaxTranslate = scrollY.interpolate({
+    inputRange: [0, 250],
+    outputRange: [0, -50],
+    extrapolate: "clamp",
+  });
+
+  const parallaxScale = scrollY.interpolate({
+    inputRange: [-150, 0, 150],
+    outputRange: [1.3, 1, 0.9],
+    extrapolate: "clamp",
+  });
 
   const handleMenuPress = useCallback(() => {
     open();
@@ -50,14 +70,6 @@ export default function HomeScreen() {
     close();
     router.navigate("/");
   }, [close, router]);
-
-  const navigateTo = useCallback(
-    (path: string) => {
-      close();
-      router.navigate(path);
-    },
-    [close, router],
-  );
 
   return (
     <LinearGradient colors={[colors.bgFrom, colors.bgTo]} style={styles.gradient}>
@@ -69,62 +81,66 @@ export default function HomeScreen() {
           <HeaderRightMenuButton onPress={handleMenuPress} expanded={isOpen} />
         </View>
 
-        <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}>
-          <ScrollView
+        <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}> 
+          <Animated.ScrollView
             ref={scrollRef}
-            onScroll={handleScroll}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { useNativeDriver: true, listener: handleScroll },
+            )}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.content}
           >
-            <Text style={styles.heroSubtitle}>איזון רך לחיים מלאים</Text>
-            <Text style={styles.heroBody}>
-              ברוכה הבאה ל-Sweet Balance — מקום של טעם, תזונה ורגעי רוגע. בתפריט מחכה לך
-              אוסף עשיר של מתכונים, סדנאות, טיפולים ותכנים מעוררי השראה.
+            <Text style={styles.heroTitle}>איזון רך לחיים מלאים</Text>
+            <Text style={styles.heroDescription}>
+              ברוכה הבאה ל-Sweet Balance — מקום של רוגע, ריפוי והרמוניה. כאן תמצאי טיפול
+              בפרחי באך, שמנים אתריים והדרכה לאיזון גוף ונפש.
             </Text>
 
-            <View style={styles.cardsSection}>
-              <Card
-                title="מתכונים בריאים"
-                subtitle="קינוחים מאזנים, ארוחות קלילות ומשביעות"
-                icon="coffee"
-                onPress={() => navigateTo(menuRouteMap.Recipes)}
-              />
-              <Card
-                title="סדנאות"
-                subtitle="לוח סדנאות קרובות + שריון מקום"
-                icon="users"
-                onPress={() => navigateTo(menuRouteMap.Workshops)}
-              />
-              <Card
-                title="טיפולים"
-                subtitle="מפגשים אישיים וקבוצתיים"
-                icon="leaf"
-                onPress={() => navigateTo(menuRouteMap.Treatments)}
-              />
-              <Card
-                title="בלוג"
-                subtitle="מאמרים, תובנות והשראה"
-                icon="feather"
-                onPress={() => navigateTo(menuRouteMap.Blog)}
-              />
-            </View>
-
-            <View style={styles.sectionSpacing}>
-              <ThisMonthSection onReserve={() => navigateTo(menuRouteMap.Workshops)} />
-            </View>
-
-            <View style={styles.sectionSpacing}>
-              <Text style={styles.sectionTitle}>מה אומרים עלינו</Text>
-              <TestimonialsCarousel
-                items={[
-                  { name: "שירי", quote: "האווירה נעימה וכל מתכון הצליח לי בבית." },
-                  { name: "נועה", quote: "סדנאות מקצועיות עם טיפים שאפשר ליישם מייד." },
-                  { name: "דנה", quote: "מצאתי איזון עדין שמחזיק לאורך זמן." },
+            <Animated.View
+              style={[
+                styles.parallaxContainer,
+                { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+              ]}
+            >
+              <Animated.View
+                style={[
+                  styles.parallaxInner,
+                  {
+                    transform: [
+                      { translateY: parallaxTranslate },
+                      { scale: parallaxScale },
+                    ],
+                  },
                 ]}
-              />
+              >
+                <ImageBackground
+                  source={require("../../assets/images/splash.png")}
+                  style={styles.parallaxImage}
+                  resizeMode="cover"
+                >
+                  <View style={styles.overlay} />
+                  <Animated.Text style={[styles.floatingTitle, { opacity: fadeAnim }]}>
+                    פרחי באך ושמנים אתריים
+                  </Animated.Text>
+                </ImageBackground>
+              </Animated.View>
+            </Animated.View>
+
+            <View style={styles.descriptionWrapper}>
+              <Text style={styles.descriptionText}>
+                השילוב בין פרחי באך לשמנים אתריים מאפשר ריפוי עדין, טבעי ומאוזן — חיבור בין
+                הגוף, הרגש והנפש. כל תמצית וכל שמן נבחרים בקפידה כדי לסייע לך לשחרר מתחים,
+                לחזק אנרגיה פנימית ולהביא שלווה ורוגע ביום יום.
+              </Text>
+
+              <Text style={styles.descriptionText}>
+                בטיפולים האישיים שלנו תיהני מתהליך ריפוי מותאם אישית, תוך שילוב של מגע, ריח,
+                אנרגיה והקשבה לגוף ולנפש.
+              </Text>
             </View>
-          </ScrollView>
+          </Animated.ScrollView>
         </Animated.View>
 
         <ScrollToTopButton
@@ -178,34 +194,66 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing(2),
     paddingBottom: spacing(4),
     gap: spacing(2),
+    alignItems: "center",
   },
-  heroSubtitle: {
+  heroTitle: {
     color: colors.primary,
     fontSize: typography.size.xxl,
     fontFamily: typography.fontFamily,
     fontWeight: "700",
-    textAlign: "right",
+    textAlign: "center",
   },
-  heroBody: {
+  heroDescription: {
     color: colors.subtitle,
     fontSize: typography.body,
     lineHeight: typography.body * 1.6,
     fontFamily: typography.fontFamily,
-    textAlign: "right",
+    textAlign: "center",
   },
-  cardsSection: {
-    gap: spacing(1.5),
-    marginTop: spacing(1),
+  parallaxContainer: {
+    width: "100%",
+    borderRadius: spacing(2.5),
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+    alignItems: "center",
   },
-  sectionSpacing: {
-    marginTop: spacing(2),
+  parallaxInner: {
+    width: "100%",
+    height: 300,
   },
-  sectionTitle: {
-    color: colors.primary,
-    fontSize: typography.title,
-    fontWeight: "700",
+  parallaxImage: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+  floatingTitle: {
+    color: colors.background,
+    fontSize: typography.size.xl,
     fontFamily: typography.fontFamily,
-    textAlign: "right",
-    marginBottom: spacing(1),
+    fontWeight: "600",
+    textAlign: "center",
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  descriptionWrapper: {
+    gap: spacing(1.5),
+    paddingHorizontal: spacing(0.5),
+  },
+  descriptionText: {
+    color: colors.subtitle,
+    fontSize: typography.body,
+    lineHeight: typography.body * 1.6,
+    fontFamily: typography.fontFamily,
+    textAlign: "center",
   },
 });
