@@ -187,7 +187,11 @@ export default function RecipesScreen() {
         )}
 
         <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}>
-          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
             <Text style={styles.screenTitle}>מתכונים בריאים</Text>
             <Text style={styles.screenSubtitle}>איזון של טעם ותזונה בכל ביס</Text>
             {PARAGRAPHS.map((paragraph) => (
@@ -381,9 +385,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    flexGrow: 1,
     paddingHorizontal: spacing(2),
     paddingBottom: spacing(4),
     gap: spacing(1.5),
+  },
+  scrollView: {
+    flex: 1,
   },
   screenTitle: {
     color: colors.primary,
