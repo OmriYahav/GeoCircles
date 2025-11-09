@@ -13,7 +13,6 @@ export type MenuRouteName =
   | "Recipes"
   | "Workshops"
   | "Treatments"
-  | "Tips"
   | "Blog"
   | "Contact";
 

@@ -56,12 +56,6 @@ const MENU_ITEMS: MenuItem[] = [
     icon: "heart",
   },
   {
-    key: "Tips",
-    title: "עצות תזונה",
-    subtitle: "הכוונה רכה ליום-יום",
-    icon: "book-open",
-  },
-  {
     key: "Blog",
     title: "בלוג",
     subtitle: "השראה, סיפורים וטעמים",
