@@ -5,11 +5,14 @@ import {
   Linking,
   Pressable,
   StyleSheet,
+  Text,
   View,
   useWindowDimensions,
 } from "react-native";
-import ScreenScaffold from "../components/layout/ScreenScaffold";
 import { Feather, FontAwesome } from "@expo/vector-icons";
+
+import ScreenScaffold from "../components/layout/ScreenScaffold";
+import { colors, spacing, typography } from "../theme";
 
 I18nManager.allowRTL(true);
 
@@ -21,6 +24,7 @@ type ContactItem = {
   a11y: string;
   renderIcon: () => ReactElement;
   bg: string;
+  iconColor: string;
 };
 
 const CONTACT_ITEMS: ContactItem[] = [
@@ -28,29 +32,33 @@ const CONTACT_ITEMS: ContactItem[] = [
     key: "whatsapp",
     url: "https://wa.me/972507117202",
     a11y: "שליחת הודעה בוואטסאפ",
-    bg: "#25D366",
-    renderIcon: () => <FontAwesome name="whatsapp" size={36} color="#fff" />,
+    bg: colors.primarySoft,
+    iconColor: colors.primary,
+    renderIcon: () => <FontAwesome name="whatsapp" size={28} color={colors.primary} />,
   },
   {
     key: "instagram",
-    url: "https://www.instagram.com/batchenlev?igsh=MXJjNDJjaHEzNTlyaw==",
+    url: "https://www.instagram.com/batchenlev",
     a11y: "כניסה לפרופיל אינסטגרם",
-    bg: "#C13584",
-    renderIcon: () => <Feather name="instagram" size={36} color="#fff" />,
+    bg: colors.primarySoft,
+    iconColor: colors.primary,
+    renderIcon: () => <Feather name="instagram" size={28} color={colors.primary} />,
   },
   {
     key: "facebook",
     url: "https://www.facebook.com/share/17YP65zVDC/?mibextid=wwXIfr",
     a11y: "פתיחת פייסבוק",
-    bg: "#1877F2",
-    renderIcon: () => <Feather name="facebook" size={36} color="#fff" />,
+    bg: colors.primarySoft,
+    iconColor: colors.primary,
+    renderIcon: () => <Feather name="facebook" size={28} color={colors.primary} />,
   },
   {
     key: "email",
     url: "mailto:batchenlev@gmail.com",
     a11y: "שליחת מייל",
-    bg: "#4CAF50",
-    renderIcon: () => <Feather name="mail" size={34} color="#fff" />,
+    bg: colors.primarySoft,
+    iconColor: colors.primary,
+    renderIcon: () => <Feather name="mail" size={28} color={colors.primary} />,
   },
 ];
 
@@ -68,7 +76,7 @@ async function openUrl(url: string) {
   }
 }
 
-const CIRCLE = 86;
+const CIRCLE = 60;
 const GAP = 18;
 
 export default function ContactScreen() {
@@ -83,7 +91,14 @@ export default function ContactScreen() {
   }, [columns]);
 
   return (
-    <ScreenScaffold contentStyle={styles.scaffoldContent}>
+    <ScreenScaffold
+      contentStyle={styles.scaffoldContent}
+      topContent={
+        <View style={styles.pageHeader}>
+          <Text style={styles.title}>צור קשר</Text>
+        </View>
+      }
+    >
       <View style={styles.container}>
         <View style={[styles.grid, gridStyle]}>
           {CONTACT_ITEMS.map((item) => (
@@ -95,7 +110,7 @@ export default function ContactScreen() {
               hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
               style={({ pressed }) => [
                 styles.circle,
-                { backgroundColor: item.bg },
+                { backgroundColor: item.bg, borderColor: item.iconColor },
                 pressed && styles.pressed,
               ]}
             >
@@ -114,13 +129,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  pageHeader: {
+    paddingBottom: spacing(1.5),
+    alignItems: "center",
+  },
+  title: {
+    fontFamily: typography.family.heading,
+    fontSize: typography.size.xl,
+    color: colors.primary,
+    textAlign: "center",
+  },
   container: {
     width: "100%",
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
-    backgroundColor: "#F6F1EA",
+    paddingHorizontal: spacing(2),
+    backgroundColor: colors.background,
   },
   grid: {
     width: "100%",
@@ -139,14 +164,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: GAP / 2,
     marginVertical: GAP / 2,
-    elevation: 3,
-    shadowColor: "#000",
+    borderWidth: 1,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 4,
   },
   pressed: {
-    transform: [{ scale: 0.97 }],
-    opacity: 0.9,
+    opacity: 0.85,
+    transform: [{ scale: 1.05 }],
   },
 });

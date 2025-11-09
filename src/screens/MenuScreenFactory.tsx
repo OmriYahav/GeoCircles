@@ -64,7 +64,7 @@ export function createMenuScreen(config: MenuScreenConfig) {
             >
               {config.iconName ? (
                 <View style={styles.iconBadge}>
-                  <Feather name={config.iconName} size={22} color="#3B7A57" />
+                  <Feather name={config.iconName} size={24} color={colors.primary} />
                 </View>
               ) : null}
               <Text style={styles.title}>{config.title}</Text>
@@ -100,6 +100,7 @@ const styles = StyleSheet.create({
   },
   safe: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: "row",
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
   },
   iconBadge: {
     alignSelf: "flex-end",
-    backgroundColor: "#E8F3EA",
+    backgroundColor: colors.primarySoft,
     borderRadius: 28,
     padding: spacing(1.5),
     marginBottom: spacing(1),

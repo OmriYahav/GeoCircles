@@ -6,8 +6,8 @@ import HeaderRightMenuButton from "../HeaderRightMenuButton";
 import { colors, typography } from "../../theme";
 import { useMenu } from "../../context/MenuContext";
 
-const HEADER_HEIGHT = 60;
-const HEADER_PADDING = 16;
+const HEADER_HEIGHT = 68;
+const HEADER_PADDING = 20;
 
 type TopNavigationMenuProps = {
   onPressHome: () => void;
@@ -31,15 +31,16 @@ const styles = StyleSheet.create({
   container: {
     height: HEADER_HEIGHT,
     paddingHorizontal: HEADER_PADDING,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: colors.background,
-    shadowColor: "rgba(59, 101, 69, 0.14)",
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
     writingDirection: "ltr",
     zIndex: 30,
   },

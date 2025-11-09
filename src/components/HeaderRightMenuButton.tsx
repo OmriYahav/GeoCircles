@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from "react";
-import { Animated, I18nManager, Pressable, StyleSheet, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import React, { useRef } from "react";
+import { Animated, Pressable, StyleSheet, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
+
+import { colors } from "../theme";
 
 export type HeaderRightMenuButtonProps = {
   onPress: () => void;
@@ -9,40 +10,14 @@ export type HeaderRightMenuButtonProps = {
   accessibilityLabel?: string;
 };
 
+const SIZE = 36;
+
 export default function HeaderRightMenuButton({
   onPress,
   expanded = false,
   accessibilityLabel = "פתיחת תפריט",
 }: HeaderRightMenuButtonProps) {
-  const pulse = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 2200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 2200,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    animation.start();
-
-    return () => {
-      animation.stop();
-    };
-  }, [pulse]);
-
-  const scale = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.95, 1.05],
-  });
+  const scale = useRef(new Animated.Value(1)).current;
 
   return (
     <Pressable
@@ -50,96 +25,77 @@ export default function HeaderRightMenuButton({
       accessibilityState={{ expanded }}
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        pressed && styles.buttonPressed,
-      ]}
+      onPressIn={() => {
+        Animated.spring(scale, {
+          toValue: 0.94,
+          useNativeDriver: true,
+          bounciness: 0,
+          speed: 16,
+        }).start();
+      }}
+      onPressOut={() => {
+        Animated.spring(scale, {
+          toValue: 1,
+          useNativeDriver: true,
+          bounciness: 0,
+          speed: 16,
+        }).start();
+      }}
+      style={({ pressed }) => [pressed && styles.pressed]}
     >
-      <Animated.View style={[styles.animatedContainer, { transform: [{ scale }] }]}>
-        <LinearGradient
-          colors={["rgba(59, 122, 87, 0.95)", "rgba(59, 122, 87, 0.75)"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        >
-          <View style={styles.iconBadge}>
-            <Feather
-              name="leaf"
-              size={18}
-              color="rgba(255,255,255,0.9)"
-              style={styles.leafIcon}
-            />
-          </View>
-          <View style={styles.lines}>
-            <View style={[styles.line, styles.lineWide]} />
-            <View style={[styles.line, styles.lineMedium]} />
-            <View style={[styles.line, styles.lineWide]} />
-          </View>
-        </LinearGradient>
+      <Animated.View
+        style={[
+          styles.container,
+          expanded && styles.containerActive,
+          { transform: [{ scale }] },
+        ]}
+      >
+        <View style={styles.menuLines}>
+          <View style={styles.line} />
+          <View style={styles.line} />
+          <View style={styles.line} />
+        </View>
+        <Feather name="leaf" size={12} color={colors.buttonBg} style={styles.leaf} />
       </Animated.View>
     </Pressable>
   );
 }
 
-const SIZE = 46;
-const BADGE_SIZE = 26;
-
 const styles = StyleSheet.create({
-  button: {
+  container: {
     width: SIZE,
     height: SIZE,
     borderRadius: SIZE / 2,
-    overflow: "hidden",
-    shadowColor: "rgba(34, 68, 41, 0.25)",
-    shadowOpacity: 0.25,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.16,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    elevation: 4,
   },
-  buttonPressed: {
-    transform: [{ scale: 0.97 }],
-    shadowOpacity: 0.18,
+  containerActive: {
+    backgroundColor: colors.primary,
   },
-  animatedContainer: {
-    flex: 1,
-    borderRadius: SIZE / 2,
+  pressed: {
+    opacity: 0.9,
   },
-  gradient: {
-    flex: 1,
-    borderRadius: SIZE / 2,
-    paddingHorizontal: 12,
-    flexDirection: I18nManager.isRTL ? "row" : "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  iconBadge: {
-    width: BADGE_SIZE,
-    height: BADGE_SIZE,
-    borderRadius: BADGE_SIZE / 2,
-    backgroundColor: "rgba(255, 255, 255, 0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.25)",
-  },
-  leafIcon: {
-    transform: [{ rotate: "-12deg" }],
-  },
-  lines: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  menuLines: {
+    width: 18,
     gap: 3,
+    alignItems: "center",
   },
   line: {
-    height: 3,
+    width: "100%",
+    height: 2,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "#FFFFFF",
   },
-  lineWide: {
-    width: 18,
-  },
-  lineMedium: {
-    width: 14,
+  leaf: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    transform: [{ rotate: "-16deg" }],
   },
 });
