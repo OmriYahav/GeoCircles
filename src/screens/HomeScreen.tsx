@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   Animated,
+  Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   SafeAreaView,
@@ -16,10 +17,11 @@ import AnimatedHomeButton from "../components/AnimatedHomeButton";
 import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
 import ScrollToTopButton from "../components/ScrollToTopButton";
 import SideMenuNew from "../components/SideMenuNew";
-import SweetBalanceLogo from "../components/SweetBalanceLogo";
 import { colors, spacing, typography } from "../theme";
 import { useMenu } from "../context/MenuContext";
 import { menuRouteMap } from "../constants/menuRoutes";
+
+const homeLogo = require("../photos/batchen.jpg");
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -116,10 +118,7 @@ export default function HomeScreen() {
                 ]}
               >
                 <View style={styles.heroGraphic}>
-                  <SweetBalanceLogo size={192} />
-                  <Animated.Text style={[styles.floatingTitle, { opacity: fadeAnim }]}>
-                    פרחי באך ושמנים אתריים
-                  </Animated.Text>
+                  <Image source={homeLogo} style={styles.logo} resizeMode="contain" />
                 </View>
               </Animated.View>
             </Animated.View>
@@ -229,17 +228,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: spacing(1.5),
   },
-  floatingTitle: {
-    position: "absolute",
-    bottom: spacing(1.25),
-    left: spacing(1.25),
-    right: spacing(1.25),
-    color: colors.primary,
-    fontSize: typography.size.xl,
-    fontFamily: typography.fontFamily,
-    fontWeight: "600",
-    textAlign: "center",
-    letterSpacing: 0.5,
+  logo: {
+    width: 160,
+    height: 160,
+    alignSelf: "center",
+    marginTop: 24,
+    marginBottom: 12,
+    borderRadius: 16,
   },
   descriptionWrapper: {
     gap: spacing(1.5),
