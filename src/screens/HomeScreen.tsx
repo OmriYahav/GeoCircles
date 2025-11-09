@@ -8,13 +8,10 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
 import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
 import Card from "../components/Card";
@@ -152,17 +149,6 @@ export default function HomeScreen() {
           onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
         />
 
-        <View style={styles.bottomCtaContainer}>
-          <TouchableOpacity
-            style={styles.ctaButton}
-            onPress={() => navigateTo(menuRouteMap.Treatments)}
-            accessibilityRole="button"
-            accessibilityLabel="איזון טבעי – מעבר לטיפולים"
-          >
-            <Feather name="wind" size={20} color="#FFFFFF" />
-            <Text style={styles.ctaText}>איזון טבעי – רגע לנשום</Text>
-          </TouchableOpacity>
-        </View>
       </SafeAreaView>
 
       <SideMenuNew
@@ -237,23 +223,5 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily,
     textAlign: "right",
     marginBottom: spacing(1),
-  },
-  bottomCtaContainer: {
-    paddingHorizontal: spacing(2),
-    paddingBottom: spacing(2),
-  },
-  ctaButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primary,
-    borderRadius: 30,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  ctaText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Heebo_600SemiBold",
   },
 });

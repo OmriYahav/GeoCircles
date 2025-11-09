@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  Easing,
   I18nManager,
   Pressable,
   ScrollView,
@@ -14,7 +15,13 @@ import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { type MenuRouteName } from "../context/MenuContext";
-import { colors as tokenColors, font, radius, spacing } from "../theme/tokens";
+import {
+  colors as tokenColors,
+  font,
+  lineHeight,
+  radius,
+  spacing,
+} from "../theme/tokens";
 
 export type SideMenuNewProps = {
   visible: boolean;
@@ -70,12 +77,12 @@ const MENU_ITEMS: MenuItem[] = [
 
 const BACKDROP_OPACITY = 0.45;
 const MAX_PANEL_WIDTH = 360;
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 export default function SideMenuNew({ visible, onClose, navigate }: SideMenuNewProps) {
   const { width: windowWidth } = useWindowDimensions();
   const [isRendered, setIsRendered] = useState(visible);
-  const fadeAnim = useRef(new Animated.Value(visible ? 1 : 0)).current;
-  const slideAnim = useRef(new Animated.Value(visible ? 0 : 100)).current;
+  const progress = useRef(new Animated.Value(visible ? 1 : 0)).current;
 
   const panelWidth = useMemo(
     () => Math.min(windowWidth * 0.9, MAX_PANEL_WIDTH),
@@ -84,38 +91,30 @@ export default function SideMenuNew({ visible, onClose, navigate }: SideMenuNewP
   const slideDistance = panelWidth + 48;
 
   useEffect(() => {
+    let isMounted = true;
     if (visible) {
       setIsRendered(true);
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-        }),
-      ]).start();
-      return;
     }
 
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 100,
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
-      if (finished) {
+    progress.stopAnimation();
+    const animation = Animated.timing(progress, {
+      toValue: visible ? 1 : 0,
+      duration: 150,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    });
+
+    animation.start(({ finished }) => {
+      if (!visible && finished && isMounted) {
         setIsRendered(false);
       }
     });
-  }, [fadeAnim, slideAnim, visible]);
+
+    return () => {
+      isMounted = false;
+      animation.stop();
+    };
+  }, [progress, visible]);
 
   const handleNavigate = useCallback(
     (item: MenuItem) => {
@@ -131,13 +130,13 @@ export default function SideMenuNew({ visible, onClose, navigate }: SideMenuNewP
     () => [
       styles.backdrop,
       {
-        opacity: fadeAnim.interpolate({
+        opacity: progress.interpolate({
           inputRange: [0, 1],
           outputRange: [0, BACKDROP_OPACITY],
         }),
       },
     ],
-    [fadeAnim],
+    [progress],
   );
 
   const animatedPanelStyle = useMemo(
@@ -145,18 +144,21 @@ export default function SideMenuNew({ visible, onClose, navigate }: SideMenuNewP
       styles.panel,
       {
         width: panelWidth,
-        opacity: fadeAnim,
+        opacity: progress,
         transform: [
           {
-            translateX: slideAnim.interpolate({
-              inputRange: [0, 100],
-              outputRange: [0, (I18nManager.isRTL ? -1 : 1) * slideDistance],
+            translateX: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [
+                (I18nManager.isRTL ? -1 : 1) * slideDistance,
+                0,
+              ],
             }),
           },
         ],
       },
     ],
-    [fadeAnim, panelWidth, slideAnim, slideDistance],
+    [panelWidth, progress, slideDistance],
   );
 
   if (!isRendered) {
@@ -166,10 +168,10 @@ export default function SideMenuNew({ visible, onClose, navigate }: SideMenuNewP
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Animated.View pointerEvents={pointerEvents} style={StyleSheet.absoluteFill}>
-        <BlurView
+        <AnimatedBlurView
           intensity={28}
           tint="light"
-          style={StyleSheet.absoluteFill}
+          style={[StyleSheet.absoluteFill, { opacity: progress }]}
           pointerEvents="none"
         />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
@@ -269,6 +271,7 @@ const styles = StyleSheet.create({
     fontSize: font.h1,
     fontFamily: "Heebo_700Bold",
     textAlign: "center",
+    lineHeight: lineHeight.h1,
   },
   brandSubtitle: {
     color: "#707070",
@@ -276,6 +279,7 @@ const styles = StyleSheet.create({
     fontFamily: "Heebo_400Regular",
     textAlign: "center",
     marginTop: 6,
+    lineHeight: lineHeight.small,
   },
   closeButton: {
     width: 36,
@@ -324,15 +328,17 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     color: tokenColors.text,
-    fontSize: 18,
+    fontSize: font.lead,
     fontFamily: "Heebo_600SemiBold",
     textAlign: "right",
+    lineHeight: lineHeight.lead,
   },
   menuSubtitle: {
     color: "#707070",
-    fontSize: 14,
+    fontSize: font.body,
     fontFamily: "Heebo_400Regular",
     textAlign: "right",
+    lineHeight: lineHeight.body,
   },
   backdrop: {
     flex: 1,
