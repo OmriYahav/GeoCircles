@@ -21,7 +21,7 @@ import { colors, spacing, typography } from "../theme";
 import { useMenu } from "../context/MenuContext";
 import { menuRouteMap } from "../constants/menuRoutes";
 
-const homeLogo = require("../photos/batchen.jpg");
+const homeLogo = require("../../photos/batchen.jpg");
 
 export default function HomeScreen() {
   const router = useRouter();
