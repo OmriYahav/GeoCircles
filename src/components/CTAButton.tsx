@@ -31,8 +31,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.buttonText,
-    fontWeight: "700",
     fontSize: typography.size.lg,
-    fontFamily: typography.fontFamily,
+    fontFamily: "Heebo_600SemiBold",
   },
 });

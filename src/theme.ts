@@ -1,16 +1,16 @@
 import { Platform } from "react-native";
 
 const baseColors = {
-  bgFrom: "#F8F4ED",
-  bgTo: "#E9F2E3",
-  primary: "#2F6D3A",
-  primarySoft: "#A9C9A4",
-  text: "#2F6D3A",
-  subtitle: "#6D8571",
+  bgFrom: "#F8F6F2",
+  bgTo: "#F0ECE5",
+  primary: "#3B7A57",
+  primarySoft: "#A9CBB0",
+  text: "#2F6B3A",
+  subtitle: "#618C68",
   cardBg: "#FFFFFF",
-  shadow: "rgba(47, 109, 58, 0.12)",
-  buttonBg: "#E9F2E3",
-  buttonText: "#2F6D3A",
+  shadow: "rgba(59, 122, 87, 0.12)",
+  buttonBg: "#3B7A57",
+  buttonText: "#FFFFFF",
 };
 
 export const colors = {
@@ -32,24 +32,24 @@ export const colors = {
 };
 
 const defaultFontFamily = Platform.select({
-  ios: "System",
-  android: "System",
-  default: "System",
+  ios: "Heebo_400Regular",
+  android: "Heebo_400Regular",
+  default: "Heebo_400Regular",
 });
 
 export const typography = {
-  title: 34,
+  title: 28,
   subtitle: 18,
-  body: 16,
-  small: 14,
+  body: 15,
+  small: 13,
   line: 1.7,
-  fontFamily: defaultFontFamily ?? "System",
+  fontFamily: defaultFontFamily ?? "Heebo_400Regular",
   family: {
-    heading: defaultFontFamily ?? "System",
-    regular: defaultFontFamily ?? "System",
-    medium: defaultFontFamily ?? "System",
-    semiBold: defaultFontFamily ?? "System",
-    bold: defaultFontFamily ?? "System",
+    heading: "Heebo_700Bold",
+    regular: defaultFontFamily ?? "Heebo_400Regular",
+    medium: "Heebo_500Medium",
+    semiBold: "Heebo_600SemiBold",
+    bold: "Heebo_700Bold",
   },
   size: {
     caption: 12,
@@ -58,7 +58,7 @@ export const typography = {
     md: 16,
     lg: 18,
     xl: 24,
-    xxl: 34,
+    xxl: 32,
   },
   lineHeight: {
     tight: 18,

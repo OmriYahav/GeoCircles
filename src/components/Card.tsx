@@ -1,16 +1,17 @@
 import React, { useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
 
-import { colors, radius, spacing, typography } from "../theme";
+import { colors, spacing, typography } from "../theme";
 
 type CardProps = {
   title: string;
   subtitle?: string;
-  rightIcon?: React.ReactNode;
+  icon?: keyof typeof Feather.glyphMap;
   onPress?: () => void;
 };
 
-export default function Card({ title, subtitle, rightIcon, onPress }: CardProps) {
+export default function Card({ title, subtitle, icon = "leaf", onPress }: CardProps) {
   const scale = useRef(new Animated.Value(1)).current;
 
   return (
@@ -26,11 +27,14 @@ export default function Card({ title, subtitle, rightIcon, onPress }: CardProps)
       style={{ marginBottom: spacing(2) }}
     >
       <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
+        <View style={styles.iconContainer}>
+          <Feather name={icon} size={22} color="#3B7A57" />
+        </View>
         <View style={styles.textWrap}>
           <Text style={styles.title}>{title}</Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
-        {rightIcon}
+        <Feather name="chevron-left" size={22} color="#3B7A57" />
       </Animated.View>
     </Pressable>
   );
@@ -39,31 +43,39 @@ export default function Card({ title, subtitle, rightIcon, onPress }: CardProps)
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.cardBg,
-    borderRadius: radius.lg,
-    padding: spacing(2),
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: spacing(2),
     shadowColor: "#000",
     shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   textWrap: {
     flex: 1,
     alignItems: "flex-end",
   },
   title: {
-    color: colors.primary,
-    fontSize: typography.subtitle,
-    fontWeight: "700",
+    color: "#3B7A57",
+    fontSize: typography.size.lg,
+    fontFamily: "Heebo_700Bold",
     textAlign: "right",
   },
   subtitle: {
-    color: colors.subtitle,
+    color: "#6B6B6B",
     fontSize: typography.small,
-    lineHeight: typography.small * 1.5,
+    lineHeight: typography.small * 1.6,
+    fontFamily: "Heebo_400Regular",
     textAlign: "right",
+  },
+  iconContainer: {
+    backgroundColor: "#E8F3EA",
+    borderRadius: 50,
+    padding: 10,
+    marginLeft: 10,
   },
 });

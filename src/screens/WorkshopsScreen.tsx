@@ -32,10 +32,12 @@ import type { SavedWorkshop } from "./MyWorkshopsScreen";
 
 const STORAGE_KEY = "sweet-balance.workshops";
 
+type WorkshopIconName = "smile" | "aperture" | "droplet" | "users";
+
 type WorkshopOption = {
   id: string;
   title: string;
-  emoji: string;
+  icon: WorkshopIconName;
   route: string;
   description: string;
 };
@@ -44,28 +46,28 @@ const WORKSHOP_OPTIONS: WorkshopOption[] = [
   {
     id: "kids-baking",
     title: "אפיה בריאה לילדים",
-    emoji: "🧁",
+    icon: "smile",
     route: "/(drawer)/workshops/healthy-baking",
     description: "הכנת קינוחים מאוזנים לכל המשפחה",
   },
   {
     id: "healthy-cooking",
     title: "בישול בריא",
-    emoji: "🍲",
+    icon: "aperture",
     route: "/(drawer)/workshops/healthy-cooking",
     description: "מנות חמות עם ירקות עונתיים וטעמים מרעננים",
   },
   {
     id: "natural-care",
     title: "רוקחות טבעית",
-    emoji: "🌿",
+    icon: "droplet",
     route: "/(drawer)/workshops/natural-cosmetics",
     description: "סדנת יצירה לטיפוח גוף טבעי ומזין",
   },
   {
     id: "healthy-hosting",
     title: "אירוח בריא",
-    emoji: "🍽️",
+    icon: "users",
     route: "/(drawer)/workshops/healthy-hosting",
     description: "שולחן מפנק לאירועים קטנים עם נגיעות ירוקות",
   },
@@ -263,10 +265,10 @@ export default function WorkshopsScreen() {
               <View style={styles.optionsList}>
                 {WORKSHOP_OPTIONS.map((option) => (
                   <View key={option.id} style={styles.optionCard}>
-                    <Text style={styles.optionEmoji}>{option.emoji}</Text>
                     <Card
                       title={option.title}
                       subtitle={option.description}
+                      icon={option.icon}
                       onPress={() => handleNavigateOption(option.route)}
                     />
                   </View>
@@ -435,12 +437,7 @@ const styles = StyleSheet.create({
     marginTop: spacing(2),
   },
   optionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing(1),
-  },
-  optionEmoji: {
-    fontSize: 30,
+    width: "100%",
   },
   savedList: {
     gap: spacing(1),
