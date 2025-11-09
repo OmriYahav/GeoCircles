@@ -1,12 +1,12 @@
 import React, { Suspense } from "react";
 
-import ScreenFallback from "../../src/components/ScreenFallback";
+import AnimatedLoader from "../../src/components/AnimatedLoader";
 
 const RecipesScreen = React.lazy(() => import("../../src/screens/RecipesScreen"));
 
 export default function RecipesRoute() {
   return (
-    <Suspense fallback={<ScreenFallback />}>
+    <Suspense fallback={<AnimatedLoader />}>
       <RecipesScreen />
     </Suspense>
   );

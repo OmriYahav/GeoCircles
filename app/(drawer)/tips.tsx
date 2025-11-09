@@ -1,12 +1,12 @@
 import React, { Suspense } from "react";
 
-import ScreenFallback from "../../src/components/ScreenFallback";
+import AnimatedLoader from "../../src/components/AnimatedLoader";
 
 const TipsScreen = React.lazy(() => import("../../src/screens/TipsScreen"));
 
 export default function TipsRoute() {
   return (
-    <Suspense fallback={<ScreenFallback />}>
+    <Suspense fallback={<AnimatedLoader />}>
       <TipsScreen />
     </Suspense>
   );

@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 
-import ScreenFallback from "../../../src/components/ScreenFallback";
+import AnimatedLoader from "../../../src/components/AnimatedLoader";
 
 const HealthyHostingScreen = React.lazy(
   () => import("../../../src/screens/Workshops/HealthyHostingScreen"),
@@ -8,7 +8,7 @@ const HealthyHostingScreen = React.lazy(
 
 export default function HealthyHostingRoute() {
   return (
-    <Suspense fallback={<ScreenFallback />}>
+    <Suspense fallback={<AnimatedLoader />}>
       <HealthyHostingScreen />
     </Suspense>
   );

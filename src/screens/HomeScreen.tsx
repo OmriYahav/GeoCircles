@@ -52,6 +52,25 @@ export default function HomeScreen() {
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
+  useEffect(() => {
+    const preloadScreens = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      const screens = [
+        () => import("./WorkshopsScreen"),
+        () => import("./TreatmentsScreen"),
+        () => import("./RecipesScreen"),
+        () => import("./TipsScreen"),
+        () => import("./BlogScreen"),
+      ];
+
+      for (const loader of screens) {
+        loader();
+      }
+    };
+
+    void preloadScreens();
+  }, []);
+
   const parallaxTranslate = scrollY.interpolate({
     inputRange: [0, 250],
     outputRange: [0, -50],

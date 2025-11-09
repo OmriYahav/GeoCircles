@@ -1,12 +1,12 @@
 import React, { Suspense } from "react";
 
-import ScreenFallback from "../../src/components/ScreenFallback";
+import AnimatedLoader from "../../src/components/AnimatedLoader";
 
 const BlogScreen = React.lazy(() => import("../../src/screens/BlogScreen"));
 
 export default function BlogRoute() {
   return (
-    <Suspense fallback={<ScreenFallback />}>
+    <Suspense fallback={<AnimatedLoader />}>
       <BlogScreen />
     </Suspense>
   );
