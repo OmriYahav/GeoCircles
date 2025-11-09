@@ -9,7 +9,6 @@ import {
 } from "react-native-paper";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
-import { Courgette_400Regular } from "@expo-google-fonts/courgette";
 import {
   Heebo_400Regular,
   Heebo_500Medium,
@@ -17,9 +16,6 @@ import {
   Heebo_700Bold,
 } from "@expo-google-fonts/heebo";
 
-import { FavoritesProvider } from "../context/FavoritesContext";
-import { UserProfileProvider } from "../context/UserProfileContext";
-import { AuthProvider } from "../contexts/AuthContext";
 import KeyboardDismissView from "../components/KeyboardDismissView";
 import { colors } from "../theme";
 import { MenuProvider } from "../context/MenuContext";
@@ -49,7 +45,6 @@ export type AppProvidersProps = {
 
 export default function AppProviders({ children }: AppProvidersProps) {
   const [fontsLoaded] = useFonts({
-    Courgette_400Regular,
     Heebo_400Regular,
     Heebo_500Medium,
     Heebo_600SemiBold,
@@ -64,9 +59,13 @@ export default function AppProviders({ children }: AppProvidersProps) {
   }, []);
 
   useEffect(() => {
-    SplashScreen.preventAutoHideAsync().catch((error) => {
-      console.warn("Failed to prevent auto-hiding the splash screen", error);
-    });
+    void (async () => {
+      try {
+        await SplashScreen.preventAutoHideAsync();
+      } catch {
+        // Splash screen is optional; ignore failures silently.
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -82,9 +81,13 @@ export default function AppProviders({ children }: AppProvidersProps) {
         return;
       }
 
-      SplashScreen.hideAsync().catch((hideError) => {
-        console.warn("Failed to hide splash screen", hideError);
-      });
+      void (async () => {
+        try {
+          await SplashScreen.hideAsync();
+        } catch {
+          // Ignore splash screen hide failures to avoid noisy logs.
+        }
+      })();
     }, 350);
 
     return () => {
@@ -103,23 +106,14 @@ export default function AppProviders({ children }: AppProvidersProps) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <PaperProvider theme={paperTheme}>
-          <AuthProvider>
-            <UserProfileProvider>
-              <FavoritesProvider>
-                <StatusBar
-                  barStyle="dark-content"
-                  backgroundColor={colors.background}
-                />
-                <KeyboardDismissView>
-                  <MenuProvider>
-                    <View style={{ flex: 1, backgroundColor: colors.background }}>
-                      {children}
-                    </View>
-                  </MenuProvider>
-                </KeyboardDismissView>
-              </FavoritesProvider>
-            </UserProfileProvider>
-          </AuthProvider>
+          <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+          <KeyboardDismissView>
+            <MenuProvider>
+              <View style={{ flex: 1, backgroundColor: colors.background }}>
+                {children}
+              </View>
+            </MenuProvider>
+          </KeyboardDismissView>
         </PaperProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

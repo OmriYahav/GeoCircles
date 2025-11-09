@@ -28,7 +28,7 @@ import SideMenuNew from "../components/SideMenuNew";
 import { colors, radius, spacing, typography } from "../theme";
 import { useMenu } from "../context/MenuContext";
 import { menuRouteMap } from "../constants/menuRoutes";
-import type { SavedWorkshop } from "./MyWorkshopsScreen";
+import type { SavedWorkshop } from "../types/workshops";
 
 const STORAGE_KEY = "sweet-balance.workshops";
 
@@ -85,72 +85,82 @@ export default function WorkshopsScreen() {
   const [activeView, setActiveView] = useState<ActiveView>("options");
 
   const loadBookings = useCallback(async () => {
+    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+
+    if (!stored) {
+      setBookings([]);
+      return;
+    }
+
+    let parsed: unknown;
+
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      parsed = JSON.parse(stored);
+    } catch {
+      setBookings([]);
+      return;
+    }
 
-      if (!stored) {
-        setBookings([]);
-        return;
-      }
+    if (Array.isArray(parsed)) {
+      const normalized = parsed
+        .filter((item) => item && typeof item === "object")
+        .map((item) => {
+          const title = (item as SavedWorkshop).title ?? "סדנה";
+          const date = (item as SavedWorkshop).date ?? dayjs().format("YYYY-MM-DD");
+          const time = (item as SavedWorkshop).time ?? "18:00";
 
-      const parsed = JSON.parse(stored);
-
-      if (Array.isArray(parsed)) {
-        const normalized = parsed
-          .filter((item) => item && typeof item === "object")
-          .map((item) => {
-            const title = (item as SavedWorkshop).title ?? "סדנה";
-            const date = (item as SavedWorkshop).date ?? dayjs().format("YYYY-MM-DD");
-            const time = (item as SavedWorkshop).time ?? "18:00";
-
-            return {
-              id:
-                (item as SavedWorkshop).id ?? `${title}-${date}-${time}-${Date.now()}`,
-              title,
-              date,
-              time,
-              createdAt: (item as SavedWorkshop).createdAt ?? Date.now(),
-              name: (item as SavedWorkshop).name,
-              phone: (item as SavedWorkshop).phone,
-              email: (item as SavedWorkshop).email,
-            } satisfies SavedWorkshop;
-          });
-
-        setBookings(normalized);
-        return;
-      }
-
-      if (parsed && typeof parsed === "object") {
-        const migrated: SavedWorkshop[] = [];
-        Object.values(parsed).forEach((value) => {
-          if (Array.isArray(value)) {
-            value.forEach((item) => {
-              if (item && typeof item === "object") {
-                const title = (item as SavedWorkshop).title ?? "סדנה";
-                const date = (item as SavedWorkshop).date ?? dayjs().format("YYYY-MM-DD");
-                const time = (item as SavedWorkshop).time ?? "18:00";
-                migrated.push({
-                  id:
-                    (item as SavedWorkshop).id ?? `${title}-${date}-${time}-${Date.now()}`,
-                  title,
-                  date,
-                  time,
-                  createdAt: (item as SavedWorkshop).createdAt ?? Date.now(),
-                  name: (item as SavedWorkshop).name,
-                  phone: (item as SavedWorkshop).phone,
-                  email: (item as SavedWorkshop).email,
-                });
-              }
-            });
-          }
+          return {
+            id:
+              (item as SavedWorkshop).id ?? `${title}-${date}-${time}-${Date.now()}`,
+            title,
+            date,
+            time,
+            createdAt: (item as SavedWorkshop).createdAt ?? Date.now(),
+            name: (item as SavedWorkshop).name,
+            phone: (item as SavedWorkshop).phone,
+            email: (item as SavedWorkshop).email,
+          } satisfies SavedWorkshop;
         });
 
-        setBookings(migrated);
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-      }
-    } catch (error) {
-      console.warn("Failed to load workshops", error);
+      setBookings(normalized);
+      return;
     }
+
+    if (parsed && typeof parsed === "object") {
+      const migrated: SavedWorkshop[] = [];
+      Object.values(parsed).forEach((value) => {
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            if (item && typeof item === "object") {
+              const title = (item as SavedWorkshop).title ?? "סדנה";
+              const date = (item as SavedWorkshop).date ?? dayjs().format("YYYY-MM-DD");
+              const time = (item as SavedWorkshop).time ?? "18:00";
+              migrated.push({
+                id:
+                  (item as SavedWorkshop).id ?? `${title}-${date}-${time}-${Date.now()}`,
+                title,
+                date,
+                time,
+                createdAt: (item as SavedWorkshop).createdAt ?? Date.now(),
+                name: (item as SavedWorkshop).name,
+                phone: (item as SavedWorkshop).phone,
+                email: (item as SavedWorkshop).email,
+              });
+            }
+          });
+        }
+      });
+
+      setBookings(migrated);
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      } catch {
+        // Best-effort persistence; ignore failures silently.
+      }
+      return;
+    }
+
+    setBookings([]);
   }, []);
 
   useEffect(() => {
@@ -168,8 +178,8 @@ export default function WorkshopsScreen() {
   const persistBookings = useCallback(async (next: SavedWorkshop[]) => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch (error) {
-      console.warn("Failed to store workshops", error);
+    } catch {
+      // Ignore storage failures to keep UI responsive.
     }
   }, []);
 
@@ -338,6 +348,13 @@ export default function WorkshopsScreen() {
                   onPress={() => {
                     close();
                     router.navigate(menuRouteMap.Recipes);
+                  }}
+                />
+                <CTAButton
+                  title="לטיפים"
+                  onPress={() => {
+                    close();
+                    router.navigate(menuRouteMap.Tips);
                   }}
                 />
               </View>
@@ -534,5 +551,7 @@ const styles = StyleSheet.create({
   moreLinks: {
     flexDirection: "row",
     gap: spacing(1),
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
   },
 });

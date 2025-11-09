@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   Animated,
-  Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   SafeAreaView,
@@ -13,6 +12,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { Image } from "expo-image";
 import AnimatedHomeButton from "../components/AnimatedHomeButton";
 import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
 import ScrollToTopButton from "../components/ScrollToTopButton";
@@ -133,12 +133,14 @@ export default function HomeScreen() {
                     style={{
                       width: "100%",
                       height: "100%",
-                      resizeMode: "cover",
                       borderRadius: 12,
                       position: "absolute",
                       top: 0,
                       left: 0,
                     }}
+                    contentFit="cover"
+                    transition={400}
+                    cachePolicy="memory"
                   />
                 </View>
               </Animated.View>

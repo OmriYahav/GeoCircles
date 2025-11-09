@@ -56,16 +56,16 @@ const MENU_ITEMS: MenuItem[] = [
     icon: "heart",
   },
   {
+    key: "Tips",
+    title: "טיפים יומיומיים",
+    subtitle: "רגעים קטנים של נינוחות",
+    icon: "sun",
+  },
+  {
     key: "Blog",
     title: "בלוג",
     subtitle: "השראה, סיפורים וטעמים",
     icon: "feather",
-  },
-  {
-    key: "Contact",
-    title: "צרו קשר",
-    subtitle: "נשמח לשיחה מתוקה",
-    icon: "message-circle",
   },
 ];
 

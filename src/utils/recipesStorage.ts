@@ -41,19 +41,21 @@ const mergeRecipes = (base: Recipe[], additions: Recipe[]) => {
 export const loadRecipes = async (): Promise<Recipe[]> => {
   const baseRecipes = defaultRecipes as Recipe[];
 
-  try {
-    const info = FILE_PATH ? await FileSystem.getInfoAsync(FILE_PATH) : { exists: false };
-    if (info.exists) {
-      const raw = await FileSystem.readAsStringAsync(FILE_PATH);
-      const parsed = ensureArray(JSON.parse(raw));
-      if (parsed) {
-        return parsed;
+  if (FILE_PATH) {
+    try {
+      const info = await FileSystem.getInfoAsync(FILE_PATH);
+      if (info.exists) {
+        const raw = await FileSystem.readAsStringAsync(FILE_PATH);
+        const parsed = ensureArray(JSON.parse(raw));
+        if (parsed) {
+          return parsed;
+        }
+      } else {
+        await FileSystem.writeAsStringAsync(FILE_PATH, JSON.stringify(baseRecipes, null, 2));
       }
-    } else if (FILE_PATH) {
-      await FileSystem.writeAsStringAsync(FILE_PATH, JSON.stringify(baseRecipes, null, 2));
+    } catch {
+      // Ignore file read/write issues and fall back to AsyncStorage/default recipes.
     }
-  } catch (error) {
-    console.warn("Recipes file access failed, falling back to AsyncStorage", error);
   }
 
   try {
@@ -64,27 +66,25 @@ export const loadRecipes = async (): Promise<Recipe[]> => {
         return mergeRecipes(baseRecipes, parsed);
       }
     }
-  } catch (error) {
-    console.warn("Recipes AsyncStorage read failed", error);
+  } catch {
+    // Ignore storage read issues and fall back to bundled recipes.
   }
 
   return baseRecipes;
 };
 
 export const saveRecipes = async (recipes: Recipe[]) => {
-  try {
-    if (FILE_PATH) {
+  if (FILE_PATH) {
+    try {
       await FileSystem.writeAsStringAsync(FILE_PATH, JSON.stringify(recipes, null, 2));
+    } catch {
+      // Continue to persist via AsyncStorage even if the file write fails.
     }
-  } catch (error) {
-    console.warn("Recipes file write failed, persisting to AsyncStorage", error);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
-    return;
   }
 
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
-  } catch (error) {
-    console.warn("Recipes AsyncStorage write failed", error);
+  } catch {
+    // Ignore storage write failures to avoid blocking the UI.
   }
 };

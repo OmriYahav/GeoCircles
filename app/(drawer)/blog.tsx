@@ -1,7 +1,13 @@
-import React from "react";
+import React, { Suspense } from "react";
 
-import BlogScreen from "../../src/screens/BlogScreen";
+import ScreenFallback from "../../src/components/ScreenFallback";
+
+const BlogScreen = React.lazy(() => import("../../src/screens/BlogScreen"));
 
 export default function BlogRoute() {
-  return <BlogScreen />;
+  return (
+    <Suspense fallback={<ScreenFallback />}>
+      <BlogScreen />
+    </Suspense>
+  );
 }

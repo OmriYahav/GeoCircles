@@ -1,3 +1,15 @@
-import HealthyHostingScreen from "../../../src/screens/Workshops/HealthyHostingScreen";
+import React, { Suspense } from "react";
 
-export default HealthyHostingScreen;
+import ScreenFallback from "../../../src/components/ScreenFallback";
+
+const HealthyHostingScreen = React.lazy(
+  () => import("../../../src/screens/Workshops/HealthyHostingScreen"),
+);
+
+export default function HealthyHostingRoute() {
+  return (
+    <Suspense fallback={<ScreenFallback />}>
+      <HealthyHostingScreen />
+    </Suspense>
+  );
+}

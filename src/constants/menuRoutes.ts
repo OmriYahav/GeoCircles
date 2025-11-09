@@ -5,7 +5,7 @@ export const menuRouteMap: Record<MenuRouteName, string> = {
   Workshops: "/(drawer)/workshops",
   Treatments: "/(drawer)/treatments",
   Blog: "/(drawer)/blog",
-  Contact: "/(drawer)/contact",
+  Tips: "/(drawer)/tips",
 };
 
 export const menuRouteParams: Partial<Record<MenuRouteName, object>> = {};
