@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 
-import ScreenFallback from "../../../src/components/ScreenFallback";
+import AnimatedLoader from "../../../src/components/AnimatedLoader";
 
 const NaturalCosmeticsScreen = React.lazy(
   () => import("../../../src/screens/Workshops/NaturalCosmeticsScreen"),
@@ -8,7 +8,7 @@ const NaturalCosmeticsScreen = React.lazy(
 
 export default function NaturalCosmeticsRoute() {
   return (
-    <Suspense fallback={<ScreenFallback />}>
+    <Suspense fallback={<AnimatedLoader />}>
       <NaturalCosmeticsScreen />
     </Suspense>
   );
