@@ -2,6 +2,7 @@ import React, { useCallback, useRef } from "react";
 import {
   Animated,
   Easing,
+  Image,
   Linking,
   Pressable,
   SafeAreaView,
@@ -9,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import type { ImageSourcePropType } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -22,33 +24,33 @@ import { menuRouteMap } from "../constants/menuRoutes";
 
 type ContactItem = {
   key: string;
-  icon: string;
+  icon: ImageSourcePropType;
   url: string;
   accessibilityLabel: string;
 };
 
 const CONTACT_ITEMS: ContactItem[] = [
   {
-    key: "instagram",
-    icon: "🌿",
-    url: "https://www.instagram.com/batchenlev",
-    accessibilityLabel: "מעבר לאינסטגרם של Sweet Balance",
-  },
-  {
-    key: "facebook",
-    icon: "💬",
-    url: "https://www.facebook.com/share/17YP65zVDC/?mibextid=wwXIfr",
-    accessibilityLabel: "מעבר לעמוד הפייסבוק של Sweet Balance",
-  },
-  {
     key: "whatsapp",
-    icon: "📞",
+    icon: require("../../photos/whatsapp.png"),
     url: "https://wa.me/0507117202",
     accessibilityLabel: "פתיחת שיחה בוואצאפ עם Sweet Balance",
   },
   {
+    key: "facebook",
+    icon: require("../../photos/facebook.png"),
+    url: "https://www.facebook.com/share/17YP65zVDC/?mibextid=wwXIfr",
+    accessibilityLabel: "מעבר לעמוד הפייסבוק של Sweet Balance",
+  },
+  {
+    key: "instagram",
+    icon: require("../../photos/instagram.png"),
+    url: "https://www.instagram.com/batchenlev",
+    accessibilityLabel: "מעבר לאינסטגרם של Sweet Balance",
+  },
+  {
     key: "mail",
-    icon: "📧",
+    icon: require("../../photos/mail.png"),
     url: "mailto:batchenlev@gmail.com",
     accessibilityLabel: "שליחת מייל אל batchenlev@gmail.com",
   },
@@ -134,7 +136,7 @@ export default function ContactScreenContent() {
                     void handleContactPress(item.url);
                   }}
                 >
-                  <Text style={styles.iconLabel}>{item.icon}</Text>
+                  <Image source={item.icon} style={styles.iconImage} resizeMode="cover" />
                 </Pressable>
               ))}
             </View>
@@ -206,24 +208,26 @@ const styles = StyleSheet.create({
   iconGrid: {
     width: "100%",
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: spacing(1.5),
+    justifyContent: "space-evenly",
+    alignItems: "center",
   },
   iconButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: colors.buttonBg,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
     ...shadows.sm,
   },
   iconButtonPressed: {
     opacity: 0.85,
     transform: [{ scale: 0.95 }],
   },
-  iconLabel: {
-    fontSize: typography.size.xl,
+  iconImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
 });
