@@ -17,7 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import dayjs from "dayjs";
 import { useRouter } from "expo-router";
 
-import type { SavedWorkshop } from "../MyWorkshopsScreen";
+import type { SavedWorkshop } from "../../types/workshops";
 import { radii, shadows, spacing, typography } from "../../theme";
 import AnimatedHomeButton from "../../components/AnimatedHomeButton";
 import HeaderRightMenuButton from "../../components/HeaderRightMenuButton";
@@ -103,8 +103,8 @@ function parseStoredReservations(raw: unknown): SavedWorkshop[] {
 
       return migrated;
     }
-  } catch (error) {
-    console.warn("Failed to parse stored reservations", error);
+  } catch {
+    return [];
   }
 
   return [];
@@ -203,8 +203,7 @@ export default function WorkshopReservation({
 
       showSuccessMessage();
       handleCloseModal();
-    } catch (error) {
-      console.warn("Failed to save reservation", error);
+    } catch {
       Alert.alert("שגיאה", "לא הצלחנו לשמור את השריון. נסי שוב מאוחר יותר.");
     } finally {
       setIsSaving(false);

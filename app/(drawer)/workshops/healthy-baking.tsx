@@ -1,3 +1,15 @@
-import HealthyBakingScreen from "../../../src/screens/Workshops/HealthyBakingScreen";
+import React, { Suspense } from "react";
 
-export default HealthyBakingScreen;
+import ScreenFallback from "../../../src/components/ScreenFallback";
+
+const HealthyBakingScreen = React.lazy(
+  () => import("../../../src/screens/Workshops/HealthyBakingScreen"),
+);
+
+export default function HealthyBakingRoute() {
+  return (
+    <Suspense fallback={<ScreenFallback />}>
+      <HealthyBakingScreen />
+    </Suspense>
+  );
+}

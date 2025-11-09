@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   KeyboardAvoidingView,
   Modal,
@@ -46,6 +47,8 @@ export default function RecipesScreen() {
   const [instructions, setInstructions] = useState("");
   const [nutrition, setNutrition] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [isDetailsVisible, setIsDetailsVisible] = useState(false);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -64,8 +67,10 @@ export default function RecipesScreen() {
         if (mounted) {
           setRecipes(loaded);
         }
-      } catch (error) {
-        console.warn("Failed to load recipes", error);
+      } catch {
+        if (mounted) {
+          setRecipes([]);
+        }
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -93,22 +98,15 @@ export default function RecipesScreen() {
     setIsAdmin((prev) => !prev);
   }, []);
 
-  const handleRecipePress = useCallback(
-    (recipe: Recipe) => {
-      router.push({
-        pathname: "/(drawer)/recipe-details",
-        params: {
-          id: String(recipe.id),
-          title: recipe.title,
-          image: recipe.image,
-          ingredients: JSON.stringify(recipe.ingredients),
-          instructions: JSON.stringify(recipe.instructions),
-          nutrition: recipe.nutrition ?? "",
-        },
-      });
-    },
-    [router]
-  );
+  const handleRecipePress = useCallback((recipe: Recipe) => {
+    setSelectedRecipe(recipe);
+    setIsDetailsVisible(true);
+  }, []);
+
+  const handleCloseDetails = useCallback(() => {
+    setIsDetailsVisible(false);
+    setSelectedRecipe(null);
+  }, []);
 
   const resetForm = useCallback(() => {
     setTitle("");
@@ -157,8 +155,8 @@ export default function RecipesScreen() {
       await saveRecipes(updated);
       setShowModal(false);
       resetForm();
-    } catch (error) {
-      console.warn("Failed to save recipe", error);
+    } catch {
+      Alert.alert("שמירת מתכון נכשלה", "נסי שוב מאוחר יותר.");
     } finally {
       setIsSaving(false);
     }
@@ -327,6 +325,60 @@ export default function RecipesScreen() {
         </View>
       </Modal>
 
+      <Modal
+        visible={isDetailsVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseDetails}
+      >
+        <View style={styles.detailOverlay}>
+          <View style={styles.detailContainer}>
+            {selectedRecipe ? (
+              <ScrollView
+                contentContainerStyle={styles.detailContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={styles.detailTitle}>{selectedRecipe.title}</Text>
+                <Image
+                  source={{ uri: selectedRecipe.image }}
+                  style={styles.detailImage}
+                  contentFit="cover"
+                  transition={400}
+                />
+
+                <Text style={styles.detailSectionTitle}>מרכיבים</Text>
+                {selectedRecipe.ingredients.map((item, index) => (
+                  <Text key={`detail-ingredient-${index}`} style={styles.detailItem}>
+                    • {item}
+                  </Text>
+                ))}
+
+                <Text style={styles.detailSectionTitle}>אופן הכנה</Text>
+                {selectedRecipe.instructions.map((step, index) => (
+                  <Text key={`detail-step-${index}`} style={styles.detailItem}>
+                    {index + 1}. {step}
+                  </Text>
+                ))}
+
+                {selectedRecipe.nutrition ? (
+                  <View style={styles.detailNutrition}>
+                    <Text style={styles.detailNutritionText}>{selectedRecipe.nutrition}</Text>
+                  </View>
+                ) : null}
+              </ScrollView>
+            ) : null}
+
+            <TouchableOpacity
+              onPress={handleCloseDetails}
+              style={styles.detailCloseButton}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.detailCloseText}>סגור</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <SideMenuNew
         visible={isOpen}
         onClose={close}
@@ -491,6 +543,73 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: typography.small,
     fontFamily: typography.fontFamily,
+  },
+  detailOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing(2),
+  },
+  detailContainer: {
+    width: "100%",
+    maxHeight: "85%",
+    backgroundColor: colors.surface,
+    borderRadius: spacing(2),
+    overflow: "hidden",
+  },
+  detailContent: {
+    padding: spacing(2),
+    gap: spacing(1),
+  },
+  detailTitle: {
+    color: colors.primary,
+    fontSize: typography.size.xl,
+    fontFamily: typography.family.semiBold,
+    textAlign: "right",
+  },
+  detailImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: spacing(1.5),
+  },
+  detailSectionTitle: {
+    color: colors.primary,
+    fontSize: typography.size.md,
+    fontFamily: typography.family.medium,
+    textAlign: "right",
+    marginTop: spacing(1),
+  },
+  detailItem: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontFamily: typography.fontFamily,
+    textAlign: "right",
+    lineHeight: typography.body * 1.5,
+  },
+  detailNutrition: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: spacing(1.5),
+    paddingVertical: spacing(0.5),
+    borderRadius: spacing(2),
+  },
+  detailNutritionText: {
+    color: colors.primary,
+    fontFamily: typography.family.medium,
+    fontSize: typography.small,
+  },
+  detailCloseButton: {
+    margin: spacing(2),
+    paddingVertical: spacing(1),
+    borderRadius: spacing(2),
+    backgroundColor: colors.primary,
+    alignItems: "center",
+  },
+  detailCloseText: {
+    color: colors.surface,
+    fontFamily: typography.family.semiBold,
+    fontSize: typography.size.md,
   },
   fab: {
     position: "absolute",

@@ -14,7 +14,7 @@ export type MenuRouteName =
   | "Workshops"
   | "Treatments"
   | "Blog"
-  | "Contact";
+  | "Tips";
 
 type MenuContextValue = {
   isOpen: boolean;

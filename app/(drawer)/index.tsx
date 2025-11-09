@@ -1,7 +1,13 @@
-import React from "react";
+import React, { Suspense } from "react";
 
-import HomeScreen from "../../src/screens/HomeScreen";
+import ScreenFallback from "../../src/components/ScreenFallback";
+
+const HomeScreen = React.lazy(() => import("../../src/screens/HomeScreen"));
 
 export default function DrawerHomeScreen() {
-  return <HomeScreen />;
+  return (
+    <Suspense fallback={<ScreenFallback />}>
+      <HomeScreen />
+    </Suspense>
+  );
 }
