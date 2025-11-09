@@ -38,7 +38,7 @@ const CONTACT_ITEMS: ContactItem[] = [
   },
   {
     key: "instagram",
-    url: "https://www.instagram.com/batchenlev",
+    url: "https://www.instagram.com/batchen_naturopathy?igsh=MTBoeGlmNzF1d2ox",
     a11y: "כניסה לפרופיל אינסטגרם",
     bg: colors.primarySoft,
     iconColor: colors.primary,
