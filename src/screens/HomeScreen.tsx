@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   Animated,
-  ImageBackground,
   NativeScrollEvent,
   NativeSyntheticEvent,
   SafeAreaView,
@@ -17,6 +16,7 @@ import AnimatedHomeButton from "../components/AnimatedHomeButton";
 import HeaderRightMenuButton from "../components/HeaderRightMenuButton";
 import ScrollToTopButton from "../components/ScrollToTopButton";
 import SideMenuNew from "../components/SideMenuNew";
+import SweetBalanceLogo from "../components/SweetBalanceLogo";
 import { colors, spacing, typography } from "../theme";
 import { useMenu } from "../context/MenuContext";
 import { menuRouteMap } from "../constants/menuRoutes";
@@ -115,16 +115,12 @@ export default function HomeScreen() {
                   },
                 ]}
               >
-                <ImageBackground
-                  source={require("../../assets/images/splash.png")}
-                  style={styles.parallaxImage}
-                  resizeMode="cover"
-                >
-                  <View style={styles.overlay} />
+                <View style={styles.heroGraphic}>
+                  <SweetBalanceLogo size={192} />
                   <Animated.Text style={[styles.floatingTitle, { opacity: fadeAnim }]}>
                     פרחי באך ושמנים אתריים
                   </Animated.Text>
-                </ImageBackground>
+                </View>
               </Animated.View>
             </Animated.View>
 
@@ -223,27 +219,27 @@ const styles = StyleSheet.create({
   },
   parallaxInner: {
     width: "100%",
-    height: 300,
+    height: 260,
   },
-  parallaxImage: {
+  heroGraphic: {
+    flex: 1,
     width: "100%",
-    height: "100%",
-    justifyContent: "center",
+    backgroundColor: "#F4E8D5",
     alignItems: "center",
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.25)",
+    justifyContent: "center",
+    paddingVertical: spacing(1.5),
   },
   floatingTitle: {
-    color: colors.background,
+    position: "absolute",
+    bottom: spacing(1.25),
+    left: spacing(1.25),
+    right: spacing(1.25),
+    color: colors.primary,
     fontSize: typography.size.xl,
     fontFamily: typography.fontFamily,
     fontWeight: "600",
     textAlign: "center",
-    textShadowColor: "rgba(0,0,0,0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    letterSpacing: 0.5,
   },
   descriptionWrapper: {
     gap: spacing(1.5),
