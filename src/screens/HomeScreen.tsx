@@ -81,7 +81,6 @@ export default function HomeScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.content}
           >
-            <Text style={styles.heroTitle}>Sweet Balance</Text>
             <Text style={styles.heroSubtitle}>איזון רך לחיים מלאים</Text>
             <Text style={styles.heroBody}>
               ברוכה הבאה ל-Sweet Balance — מקום של טעם, תזונה ורגעי רוגע. בתפריט מחכה לך
@@ -120,13 +119,13 @@ export default function HomeScreen() {
               <Card
                 title="עצות תזונה"
                 subtitle="מדריכים קצרים ופרקטיים"
-                icon="apple"
+                icon="book-open"
                 onPress={() => navigateTo(menuRouteMap.Tips)}
               />
               <Card
                 title="בלוג"
                 subtitle="מאמרים, תובנות והשראה"
-                icon="book"
+                icon="feather"
                 onPress={() => navigateTo(menuRouteMap.Blog)}
               />
             </View>
@@ -209,23 +208,17 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing(2),
     paddingBottom: spacing(4),
-    gap: spacing(1.5),
-  },
-  heroTitle: {
-    color: colors.primary,
-    fontSize: typography.hero,
-    fontWeight: "700",
-    fontFamily: typography.fontFamily,
-    textAlign: "right",
+    gap: spacing(2),
   },
   heroSubtitle: {
-    color: colors.subtitle,
-    fontSize: typography.subtitle,
+    color: colors.primary,
+    fontSize: typography.size.xxl,
     fontFamily: typography.fontFamily,
+    fontWeight: "700",
     textAlign: "right",
   },
   heroBody: {
-    color: colors.text,
+    color: colors.subtitle,
     fontSize: typography.body,
     lineHeight: typography.body * 1.6,
     fontFamily: typography.fontFamily,
@@ -253,7 +246,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#3B7A57",
+    backgroundColor: colors.primary,
     borderRadius: 30,
     paddingVertical: 12,
     gap: 8,

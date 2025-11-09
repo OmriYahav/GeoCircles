@@ -1,5 +1,6 @@
 import React from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
+import { Feather } from "@expo/vector-icons";
 
 import { colors, radius, spacing } from "../theme";
 
@@ -14,8 +15,12 @@ export default function ScrollToTopButton({ visible, onPress }: ScrollToTopButto
   }
 
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.button}>
-      <Text style={styles.label}>↑</Text>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+    >
+      <Feather name="arrow-up" size={20} color="#FFFFFF" />
     </Pressable>
   );
 }
@@ -31,15 +36,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.18,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    elevation: 4,
   },
-  label: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 18,
+  pressed: {
+    opacity: 0.9,
   },
 });

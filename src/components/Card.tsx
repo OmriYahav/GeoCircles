@@ -26,15 +26,15 @@ export default function Card({ title, subtitle, icon = "leaf", onPress }: CardPr
       }}
       style={{ marginBottom: spacing(2) }}
     >
-      <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
+      <Animated.View style={[styles.card, { transform: [{ scale }] }]}> 
         <View style={styles.iconContainer}>
-          <Feather name={icon} size={22} color="#3B7A57" />
+          <Feather name={icon} size={24} color={colors.primary} />
         </View>
         <View style={styles.textWrap}>
           <Text style={styles.title}>{title}</Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
-        <Feather name="chevron-left" size={22} color="#3B7A57" />
+        <Feather name="chevron-left" size={24} color={colors.primary} />
       </Animated.View>
     </Pressable>
   );
@@ -48,34 +48,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: spacing(2),
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    gap: 12,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
   textWrap: {
     flex: 1,
     alignItems: "flex-end",
   },
   title: {
-    color: "#3B7A57",
+    color: colors.primary,
     fontSize: typography.size.lg,
     fontFamily: "Heebo_700Bold",
     textAlign: "right",
   },
   subtitle: {
-    color: "#6B6B6B",
+    color: colors.subtitle,
     fontSize: typography.small,
     lineHeight: typography.small * 1.6,
     fontFamily: "Heebo_400Regular",
     textAlign: "right",
   },
   iconContainer: {
-    backgroundColor: "#E8F3EA",
-    borderRadius: 50,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 999,
     padding: 10,
-    marginLeft: 10,
+    marginLeft: 8,
   },
 });

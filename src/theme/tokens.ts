@@ -1,11 +1,11 @@
 export const colors = {
-  bg0: '#F8F6F2',
-  bg1: '#F0ECE5',
-  accent: '#3B7A57',
-  accentSoft: '#4F8A66',
-  text: '#2F6B3A',
-  divider: 'rgba(47,107,58,0.12)',
-  shadow: 'rgba(0,0,0,0.08)',
+  bg0: "rgba(255,255,255,0.96)",
+  bg1: "rgba(255,255,255,0.9)",
+  accent: "#3C6E47",
+  accentSoft: "#E6F0E3",
+  text: "#3C6E47",
+  divider: "rgba(60,110,71,0.14)",
+  shadow: "rgba(60,110,71,0.12)",
 };
 
 export const radius = { xl: 28, lg: 20, md: 14, sm: 10 };

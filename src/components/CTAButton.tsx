@@ -10,7 +10,11 @@ type CTAButtonProps = {
 
 export default function CTAButton({ title, onPress }: CTAButtonProps) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.button}>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+    >
       <Text style={styles.label}>{title}</Text>
     </Pressable>
   );
@@ -24,7 +28,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing(3),
     alignSelf: "flex-end",
     shadowColor: colors.shadow,
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.16,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
     elevation: 2,
@@ -33,5 +37,9 @@ const styles = StyleSheet.create({
     color: colors.buttonText,
     fontSize: typography.size.lg,
     fontFamily: "Heebo_600SemiBold",
+  },
+  pressed: {
+    transform: [{ scale: 1.05 }],
+    opacity: 0.9,
   },
 });

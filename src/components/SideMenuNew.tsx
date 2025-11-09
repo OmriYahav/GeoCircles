@@ -6,11 +6,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -35,42 +33,42 @@ const MENU_ITEMS: MenuItem[] = [
   {
     key: "Recipes",
     title: "מתכונים בריאים",
-    subtitle: "רעיון למתוק ללא רגשות אשם",
+    subtitle: "מתוק מאוזן ומחבק",
     icon: "coffee",
   },
   {
     key: "Workshops",
     title: "סדנאות",
-    subtitle: "קביעת מקום לאירוע הבא",
+    subtitle: "ללמוד, ליצור ולהתחבר",
     icon: "users",
   },
   {
     key: "Treatments",
     title: "טיפולים",
-    subtitle: "תמיכה אישית וקבוצתית",
-    icon: "leaf",
+    subtitle: "איזון מותאם בדיוק בשבילך",
+    icon: "heart",
   },
   {
     key: "Tips",
     title: "עצות תזונה",
-    subtitle: "טיפים יומיומיים לאיזון",
-    icon: "apple",
+    subtitle: "הכוונה רכה ליום-יום",
+    icon: "book-open",
   },
   {
     key: "Blog",
     title: "בלוג",
-    subtitle: "מאמרים והשראה שבועית",
-    icon: "book",
+    subtitle: "השראה, סיפורים וטעמים",
+    icon: "feather",
   },
   {
     key: "Contact",
     title: "צרו קשר",
-    subtitle: "ערוצים מהירים לשיחה",
+    subtitle: "נשמח לשיחה מתוקה",
     icon: "message-circle",
   },
 ];
 
-const BACKDROP_OPACITY = 0.55;
+const BACKDROP_OPACITY = 0.45;
 const MAX_PANEL_WIDTH = 360;
 
 export default function SideMenuNew({ visible, onClose, navigate }: SideMenuNewProps) {
@@ -79,7 +77,10 @@ export default function SideMenuNew({ visible, onClose, navigate }: SideMenuNewP
   const fadeAnim = useRef(new Animated.Value(visible ? 1 : 0)).current;
   const slideAnim = useRef(new Animated.Value(visible ? 0 : 100)).current;
 
-  const panelWidth = useMemo(() => Math.min(windowWidth * 0.84, MAX_PANEL_WIDTH), [windowWidth]);
+  const panelWidth = useMemo(
+    () => Math.min(windowWidth * 0.9, MAX_PANEL_WIDTH),
+    [windowWidth],
+  );
   const slideDistance = panelWidth + 48;
 
   useEffect(() => {
@@ -165,44 +166,33 @@ export default function SideMenuNew({ visible, onClose, navigate }: SideMenuNewP
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Animated.View pointerEvents={pointerEvents} style={StyleSheet.absoluteFill}>
-        {visible ? (
-          <BlurView
-            intensity={25}
-            tint="light"
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-        ) : null}
+        <BlurView
+          intensity={28}
+          tint="light"
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
           <Animated.View style={animatedBackdropStyle} />
         </Pressable>
       </Animated.View>
 
       <Animated.View pointerEvents={pointerEvents} style={animatedPanelStyle}>
-        <LinearGradient
-          colors={[tokenColors.bg0, tokenColors.bg1]}
-          style={StyleSheet.absoluteFill}
-        />
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           <View style={styles.header}>
-            <View style={styles.headerText}>
-              <Text style={styles.brandPrimary}>Sweet</Text>
-              <Text style={styles.brandSecondary}>Balance</Text>
+            <View style={styles.headerContent}>
+              <Text style={styles.brandTitle}>Sweet Balance</Text>
+              <Text style={styles.brandSubtitle}>ניווט נינוח אל המרכז המתוק שלך</Text>
             </View>
             <Pressable
-              onPress={onClose}
               accessibilityRole="button"
               accessibilityLabel="סגירת תפריט"
-              style={({ pressed }) => [
-                styles.closeButton,
-                pressed && styles.closeButtonPressed,
-              ]}
+              onPress={onClose}
+              style={({ pressed }) => [styles.closeButton, pressed && styles.closeButtonPressed]}
             >
-              <Feather name="x" size={22} color={tokenColors.accent} />
+              <Feather name="x" size={18} color={tokenColors.text} />
             </Pressable>
           </View>
-
-          <Text style={styles.tagline}>בחרי לאן להמשיך במסע המתוק שלך</Text>
 
           <ScrollView
             contentContainerStyle={styles.menuContent}
@@ -212,37 +202,27 @@ export default function SideMenuNew({ visible, onClose, navigate }: SideMenuNewP
               <Pressable
                 key={item.key}
                 onPress={() => handleNavigate(item)}
-                style={({ pressed }) => [
-                  styles.menuItem,
-                  pressed && styles.menuItemPressed,
-                ]}
+                style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
                 accessibilityRole="button"
                 accessibilityLabel={`${item.title}. ${item.subtitle}`}
               >
-                <View style={styles.iconContainer}>
-                  <Feather name={item.icon} size={22} color={tokenColors.accent} />
+                <View style={styles.menuItemContent}>
+                  <View style={styles.iconContainer}>
+                    <Feather name={item.icon} size={24} color={tokenColors.text} />
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.menuTitle}>{item.title}</Text>
+                    <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                  </View>
+                  <Feather
+                    name={I18nManager.isRTL ? "chevron-left" : "chevron-right"}
+                    size={22}
+                    color={tokenColors.text}
+                  />
                 </View>
-                <View style={styles.textContainer}>
-                  <Text style={styles.menuTitle}>{item.title}</Text>
-                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                </View>
-                <Feather name="chevron-left" size={22} color={tokenColors.accent} />
               </Pressable>
             ))}
           </ScrollView>
-
-          <TouchableOpacity
-            accessibilityRole="button"
-            style={styles.ctaButton}
-            onPress={() => {
-              navigate("Treatments");
-              onClose();
-            }}
-            accessibilityLabel="איזון טבעי – מעבר לטיפולים"
-          >
-            <Feather name="wind" size={20} color="#FFFFFF" />
-            <Text style={styles.ctaText}>איזון טבעי – רגע לנשום</Text>
-          </TouchableOpacity>
         </SafeAreaView>
       </Animated.View>
     </View>
@@ -259,125 +239,100 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: radius.xl,
     overflow: "hidden",
     shadowColor: tokenColors.shadow,
-    shadowOpacity: 0.2,
-    shadowRadius: 28,
-    shadowOffset: { width: -6, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 26,
+    shadowOffset: { width: -8, height: 14 },
     elevation: 24,
-    zIndex: 9999,
+    backgroundColor: "rgba(255,255,255,0.94)",
   },
   safeArea: {
     flex: 1,
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xl,
+    paddingTop: spacing.xl,
     justifyContent: "space-between",
     writingDirection: "rtl",
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: spacing.lg,
-    paddingTop: spacing.lg,
+    marginBottom: spacing.lg,
   },
-  headerText: {
-    flexDirection: "column",
-    alignItems: "flex-end",
+  headerContent: {
+    flex: 1,
+    alignItems: "center",
   },
-  brandPrimary: {
-    color: tokenColors.accent,
+  brandTitle: {
+    color: tokenColors.text,
     fontSize: font.h1,
     fontFamily: "Heebo_700Bold",
-    lineHeight: 32,
+    textAlign: "center",
   },
-  brandSecondary: {
-    color: tokenColors.accent,
-    fontSize: font.h2,
-    fontFamily: "Heebo_700Bold",
-    lineHeight: 28,
+  brandSubtitle: {
+    color: "#707070",
+    fontSize: font.small,
+    fontFamily: "Heebo_400Regular",
+    textAlign: "center",
+    marginTop: 6,
   },
   closeButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(255,255,255,0.92)",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: tokenColors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "rgba(0,0,0,0.12)",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
   },
   closeButtonPressed: {
+    opacity: 0.85,
     transform: [{ scale: 0.95 }],
-    opacity: 0.9,
-  },
-  tagline: {
-    fontSize: font.body,
-    fontFamily: "Heebo_400Regular",
-    color: "rgba(59, 122, 87, 0.75)",
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
-    textAlign: "right",
   },
   menuContent: {
-    paddingBottom: spacing.xl + 40,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
   },
   menuItem: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
     borderRadius: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    marginVertical: 8,
-    gap: spacing.md,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    backgroundColor: "#F7F7EE",
   },
   menuItemPressed: {
-    transform: [{ scale: 0.97 }],
-    opacity: 0.95,
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  menuItemContent: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
   },
   iconContainer: {
-    backgroundColor: "#E8F3EA",
-    borderRadius: 50,
-    padding: 10,
-    marginLeft: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: tokenColors.accentSoft,
+    alignItems: "center",
+    justifyContent: "center",
   },
   textContainer: {
     flex: 1,
     alignItems: "flex-end",
+    gap: 4,
   },
   menuTitle: {
-    color: tokenColors.accent,
+    color: tokenColors.text,
     fontSize: 18,
-    fontFamily: "Heebo_700Bold",
+    fontFamily: "Heebo_600SemiBold",
     textAlign: "right",
   },
   menuSubtitle: {
+    color: "#707070",
     fontSize: 14,
-    color: "#6B6B6B",
-    marginTop: 2,
     fontFamily: "Heebo_400Regular",
     textAlign: "right",
-  },
-  ctaButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#3B7A57",
-    borderRadius: 30,
-    paddingVertical: 12,
-    marginTop: 20,
-    gap: 8,
-  },
-  ctaText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Heebo_600SemiBold",
   },
   backdrop: {
     flex: 1,
