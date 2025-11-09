@@ -34,11 +34,13 @@ export const globalStyles = StyleSheet.create({
     fontSize: typography.size.xl,
     color: colors.text,
     letterSpacing: 0.2,
+    lineHeight: typography.lineHeight.spacious,
   },
   subheading: {
     fontFamily: typography.family.regular,
     fontSize: typography.size.lg,
     color: colors.subtitle,
+    lineHeight: typography.lineHeight.relaxed,
   },
   body: {
     fontFamily: typography.family.regular,
@@ -48,25 +50,27 @@ export const globalStyles = StyleSheet.create({
   },
   title: {
     fontFamily: "Heebo_700Bold",
-    fontSize: 24,
+    fontSize: typography.size.xl,
     color: "#2F6B3A",
+    lineHeight: typography.lineHeight.spacious,
   },
   subtitle: {
     fontFamily: "Heebo_400Regular",
-    fontSize: 16,
+    fontSize: typography.subtitle,
     color: "#618C68",
-    lineHeight: 22,
+    lineHeight: Math.round(typography.subtitle * 1.4),
   },
   paragraph: {
     fontFamily: "Heebo_400Regular",
-    fontSize: 15,
+    fontSize: typography.body,
     color: "#444444",
-    lineHeight: 24,
+    lineHeight: Math.round(typography.body * 1.6),
   },
   caption: {
     fontFamily: typography.family.medium,
     fontSize: typography.size.caption,
     color: colors.textMuted,
+    lineHeight: Math.round(typography.size.caption * 1.3),
   },
   divider: {
     height: 1,

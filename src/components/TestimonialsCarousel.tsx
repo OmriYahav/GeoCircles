@@ -1,7 +1,7 @@
 import React from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { colors, radius, spacing } from "../theme";
+import { colors, radius, spacing, typography } from "../theme";
 
 type TestimonialsCarouselProps = {
   items: { name: string; quote: string }[];
@@ -45,12 +45,15 @@ const styles = StyleSheet.create({
   },
   quote: {
     color: colors.text,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: typography.body,
+    lineHeight: Math.round(typography.body * 1.45),
+    fontFamily: typography.family.regular,
   },
   name: {
     color: "#5b6d61",
     marginTop: 6,
-    fontWeight: "600",
+    fontSize: typography.size.sm,
+    fontFamily: typography.family.medium,
+    lineHeight: Math.round(typography.size.sm * 1.35),
   },
 });

@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { Dimensions, PixelRatio, Platform } from "react-native";
 
 const baseColors = {
   bgFrom: "#FAF9F4",
@@ -37,11 +37,45 @@ const defaultFontFamily = Platform.select({
   default: "Heebo_400Regular",
 });
 
-export const typography = {
+const GUIDELINE_BASE_WIDTH = 375;
+const REDUCTION_FACTOR = 0.85;
+
+const { width: windowWidth } = Dimensions.get("window");
+const widthScale = windowWidth / GUIDELINE_BASE_WIDTH;
+const responsiveScale = Math.min(Math.max(widthScale, 1), 1.1);
+
+export const scaleFont = (size: number) => {
+  const reduced = size * REDUCTION_FACTOR;
+  const scaled = reduced * responsiveScale;
+  return PixelRatio.roundToNearestPixel(scaled);
+};
+
+export const computeLineHeight = (size: number, multiplier = 1.35) =>
+  Math.round(scaleFont(size) * multiplier);
+
+const baseFontSizes = {
   title: 28,
   subtitle: 18,
   body: 15,
   small: 13,
+  caption: 12,
+  xs: 13,
+  sm: 15,
+  md: 16,
+  lg: 18,
+  xl: 24,
+  xxl: 32,
+} as const;
+
+const scaledFontSizes = Object.fromEntries(
+  Object.entries(baseFontSizes).map(([key, value]) => [key, scaleFont(value)]),
+) as { [K in keyof typeof baseFontSizes]: number };
+
+export const typography = {
+  title: scaledFontSizes.title,
+  subtitle: scaledFontSizes.subtitle,
+  body: scaledFontSizes.body,
+  small: scaledFontSizes.small,
   line: 1.7,
   fontFamily: defaultFontFamily ?? "Heebo_400Regular",
   family: {
@@ -52,19 +86,19 @@ export const typography = {
     bold: "Heebo_700Bold",
   },
   size: {
-    caption: 12,
-    xs: 13,
-    sm: 15,
-    md: 16,
-    lg: 18,
-    xl: 24,
-    xxl: 32,
+    caption: scaledFontSizes.caption,
+    xs: scaledFontSizes.xs,
+    sm: scaledFontSizes.sm,
+    md: scaledFontSizes.md,
+    lg: scaledFontSizes.lg,
+    xl: scaledFontSizes.xl,
+    xxl: scaledFontSizes.xxl,
   },
   lineHeight: {
-    tight: 18,
-    comfy: 22,
-    relaxed: 26,
-    spacious: 32,
+    tight: computeLineHeight(baseFontSizes.sm, 1.25),
+    comfy: computeLineHeight(baseFontSizes.md, 1.35),
+    relaxed: computeLineHeight(baseFontSizes.lg, 1.45),
+    spacious: computeLineHeight(baseFontSizes.xl, 1.55),
   },
 };
 
