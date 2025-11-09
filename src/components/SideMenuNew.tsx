@@ -67,6 +67,12 @@ const MENU_ITEMS: MenuItem[] = [
     subtitle: "השראה, סיפורים וטעמים",
     icon: "feather",
   },
+  {
+    key: "Contact",
+    title: "צרו קשר",
+    subtitle: "נשמח לשמור על קשר אישי",
+    icon: "message-circle",
+  },
 ];
 
 const BACKDROP_OPACITY = 0.45;
