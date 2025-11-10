@@ -6,8 +6,10 @@ import {
   Linking,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import type { ImageSourcePropType } from "react-native";
@@ -37,18 +39,6 @@ const CONTACT_ITEMS: ContactItem[] = [
     accessibilityLabel: "פתיחת שיחה בוואטסאפ עם בת חן",
   },
   {
-    key: "facebook",
-    icon: require("../../photos/facebook.png"),
-    url: "https://www.facebook.com/share/17YP65zVDC/?mibextid=wwXIfr",
-    accessibilityLabel: "מעבר לעמוד הפייסבוק של Sweet Balance",
-  },
-  {
-    key: "instagram",
-    icon: require("../../photos/instagram.png"),
-    url: "https://www.instagram.com/batchen_naturopathy",
-    accessibilityLabel: "מעבר לאינסטגרם של בת חן נטורופתיה",
-  },
-  {
     key: "mail",
     icon: require("../../photos/mail.png"),
     url: "mailto:batchenlev@gmail.com",
@@ -76,14 +66,6 @@ const CONTACT_SECTIONS: ContactSection[] = [
     lines: [
       { text: "📧 batchenlev@gmail.com", url: "mailto:batchenlev@gmail.com" },
       { text: "📞 050-7117202", url: "tel:+972507117202" },
-      {
-        text: "🌿 אינסטגרם: @batchen_naturopathy",
-        url: "https://www.instagram.com/batchen_naturopathy",
-      },
-      {
-        text: "🩶 פייסבוק: facebook.com/share/17YP65zVDC",
-        url: "https://www.facebook.com/share/17YP65zVDC/?mibextid=wwXIfr",
-      },
     ],
   },
   {
@@ -91,7 +73,6 @@ const CONTACT_SECTIONS: ContactSection[] = [
     title: "ייעוץ תזונתי ושאלות מקצועיות",
     description: "שאלות בנוגע למוצרים, סדנאות ותזונה",
     lines: [
-      { text: "📧 batchenlev@gmail.com", url: "mailto:batchenlev@gmail.com" },
       { text: "ניתן גם ליצור קשר דרך הרשתות החברתיות" },
     ],
   },
@@ -110,6 +91,23 @@ export default function ContactScreenContent() {
   const router = useRouter();
   const { isOpen, open, close } = useMenu();
   const transition = useRef(new Animated.Value(0)).current;
+
+  const handleNavigation = useCallback(async () => {
+    try {
+      const wazeUrl = "waze://?q=%D7%A2%D7%9E%D7%A7%20%D7%99%D7%96%D7%A8%D7%A2%D7%90%D7%9C,%20%D7%99%D7%A9%D7%A8%D7%90%D7%9C";
+      const mapsUrl =
+        "https://www.google.com/maps/search/?api=1&query=%D7%A2%D7%9E%D7%A7%20%D7%99%D7%96%D7%A8%D7%A2%D7%90%D7%9C,%20%D7%99%D7%A9%D7%A8%D7%90%D7%9C";
+
+      const supported = await Linking.canOpenURL(wazeUrl);
+      if (supported) {
+        await Linking.openURL(wazeUrl);
+      } else {
+        await Linking.openURL(mapsUrl);
+      }
+    } catch (error) {
+      console.warn("Failed to navigate to location", error);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -172,20 +170,31 @@ export default function ContactScreenContent() {
           <HeaderRightMenuButton onPress={handleMenuPress} expanded={isOpen} />
         </View>
 
-        <View style={styles.contentWrapper}>
-          <Animated.View style={[styles.card, animatedCardStyle]}>
-            <Text style={styles.title}>צרו קשר</Text>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.contentWrapper}>
+            <Animated.View style={[styles.card, animatedCardStyle]}>
+              <Text style={styles.title}>צרו קשר</Text>
 
-            <View style={styles.sectionsWrapper}>
-              {CONTACT_SECTIONS.map((section, index) => (
-                <View key={section.key} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{section.title}</Text>
-                  <Text style={styles.sectionDescription}>{section.description}</Text>
-                  <View style={styles.sectionLines}>
-                    {section.lines.map((line) => {
-                      if (!line.url) {
-                        return (
-                          <Text key={line.text} style={styles.sectionLine}>
+              <View style={styles.sectionsWrapper}>
+                {CONTACT_SECTIONS.map((section, index) => (
+                  <View key={section.key} style={styles.section}>
+                    <Text style={styles.sectionTitle}>{section.title}</Text>
+                    <Text style={styles.sectionDescription}>{section.description}</Text>
+                    {section.key === "general" ? (
+                      <TouchableOpacity
+                        onPress={handleNavigation}
+                        style={styles.navigateButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="פתיחת ניווט לעמק יזרעאל, ישראל"
+                      >
+                        <Text style={styles.navigateButtonText}>נווט אלינו 🚗</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    <View style={styles.sectionLines}>
+                      {section.lines.map((line) => {
+                        if (!line.url) {
+                          return (
+                            <Text key={line.text} style={styles.sectionLine}>
                             {line.text}
                           </Text>
                         );
@@ -229,8 +238,9 @@ export default function ContactScreenContent() {
                 ))}
               </View>
             </View>
-          </Animated.View>
-        </View>
+            </Animated.View>
+          </View>
+        </ScrollView>
       </SafeAreaView>
 
       <SideMenuNew
@@ -270,12 +280,19 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
   },
-  contentWrapper: {
+  scroll: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: spacing(2),
     paddingBottom: spacing(3),
+  },
+  contentWrapper: {
+    width: "100%",
+    alignItems: "center",
   },
   card: {
     width: "100%",
@@ -312,6 +329,16 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeight.relaxed,
     textAlign: "right",
     fontFamily: typography.fontFamily,
+  },
+  navigateButton: {
+    alignSelf: "flex-end",
+    marginTop: spacing(1),
+  },
+  navigateButtonText: {
+    color: colors.primary,
+    fontSize: typography.size.md,
+    fontFamily: typography.family.medium,
+    textDecorationLine: "underline",
   },
   sectionLines: {
     gap: spacing(0.75),
