@@ -33,8 +33,8 @@ const CONTACT_ITEMS: ContactItem[] = [
   {
     key: "whatsapp",
     icon: require("../../photos/whatsapp.png"),
-    url: "https://wa.me/0507117202",
-    accessibilityLabel: "פתיחת שיחה בוואצאפ עם Sweet Balance",
+    url: "https://wa.me/972507117202",
+    accessibilityLabel: "פתיחת שיחה בוואטסאפ עם בת חן",
   },
   {
     key: "facebook",
@@ -45,14 +45,64 @@ const CONTACT_ITEMS: ContactItem[] = [
   {
     key: "instagram",
     icon: require("../../photos/instagram.png"),
-    url: "https://www.instagram.com/batchenlev",
-    accessibilityLabel: "מעבר לאינסטגרם של Sweet Balance",
+    url: "https://www.instagram.com/batchen_naturopathy",
+    accessibilityLabel: "מעבר לאינסטגרם של בת חן נטורופתיה",
   },
   {
     key: "mail",
     icon: require("../../photos/mail.png"),
     url: "mailto:batchenlev@gmail.com",
     accessibilityLabel: "שליחת מייל אל batchenlev@gmail.com",
+  },
+];
+
+type ContactSectionLine = {
+  text: string;
+  url?: string;
+};
+
+type ContactSection = {
+  key: string;
+  title: string;
+  description: string;
+  lines: ContactSectionLine[];
+};
+
+const CONTACT_SECTIONS: ContactSection[] = [
+  {
+    key: "workshops",
+    title: "סדנאות וטיפולים",
+    description: "להצטרפות לסדנאות, טיפולים אישיים או קבוצתיים",
+    lines: [
+      { text: "📧 batchenlev@gmail.com", url: "mailto:batchenlev@gmail.com" },
+      { text: "📞 050-7117202", url: "tel:+972507117202" },
+      {
+        text: "🌿 אינסטגרם: @batchen_naturopathy",
+        url: "https://www.instagram.com/batchen_naturopathy",
+      },
+      {
+        text: "🩶 פייסבוק: facebook.com/share/17YP65zVDC",
+        url: "https://www.facebook.com/share/17YP65zVDC/?mibextid=wwXIfr",
+      },
+    ],
+  },
+  {
+    key: "nutrition",
+    title: "ייעוץ תזונתי ושאלות מקצועיות",
+    description: "שאלות בנוגע למוצרים, סדנאות ותזונה",
+    lines: [
+      { text: "📧 batchenlev@gmail.com", url: "mailto:batchenlev@gmail.com" },
+      { text: "ניתן גם ליצור קשר דרך הרשתות החברתיות" },
+    ],
+  },
+  {
+    key: "general",
+    title: "פניות כלליות ומיקום",
+    description: "נשמח לשוחח וללוות אתכם במסע לבריאות מאוזנת",
+    lines: [
+      { text: "📍 עמק יזרעאל, ישראל" },
+      { text: "⏰ בתיאום אישי מראש" },
+    ],
   },
 ];
 
@@ -125,20 +175,59 @@ export default function ContactScreenContent() {
         <View style={styles.contentWrapper}>
           <Animated.View style={[styles.card, animatedCardStyle]}>
             <Text style={styles.title}>צרו קשר</Text>
-            <View style={styles.iconGrid}>
-              {CONTACT_ITEMS.map((item) => (
-                <Pressable
-                  key={item.key}
-                  style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel={item.accessibilityLabel}
-                  onPress={() => {
-                    void handleContactPress(item.url);
-                  }}
-                >
-                  <Image source={item.icon} style={styles.iconImage} resizeMode="cover" />
-                </Pressable>
+
+            <View style={styles.sectionsWrapper}>
+              {CONTACT_SECTIONS.map((section, index) => (
+                <View key={section.key} style={styles.section}>
+                  <Text style={styles.sectionTitle}>{section.title}</Text>
+                  <Text style={styles.sectionDescription}>{section.description}</Text>
+                  <View style={styles.sectionLines}>
+                    {section.lines.map((line) => {
+                      if (!line.url) {
+                        return (
+                          <Text key={line.text} style={styles.sectionLine}>
+                            {line.text}
+                          </Text>
+                        );
+                      }
+
+                      return (
+                        <Pressable
+                          key={line.text}
+                          onPress={() => {
+                            void handleContactPress(line.url);
+                          }}
+                          accessibilityRole="link"
+                          accessibilityLabel={line.text}
+                          style={({ pressed }) => (pressed ? styles.sectionLinePressed : undefined)}
+                        >
+                          <Text style={[styles.sectionLine, styles.sectionLineLink]}>{line.text}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  {index < CONTACT_SECTIONS.length - 1 ? <View style={styles.sectionDivider} /> : null}
+                </View>
               ))}
+            </View>
+
+            <View style={styles.socialWrapper}>
+              <Text style={styles.socialLabel}>נשמח שתצרו קשר גם דרך</Text>
+              <View style={styles.iconGrid}>
+                {CONTACT_ITEMS.map((item) => (
+                  <Pressable
+                    key={item.key}
+                    style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.accessibilityLabel}
+                    onPress={() => {
+                      void handleContactPress(item.url);
+                    }}
+                  >
+                    <Image source={item.icon} style={styles.iconImage} resizeMode="cover" />
+                  </Pressable>
+                ))}
+              </View>
             </View>
           </Animated.View>
         </View>
@@ -190,13 +279,13 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    maxWidth: 420,
+    maxWidth: 500,
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
     paddingVertical: spacing(3),
-    paddingHorizontal: spacing(2.5),
-    alignItems: "center",
-    gap: spacing(2),
+    paddingHorizontal: spacing(3),
+    alignItems: "stretch",
+    gap: spacing(2.5),
     ...shadows.lg,
   },
   title: {
@@ -204,6 +293,57 @@ const styles = StyleSheet.create({
     fontSize: typography.title,
     fontFamily: typography.family.heading,
     textAlign: "center",
+  },
+  sectionsWrapper: {
+    gap: spacing(2),
+  },
+  section: {
+    gap: spacing(1.5),
+  },
+  sectionTitle: {
+    color: colors.primary,
+    fontSize: typography.size.lg,
+    fontFamily: typography.family.semiBold,
+    textAlign: "right",
+  },
+  sectionDescription: {
+    color: colors.textMuted,
+    fontSize: typography.size.md,
+    lineHeight: typography.lineHeight.relaxed,
+    textAlign: "right",
+    fontFamily: typography.fontFamily,
+  },
+  sectionLines: {
+    gap: spacing(0.75),
+  },
+  sectionLine: {
+    color: colors.text,
+    fontSize: typography.size.md,
+    lineHeight: typography.lineHeight.relaxed,
+    textAlign: "right",
+    fontFamily: typography.family.regular,
+  },
+  sectionLineLink: {
+    color: colors.primary,
+  },
+  sectionLinePressed: {
+    opacity: 0.7,
+  },
+  sectionDivider: {
+    marginTop: spacing(2),
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#DADFD8",
+  },
+  socialWrapper: {
+    alignItems: "stretch",
+    gap: spacing(1.5),
+  },
+  socialLabel: {
+    color: colors.textMuted,
+    fontSize: typography.size.sm,
+    textAlign: "right",
+    fontFamily: typography.family.medium,
+    letterSpacing: 0.2,
   },
   iconGrid: {
     width: "100%",
